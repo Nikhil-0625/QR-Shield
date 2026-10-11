@@ -1,0 +1,30 @@
+# Python virtual environments
+venv/
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+
+# Machine learning model files
+*.pkl
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Editor and system files
+.vscode/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#51478f">
+    <title>QR Shield - QR Code Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #252541;
+            --muted: #74758e;
+            --purple: #6855c5;
+            --purple-dark: #51478f;
+            --line: #e8e7f1;
+            --surface: #fff;
+            --warning-bg: #fff8e8;
+            --warning-ink: #765319;
+            --danger: #b4233b;
+        }
+        * { box-sizing: border-box; }
+        body {
+            min-height: 100vh;
+            margin: 0;
+            padding: 28px 20px 48px;
+            overflow-x: hidden;
+            background:
+                radial-gradient(ellipse at 5% 0%, rgba(115, 105, 221, 0.28), transparent 34rem),
+                linear-gradient(135deg, #eef0ff 0%, #f8f7fc 54%, #f1edfa 100%);
+            color: var(--ink);
+            font-family: 'Poppins', 'Segoe UI', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        button, input, textarea { font: inherit; }
+        button { cursor: pointer; }
+        .container { width: min(1120px, 100%); margin: 0 auto; }
+        .page-heading { margin: 0 0 22px; text-align: center; }
+        h1 { margin: 0; color: #252541; font-size: clamp(26px, 4vw, 36px); line-height: 1.2; letter-spacing: -.04em; }
+        .subtitle { margin: 9px 0 0; color: var(--muted); font-size: 14px; }
+        .notice {
+            max-width: 810px;
+            margin: 18px auto 26px;
+            padding: 12px 16px;
+            border: 1px solid #e9d7a5;
+            border-radius: 12px;
+            background: var(--warning-bg);
+            color: var(--warning-ink);
+            font-size: 12px;
+            line-height: 1.6;
+            text-align: center;
+        }
+        .workspace { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); gap: 20px; align-items: start; }
+        .card {
+            min-width: 0;
+            padding: 26px;
+            border: 1px solid rgba(226,225,239,.95);
+            border-radius: 20px;
+            background: var(--surface);
+            box-shadow: 0 12px 32px rgba(42, 39, 83, .075), 0 2px 5px rgba(42,39,83,.035);
+        }
+        .card-heading { margin: 0 0 4px; font-size: 17px; font-weight: 700; }
+        .card-subtitle { margin: 0 0 20px; color: var(--muted); font-size: 12px; line-height: 1.6; }
+        .tabs {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 5px;
+            margin-bottom: 22px;
+            padding: 5px;
+            border-radius: 13px;
+            background: #f2f1f8;
+        }
+        .tab {
+            min-height: 42px;
+            padding: 8px 6px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #76758e;
+            font-size: 12px;
+            font-weight: 600;
+            transition: color .16s ease, background-color .16s ease, box-shadow .16s ease;
+        }
+        .tab[aria-selected="true"] {
+            background: white;
+            color: var(--purple-dark);
+            box-shadow: 0 2px 8px rgba(38,34,74,.1);
+        }
+        .field { margin-bottom: 17px; }
+        .field label { display: block; margin-bottom: 7px; color: #45455f; font-size: 12px; font-weight: 600; }
+        .field input, .field textarea {
+            display: block;
+            width: 100%;
+            min-height: 46px;
+            padding: 11px 13px;
+            border: 1px solid #dedee9;
+            border-radius: 11px;
+            outline: none;
+            background: #fcfcfe;
+            color: var(--ink);
+            font-size: 13px;
+            transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+        }
+        .field textarea { min-height: 145px; resize: vertical; line-height: 1.55; }
+        .field input:focus, .field textarea:focus { border-color: #8979dc; background: white; box-shadow: 0 0 0 3px rgba(104,85,197,.12); }
+        .field input::placeholder, .field textarea::placeholder { color: #a0a0b0; }
+        .field-hint { margin: 6px 0 0; color: #83839a; font-size: 11px; line-height: 1.5; }
+        .upi-notice {
+            margin: 4px 0 17px;
+            padding: 11px 13px;
+            border: 1px solid #dce6fb;
+            border-radius: 10px;
+            background: #f4f7ff;
+            color: #45577a;
+            font-size: 11px;
+            line-height: 1.55;
+        }
+        .two-fields { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 13px; }
+        .primary-btn, .secondary-btn {
+            min-height: 46px;
+            padding: 11px 16px;
+            border-radius: 11px;
+            font-size: 13px;
+            font-weight: 700;
+            transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+        }
+        .primary-btn {
+            width: 100%;
+            border: 0;
+            background: linear-gradient(120deg, #6675dd, #7651b1);
+            color: white;
+            box-shadow: 0 6px 15px rgba(101,83,191,.22);
+        }
+        .primary-btn:hover { transform: translateY(-1px); box-shadow: 0 9px 19px rgba(101,83,191,.28); }
+        .secondary-btn { border: 1px solid #d9d7e9; background: white; color: var(--purple-dark); }
+        .secondary-btn:hover { background: #f7f5ff; }
+        button:focus-visible { outline: 3px solid #bdb3ff; outline-offset: 2px; }
+        .form-message { min-height: 20px; margin: 10px 0 0; color: var(--danger); font-size: 12px; line-height: 1.5; }
+        .preview-card { text-align: center; }
+        .preview-card .card-heading { text-align: left; }
+        .preview-card .card-subtitle { text-align: left; }
+        .preview-stage {
+            display: grid;
+            min-height: 330px;
+            place-items: center;
+            padding: 20px;
+            border: 1px dashed #d9d7e8;
+            border-radius: 16px;
+            background:
+                radial-gradient(circle at 50% 48%, rgba(119,108,202,.08), transparent 54%),
+                #fafaff;
+        }
+        .placeholder { max-width: 240px; color: #82829a; }
+        .placeholder-icon {
+            display: grid;
+            width: 68px;
+            height: 68px;
+            margin: 0 auto 14px;
+            place-items: center;
+            border-radius: 20px;
+            background: #eeecfb;
+            color: #6d5fbd;
+            font-size: 30px;
+        }
+        .placeholder strong { display: block; margin-bottom: 5px; color: #494966; font-size: 14px; }
+        .placeholder span { font-size: 12px; line-height: 1.6; }
+        .qr-result { width: 100%; }
+        .qr-image-frame {
+            display: inline-grid;
+            max-width: 100%;
+            padding: 12px;
+            place-items: center;
+            border: 1px solid #edecf3;
+            border-radius: 14px;
+            background: white;
+            box-shadow: 0 8px 22px rgba(32,30,69,.08);
+        }
+        .qr-image { display: block; width: min(260px, 65vw); height: auto; image-rendering: pixelated; }
+        .qr-type {
+            display: inline-block;
+            margin: 15px auto 9px;
+            padding: 5px 10px;
+            border-radius: 20px;
+            background: #efedfb;
+            color: var(--purple-dark);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: .04em;
+            text-transform: uppercase;
+        }
+        .encoded-content {
+            max-height: 110px;
+            overflow: auto;
+            padding: 11px 12px;
+            border: 1px solid #eeeef3;
+            border-radius: 10px;
+            background: #fafafd;
+            color: #55556d;
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 11px;
+            line-height: 1.55;
+            text-align: left;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+        .preview-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; margin-top: 15px; }
+        [hidden] { display: none !important; }
+        @media (max-width: 820px) {
+            body { padding: 20px 15px 34px; }
+            .workspace { grid-template-columns: minmax(0, 1fr); }
+            .preview-card { order: -1; }
+            .preview-stage { min-height: 270px; }
+        }
+        @media (max-width: 520px) {
+            body { padding: 13px 12px 26px; }
+            .page-heading { margin-bottom: 17px; }
+            .subtitle { font-size: 12px; }
+            .notice { margin: 14px auto 19px; padding: 11px 12px; font-size: 11px; }
+            .card { padding: 20px 17px; border-radius: 17px; }
+            .workspace { gap: 14px; }
+            .tabs { gap: 3px; }
+            .tab { font-size: 10px; }
+            .two-fields { grid-template-columns: minmax(0, 1fr); gap: 0; }
+            .preview-stage { min-height: 235px; padding: 15px; }
+            .qr-image { width: min(230px, 62vw); }
+            .preview-actions { grid-template-columns: minmax(0, 1fr); }
+        }
+        @media (max-width: 365px) {
+            .tabs { grid-template-columns: minmax(0, 1fr); }
+            .tab { min-height: 36px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+        }
+
+        body.generator-page {
+            position: relative;
+            padding: 24px clamp(16px, 3vw, 34px) 56px;
+            background:
+                radial-gradient(ellipse at 8% 4%, rgba(126, 163, 235, .16), transparent 27rem),
+                radial-gradient(ellipse at 91% 15%, rgba(158, 136, 224, .17), transparent 28rem),
+                linear-gradient(145deg, #f6f7ff 0%, #fbfaff 53%, #f6f2ff 100%);
+            color: #111a3a;
+        }
+        .generator-page .container {
+            position: relative;
+            z-index: 1;
+            width: min(1240px, 100%);
+        }
+        .generator-page .qs-header { margin-bottom: 34px; }
+        .generator-page .page-heading {
+            max-width: 790px;
+            margin: 0 auto 17px;
+            text-align: center;
+        }
+        .hero-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin: 0 0 12px;
+            color: #6157c9;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        .hero-kicker::before {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: linear-gradient(110deg, #3975e6, #7654f6);
+            content: "";
+        }
+        .generator-page h1 {
+            color: #111a3a;
+            font-size: clamp(36px, 5vw, 54px);
+            font-weight: 700;
+            line-height: 1.08;
+            letter-spacing: -.055em;
+        }
+        .generator-page h1 span {
+            background: linear-gradient(110deg, #3975e6, #7654f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .generator-page .subtitle {
+            max-width: 690px;
+            margin: 14px auto 0;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+        .generator-page .notice {
+            display: flex;
+            max-width: 760px;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin: 0 auto 24px;
+            padding: 10px 15px;
+            border-color: #e2ddf5;
+            border-radius: 11px;
+            background: rgba(255, 255, 255, .7);
+            color: #62627d;
+            font-size: 11px;
+            text-align: left;
+        }
+        .notice svg {
+            width: 17px;
+            height: 17px;
+            flex: 0 0 17px;
+            fill: none;
+            stroke: #7164bd;
+            stroke-width: 1.6;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .generator-page .workspace {
+            display: grid;
+            grid-template-columns: minmax(190px, .68fr) minmax(300px, 1.08fr) minmax(320px, 1.12fr);
+            align-items: stretch;
+            gap: 16px;
+        }
+        .generator-page .card {
+            min-width: 0;
+            padding: 23px 21px;
+            border: 1px solid rgba(224, 221, 242, .92);
+            border-radius: 17px;
+            background: rgba(255, 255, 255, .93);
+            box-shadow: 0 8px 24px rgba(62, 54, 106, .055), 0 1px 3px rgba(34, 52, 84, .025);
+        }
+        .panel-eyebrow {
+            margin-bottom: 8px;
+            color: #7266bf;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: .12em;
+        }
+        .generator-page .card-heading {
+            margin: 0 0 5px;
+            color: #17233f;
+            font-size: 16px;
+            font-weight: 700;
+            letter-spacing: -.025em;
+        }
+        .generator-page .card-subtitle {
+            margin: 0 0 18px;
+            color: #748096;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .generator-page .tabs {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+        }
+        .generator-page .tab {
+            display: grid;
+            grid-template-columns: 38px minmax(0, 1fr) 12px;
+            min-height: 62px;
+            align-items: center;
+            gap: 10px;
+            padding: 9px 10px;
+            border: 1px solid #eceaf5;
+            border-radius: 11px;
+            background: #fff;
+            color: #44516a;
+            text-align: left;
+        }
+        .generator-page .tab > svg {
+            width: 36px;
+            height: 36px;
+            padding: 9px;
+            border: 1px solid #e8e6f5;
+            border-radius: 10px;
+            background: #f5f3fd;
+            fill: none;
+            stroke: #655bb1;
+            stroke-width: 1.65;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .generator-page .tab strong,
+        .generator-page .tab small { display: block; }
+        .generator-page .tab strong { color: #36445e; font-size: 11px; font-weight: 700; }
+        .generator-page .tab small { margin-top: 3px; color: #858ba0; font-size: 9px; font-weight: 500; }
+        .generator-page .tab .tab-arrow { color: #9b9bb0; font-size: 20px; line-height: 1; }
+        .generator-page .tab[aria-selected="true"] {
+            border-color: #cfc9f2;
+            background: linear-gradient(115deg, #f7f6ff, #fff);
+            box-shadow: 0 3px 10px rgba(75, 62, 139, .06);
+        }
+        .generator-page .tab[aria-selected="true"] > svg {
+            border-color: #ded9f8;
+            background: #efedfc;
+            color: #5149a1;
+        }
+        .generator-page .tab[aria-selected="true"] strong,
+        .generator-page .tab[aria-selected="true"] .tab-arrow { color: #443d90; }
+        .generator-page .tab:hover:not([aria-selected="true"]) { border-color: #dcd8ed; background: #fcfbff; }
+        .type-footnote {
+            margin: 17px 0 0;
+            color: #83889c;
+            font-size: 10px;
+            line-height: 1.55;
+        }
+        .generator-page .field { margin-bottom: 15px; }
+        .generator-page .field label { margin-bottom: 6px; color: #404d65; font-size: 11px; }
+        .generator-page .field input,
+        .generator-page .field textarea {
+            min-height: 43px;
+            padding: 10px 12px;
+            border-color: #e1dfeb;
+            border-radius: 9px;
+            background: #fdfdff;
+            color: #192541;
+            font-size: 12px;
+        }
+        .generator-page .field textarea { min-height: 132px; }
+        .generator-page .field input:focus,
+        .generator-page .field textarea:focus {
+            border-color: #8979dc;
+            box-shadow: 0 0 0 3px rgba(104, 85, 197, .11);
+        }
+        .generator-page .field input::placeholder,
+        .generator-page .field textarea::placeholder { color: #a0a5b4; }
+        .generator-page .field-hint { color: #7d8799; font-size: 10px; }
+        .generator-page .upi-notice {
+            margin: 1px 0 15px;
+            padding: 10px 12px;
+            border-color: #e0def4;
+            border-radius: 9px;
+            background: #f7f6ff;
+            color: #525c78;
+            font-size: 10px;
+        }
+        .generator-page .two-fields { gap: 10px; }
+        .generator-page .form-message {
+            min-height: 18px;
+            margin: 3px 0 0;
+            color: #a83248;
+            font-size: 11px;
+        }
+        .generator-page .preview-card { text-align: left; }
+        .generator-page .preview-stage {
+            display: grid;
+            min-height: 312px;
+            padding: 15px;
+            border: 1px solid #e5e1f2;
+            border-radius: 13px;
+            background:
+                radial-gradient(circle at 50% 44%, rgba(138, 123, 214, .09), transparent 58%),
+                #fbfaff;
+        }
+        .generator-page .qr-result { text-align: center; }
+        .generator-page .placeholder { max-width: 220px; color: #778198; }
+        .generator-page .placeholder-icon {
+            width: 58px;
+            height: 58px;
+            margin-bottom: 12px;
+            border: 1px solid #e2def5;
+            border-radius: 17px;
+            background: #f0eefb;
+            color: #655bb5;
+        }
+        .placeholder-icon svg {
+            width: 34px;
+            height: 34px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .generator-page .placeholder strong { color: #3b4760; font-size: 12px; }
+        .generator-page .placeholder span { font-size: 10px; }
+        .generator-page .qr-image-frame {
+            padding: 10px;
+            border-color: #e9e7f0;
+            border-radius: 12px;
+            box-shadow: 0 4px 14px rgba(32, 30, 69, .055);
+        }
+        .generator-page .qr-image {
+            width: min(248px, 100%);
+            max-height: 290px;
+            image-rendering: pixelated;
+        }
+        .generator-page .qr-type { margin: 11px auto 8px; }
+        .generator-page .encoded-content {
+            max-height: 76px;
+            border-color: #e9e7f0;
+            background: #fff;
+            color: #526079;
+            font-size: 10px;
+        }
+        .generator-page .preview-actions {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 8px;
+            margin-top: 10px;
+        }
+        .generator-page .primary-btn,
+        .generator-page .secondary-btn {
+            min-height: 43px;
+            padding: 10px 14px;
+            border-radius: 9px;
+            font-size: 11px;
+        }
+        .generator-page .primary-btn {
+            background: linear-gradient(110deg, #3975e6, #7654f6);
+            box-shadow: 0 4px 11px rgba(83, 89, 196, .16);
+        }
+        .generator-page .primary-btn:hover:not(:disabled) {
+            box-shadow: 0 6px 15px rgba(83, 89, 196, .22);
+        }
+        .generator-page .primary-btn:disabled {
+            background: #e7e9f0;
+            color: #7b8292;
+            box-shadow: none;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .generator-page .secondary-btn {
+            border-color: #dedbef;
+            color: #514a99;
+        }
+        .generator-page .generate-btn { margin-top: 14px; }
+        .preview-help {
+            margin: 10px 0 0;
+            color: #858ba0;
+            font-size: 10px;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .preview-status {
+            margin: 9px 0 0;
+            color: #8a5c20;
+            font-size: 10px;
+            line-height: 1.5;
+            text-align: center;
+        }
+        .generator-page button:focus-visible,
+        .generator-page a:focus-visible {
+            outline: 3px solid rgba(92, 112, 220, .55);
+            outline-offset: 2px;
+        }
+        @media (max-width: 1050px) {
+            .generator-page .workspace {
+                grid-template-columns: minmax(0, .78fr) minmax(0, 1.22fr);
+                align-items: start;
+            }
+            .generator-page .preview-card {
+                grid-column: 1 / -1;
+                display: grid;
+                grid-template-columns: minmax(190px, .7fr) minmax(0, 1.3fr);
+                align-items: center;
+                column-gap: 22px;
+            }
+            .generator-page .preview-card .panel-eyebrow,
+            .generator-page .preview-card .card-heading,
+            .generator-page .preview-card .card-subtitle,
+            .generator-page .preview-card .preview-status,
+            .generator-page .preview-card .generate-btn,
+            .generator-page .preview-card .preview-help { grid-column: 1; }
+            .generator-page .preview-card .panel-eyebrow { grid-row: 1; align-self: end; }
+            .generator-page .preview-card .card-heading { grid-row: 2; }
+            .generator-page .preview-card .card-subtitle { grid-row: 3; align-self: start; margin-bottom: 0; }
+            .generator-page .preview-stage { grid-column: 2; grid-row: 1 / span 6; min-height: 290px; }
+            .generator-page .preview-card .preview-status { grid-row: 4; }
+            .generator-page .preview-card .generate-btn { grid-row: 5; }
+            .generator-page .preview-card .preview-help { grid-row: 6; }
+        }
+        @media (max-width: 900px) {
+            body.generator-page { padding: 18px 16px 36px; }
+            .generator-page .qs-header { margin-bottom: 24px; }
+            .generator-page .page-heading { margin-bottom: 15px; }
+            .generator-page .workspace { grid-template-columns: minmax(0, 1fr); gap: 13px; }
+            .generator-page .preview-card {
+                grid-column: auto;
+                order: 0;
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .generator-page .preview-stage { min-height: 290px; }
+            .generator-page .preview-card .card-subtitle { margin-bottom: 16px; }
+            .generator-page .tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+            .generator-page .tab { grid-template-columns: 32px minmax(0, 1fr); min-height: 58px; gap: 7px; padding: 8px; }
+            .generator-page .tab > svg { width: 32px; height: 32px; padding: 8px; }
+            .generator-page .tab .tab-arrow { display: none; }
+            .generator-page .tab small { font-size: 8px; }
+            .generator-page .type-footnote { margin-top: 12px; }
+        }
+        @media (max-width: 520px) {
+            body.generator-page { padding: 13px 12px 28px; }
+            .generator-page .qs-header { margin-bottom: 23px; }
+            .generator-page .page-heading { margin-bottom: 14px; }
+            .generator-page h1 { font-size: clamp(34px, 9vw, 42px); }
+            .generator-page .subtitle { margin-top: 11px; font-size: 12px; }
+            .generator-page .notice { margin-bottom: 17px; padding: 10px 11px; font-size: 10px; }
+            .generator-page .card { padding: 19px 16px; border-radius: 15px; }
+            .generator-page .workspace { gap: 11px; }
+            .generator-page .preview-stage { min-height: 250px; padding: 12px; }
+            .generator-page .qr-image { width: min(220px, 100%); }
+            .generator-page .preview-actions { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+            .generator-page .preview-actions .primary-btn,
+            .generator-page .preview-actions .secondary-btn { padding: 9px 7px; font-size: 10px; }
+        }
+        @media (max-width: 365px) {
+            .generator-page .tabs { grid-template-columns: minmax(0, 1fr); }
+            .generator-page .tab { grid-template-columns: 36px minmax(0, 1fr) 12px; min-height: 50px; }
+            .generator-page .tab > svg { width: 34px; height: 34px; }
+            .generator-page .tab .tab-arrow { display: inline; }
+        }
+    </style>
+    <link rel="stylesheet" href="navigation.css">
+    <script src="navigation.js" defer></script>
+    <script src="qrcode-generator.js"></script>
+</head>
+<body class="generator-page">
+    <main class="container">
+        <header class="qs-header">
+            <a class="qs-brand" href="scan.html" aria-label="QR Shield home">
+                <span class="qs-brand-mark" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/>
+                        <path d="m9 12 2 2 4-4"/>
+                    </svg>
+                </span>
+                <span class="qs-brand-copy">
+                    <span class="qs-brand-name">QR Shield</span>
+                    <span class="qs-brand-subtitle">QR Security Platform</span>
+                </span>
+            </a>
+            <button class="qs-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false">
+                <span class="qs-menu-icon" aria-hidden="true"></span>
+            </button>
+            <nav class="qs-nav-links" id="primary-navigation" aria-label="Main navigation">
+                <a class="qs-nav-link" href="scan.html">Scan QR</a>
+                <a class="qs-nav-link" href="generate.html" aria-current="page">Generate QR</a>
+                <a class="qs-nav-link" href="dashboard.html">Dashboard</a>
+                <button class="qs-nav-link" type="button" id="logout-btn">Logout</button>
+            </nav>
+        </header>
+
+        <header class="page-heading">
+            <p class="hero-kicker">QR Shield Creator</p>
+            <h1>Create QR.<br><span>Share Seamlessly.</span></h1>
+            <p class="subtitle">Generate QR codes for websites, text, and UPI payment details. Preview and download your code instantly.</p>
+        </header>
+        <p class="notice">
+            <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 2.5 17 5v4.7c0 4.2-2.8 6.7-7 8.8-4.2-2.1-7-4.6-7-8.8V5l7-2.5Z"/><path d="M10 7v3.5M10 13.5h.01"/></svg>
+            Generating a QR code does not verify the safety or authenticity of its contents.
+        </p>
+
+        <section class="workspace" aria-label="QR code generator">
+            <aside class="card type-card" aria-labelledby="type-heading">
+                <div class="panel-eyebrow">STEP 01</div>
+                <h2 class="card-heading" id="type-heading">Choose a QR type</h2>
+                <p class="card-subtitle">Select the kind of information you want to share.</p>
+
+                <div class="tabs" role="tablist" aria-label="QR code type" aria-orientation="vertical">
+                    <button class="tab" type="button" role="tab" id="tab-url" aria-controls="panel-url" aria-selected="true" data-type="url">
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M10 13.5 14 9.5M8.5 15l-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0M15.5 9l1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0"/></svg>
+                        <span><strong>Website URL</strong><small>Link to a web address</small></span>
+                        <span class="tab-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <button class="tab" type="button" role="tab" id="tab-text" aria-controls="panel-text" aria-selected="false" data-type="text" tabindex="-1">
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M5 5h14M12 5v14M8 19h8"/></svg>
+                        <span><strong>Plain Text</strong><small>Share a note or message</small></span>
+                        <span class="tab-arrow" aria-hidden="true">›</span>
+                    </button>
+                    <button class="tab" type="button" role="tab" id="tab-upi" aria-controls="panel-upi" aria-selected="false" data-type="upi" tabindex="-1">
+                        <svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="M3 9h18M7 14h4M15 14h2"/></svg>
+                        <span><strong>UPI Payment</strong><small>Encode payment details</small></span>
+                        <span class="tab-arrow" aria-hidden="true">›</span>
+                    </button>
+                </div>
+                <p class="type-footnote">Your content is encoded locally in this browser.</p>
+            </aside>
+
+            <form class="card" id="generator-form" novalidate>
+                <div class="panel-eyebrow">STEP 02</div>
+                <h2 class="card-heading">Add your content</h2>
+                <p class="card-subtitle">Enter the details to include in your QR code.</p>
+
+                <div id="panel-url" role="tabpanel" aria-labelledby="tab-url">
+                    <div class="field">
+                        <label for="website-url">Website URL <span aria-hidden="true">*</span></label>
+                        <input id="website-url" name="website-url" type="url" inputmode="url" autocomplete="url" placeholder="https://example.com" maxlength="2048" required>
+                        <p class="field-hint">Only HTTP and HTTPS addresses are accepted. QR Shield will not visit this address.</p>
+                    </div>
+                </div>
+
+                <div id="panel-text" role="tabpanel" aria-labelledby="tab-text" hidden>
+                    <div class="field">
+                        <label for="plain-text">Text content <span aria-hidden="true">*</span></label>
+                        <textarea id="plain-text" name="plain-text" maxlength="1000" placeholder="Enter text to encode..." required></textarea>
+                        <p class="field-hint">Unicode is supported. Maximum 1,000 characters and 900 UTF-8 bytes.</p>
+                    </div>
+                </div>
+
+                <div id="panel-upi" role="tabpanel" aria-labelledby="tab-upi" hidden>
+                    <p class="upi-notice">UPI details are entered by the QR creator. Payee identity is not independently verified.</p>
+                    <div class="field">
+                        <label for="upi-id">Payee UPI ID <span aria-hidden="true">*</span></label>
+                        <input id="upi-id" name="upi-id" type="text" autocomplete="off" maxlength="120" placeholder="name@bank" required>
+                    </div>
+                    <div class="field">
+                        <label for="payee-name">QR-declared Payee Name <span aria-hidden="true">*</span></label>
+                        <input id="payee-name" name="payee-name" type="text" autocomplete="off" maxlength="120" placeholder="Name shown to the payer" required>
+                    </div>
+                    <div class="two-fields">
+                        <div class="field">
+                            <label for="upi-amount">Amount (optional)</label>
+                            <input id="upi-amount" name="upi-amount" type="text" inputmode="decimal" autocomplete="off" maxlength="18" placeholder="10.00">
+                        </div>
+                        <div class="field">
+                            <label for="upi-note">Transaction Note (optional)</label>
+                            <input id="upi-note" name="upi-note" type="text" autocomplete="off" maxlength="120" placeholder="Payment note">
+                        </div>
+                    </div>
+                </div>
+
+                <p class="form-message" id="form-message" role="alert" aria-live="polite"></p>
+            </form>
+
+            <section class="card preview-card" aria-labelledby="preview-heading">
+                <div class="panel-eyebrow">STEP 03</div>
+                <h2 class="card-heading" id="preview-heading">Preview your QR</h2>
+                <p class="card-subtitle">A crisp black-and-white code with a standard quiet zone.</p>
+                <div class="preview-stage" id="preview-stage" aria-live="polite">
+                    <div class="placeholder" id="preview-placeholder">
+                        <div class="placeholder-icon" aria-hidden="true">
+                            <svg viewBox="0 0 48 48"><rect x="8" y="7" width="32" height="34" rx="8"/><path d="M17 18h14M17 24h9M20 34h8"/><path d="m29 30 3 3 6-7"/></svg>
+                        </div>
+                        <strong>Your QR will appear here</strong>
+                        <span>Choose a type, add your content, then generate a code.</span>
+                    </div>
+                    <div class="qr-result" id="qr-result" hidden>
+                        <div class="qr-image-frame">
+                            <img class="qr-image" id="qr-image" alt="Generated QR code">
+                        </div>
+                        <div><span class="qr-type" id="qr-type"></span></div>
+                        <div class="encoded-content" id="encoded-content"></div>
+                        <div class="preview-actions">
+                            <button class="primary-btn" type="button" id="download-btn" disabled>Download PNG</button>
+                            <button class="secondary-btn" type="button" id="another-btn">Generate Another QR</button>
+                        </div>
+                    </div>
+                </div>
+                <p class="preview-status" id="preview-status" role="status" aria-live="polite" hidden></p>
+                <button class="primary-btn generate-btn" type="submit" form="generator-form">Generate QR Code</button>
+                <p class="preview-help">Scan and test your generated QR before sharing it.</p>
+            </section>
+        </section>
+    </main>
+
+    <script>
+        const MAX_PAYLOAD_BYTES = 900;
+        const UTF8_ENCODER = new TextEncoder();
+        const tabs = Array.from(document.querySelectorAll(".tab"));
+        const tabList = document.querySelector(".tabs");
+        const panels = {
+            url: document.getElementById("panel-url"),
+            text: document.getElementById("panel-text"),
+            upi: document.getElementById("panel-upi")
+        };
+        const form = document.getElementById("generator-form");
+        const formMessage = document.getElementById("form-message");
+        const previewStatus = document.getElementById("preview-status");
+        const previewPlaceholder = document.getElementById("preview-placeholder");
+        const qrResult = document.getElementById("qr-result");
+        const qrImage = document.getElementById("qr-image");
+        const qrType = document.getElementById("qr-type");
+        const encodedContent = document.getElementById("encoded-content");
+        const downloadButton = document.getElementById("download-btn");
+        let activeType = "url";
+        let currentDownloadUrl = null;
+
+        function syncTabOrientation() {
+            const horizontal = window.matchMedia("(max-width: 760px) and (min-width: 366px)").matches;
+            tabList.setAttribute("aria-orientation", horizontal ? "horizontal" : "vertical");
+        }
+        syncTabOrientation();
+        window.addEventListener("resize", syncTabOrientation);
+
+        if (!localStorage.getItem("access_token")) {
+            window.location.replace("login.html");
+        }
+
+        document.getElementById("logout-btn").addEventListener("click", () => {
+            localStorage.removeItem("access_token");
+            window.location.href = "login.html";
+        });
+
+        qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+
+        function clearPreview(message = "") {
+            if (currentDownloadUrl) {
+                URL.revokeObjectURL(currentDownloadUrl);
+                currentDownloadUrl = null;
+            }
+            qrImage.removeAttribute("src");
+            qrResult.hidden = true;
+            previewPlaceholder.hidden = false;
+            downloadButton.disabled = true;
+            downloadButton.removeAttribute("data-download");
+            previewStatus.textContent = message;
+            previewStatus.hidden = !message;
+            if (message) {
+                formMessage.textContent = message;
+            }
+        }
+
+        function invalidatePreview() {
+            if (!qrResult.hidden) {
+                clearPreview("Content changed. Generate a new QR code before downloading.");
+            } else {
+                formMessage.textContent = "";
+            }
+        }
+
+        function selectType(type, focusTab = false) {
+            activeType = type;
+            tabs.forEach((tab) => {
+                const selected = tab.dataset.type === type;
+                tab.setAttribute("aria-selected", String(selected));
+                tab.tabIndex = selected ? 0 : -1;
+                if (selected && focusTab) tab.focus();
+            });
+            Object.entries(panels).forEach(([panelType, panel]) => {
+                panel.hidden = panelType !== type;
+            });
+            invalidatePreview();
+        }
+
+        tabs.forEach((tab, index) => {
+            tab.addEventListener("click", () => selectType(tab.dataset.type));
+            tab.addEventListener("keydown", (event) => {
+                if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Home", "End"].includes(event.key)) return;
+                event.preventDefault();
+                let nextIndex = index;
+                if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (index + tabs.length - 1) % tabs.length;
+                if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (index + 1) % tabs.length;
+                if (event.key === "Home") nextIndex = 0;
+                if (event.key === "End") nextIndex = tabs.length - 1;
+                selectType(tabs[nextIndex].dataset.type, true);
+            });
+        });
+
+        form.addEventListener("input", invalidatePreview);
+
+        function getUrlPayload() {
+            const value = document.getElementById("website-url").value.trim();
+            if (!value) throw new Error("Enter a website URL.");
+            let parsed;
+            try {
+                parsed = new URL(value);
+            } catch (error) {
+                throw new Error("Enter a valid HTTP or HTTPS URL.");
+            }
+            if (!["http:", "https:"].includes(parsed.protocol) || !parsed.hostname ||
+                parsed.username || parsed.password) {
+                throw new Error("Enter a valid HTTP or HTTPS URL without embedded credentials.");
+            }
+            return value;
+        }
+
+        function getTextPayload() {
+            const value = document.getElementById("plain-text").value;
+            if (!value.trim()) throw new Error("Enter text to encode.");
+            if (value.length > 1000) throw new Error("Text must be 1,000 characters or fewer.");
+            return value;
+        }
+
+        function getUpiPayload() {
+            const payeeId = document.getElementById("upi-id").value.trim();
+            const payeeName = document.getElementById("payee-name").value.trim();
+            const amount = document.getElementById("upi-amount").value.trim();
+            const note = document.getElementById("upi-note").value.trim();
+            const upiIdPattern = /^[A-Za-z0-9][A-Za-z0-9._+-]*@[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$/;
+
+            if (!payeeId) throw new Error("Enter the payee UPI ID.");
+            if (!upiIdPattern.test(payeeId)) throw new Error("Enter a valid UPI ID, such as name@bank.");
+            if (!payeeName) throw new Error("Enter the QR-declared payee name.");
+
+            const params = new URLSearchParams();
+            params.set("pa", payeeId);
+            params.set("pn", payeeName);
+            if (amount) {
+                if (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(amount) || !Number.isFinite(Number(amount)) || Number(amount) < 0) {
+                    throw new Error("Enter a finite, non-negative decimal amount.");
+                }
+                params.set("am", amount);
+            }
+            if (note) params.set("tn", note);
+            params.set("cu", "INR");
+            return `upi://pay?${params.toString()}`;
+        }
+
+        function getPayload() {
+            if (activeType === "url") return { type: "Website URL", content: getUrlPayload() };
+            if (activeType === "text") return { type: "Plain Text", content: getTextPayload() };
+            return { type: "UPI Payment", content: getUpiPayload() };
+        }
+
+        function renderPng(payload) {
+            qrcode.stringToBytes = qrcode.stringToBytesFuncs["UTF-8"];
+            const code = qrcode(0, "H");
+            code.addData(payload, "Byte");
+            code.make();
+
+            const moduleCount = code.getModuleCount();
+            const cellSize = 8;
+            const quietZone = 4;
+            const dimension = (moduleCount + quietZone * 2) * cellSize;
+            const canvas = document.createElement("canvas");
+            canvas.width = dimension;
+            canvas.height = dimension;
+            const context = canvas.getContext("2d");
+            if (!context) throw new Error("Your browser could not prepare the QR image.");
+
+            context.fillStyle = "#ffffff";
+            context.fillRect(0, 0, dimension, dimension);
+            context.fillStyle = "#000000";
+            for (let row = 0; row < moduleCount; row += 1) {
+                for (let column = 0; column < moduleCount; column += 1) {
+                    if (code.isDark(row, column)) {
+                        context.fillRect(
+                            (column + quietZone) * cellSize,
+                            (row + quietZone) * cellSize,
+                            cellSize,
+                            cellSize
+                        );
+                    }
+                }
+            }
+            return canvas.toDataURL("image/png");
+        }
+
+        function setFilename(type) {
+            if (type === "Website URL") return "qr-shield-url.png";
+            if (type === "Plain Text") return "qr-shield-text.png";
+            return "qr-shield-upi.png";
+        }
+
+        form.addEventListener("submit", (event) => {
+            event.preventDefault();
+            clearPreview();
+            formMessage.textContent = "";
+            try {
+                const generated = getPayload();
+                if (UTF8_ENCODER.encode(generated.content).length > MAX_PAYLOAD_BYTES) {
+                    throw new Error(`Content is too long to encode safely. Keep it within ${MAX_PAYLOAD_BYTES} UTF-8 bytes.`);
+                }
+                const imageUrl = renderPng(generated.content);
+                qrImage.src = imageUrl;
+                qrType.textContent = generated.type;
+                encodedContent.textContent = generated.content;
+                downloadButton.dataset.download = setFilename(generated.type);
+                downloadButton.disabled = false;
+                previewPlaceholder.hidden = true;
+                qrResult.hidden = false;
+            } catch (error) {
+                clearPreview();
+                formMessage.textContent = error instanceof Error
+                    ? error.message
+                    : "The QR code could not be generated. Check the input and try again.";
+            }
+        });
+
+        downloadButton.addEventListener("click", () => {
+            if (qrResult.hidden || downloadButton.disabled || !qrImage.src.startsWith("data:image/png")) return;
+            const link = document.createElement("a");
+            link.href = qrImage.src;
+            link.download = downloadButton.dataset.download || "qr-shield-code.png";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+        });
+
+        document.getElementById("another-btn").addEventListener("click", () => {
+            form.reset();
+            clearPreview();
+            formMessage.textContent = "";
+            const firstInput = panels[activeType].querySelector("input, textarea");
+            if (firstInput) firstInput.focus();
+        });
+    </script>
+</body>
+</html>

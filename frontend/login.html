@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QR Shield - Login</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        color-scheme: light;
+        font-family: 'Poppins', sans-serif;
+        color: #111A3A;
+        background: #FAF9FF;
+        font-synthesis: none;
+        text-rendering: optimizeLegibility;
+        --navy: #111A3A;
+        --muted: #64748B;
+        --blue: #3975E6;
+        --violet: #8651F7;
+        --border: #E5DFFF;
+    }
+    * { box-sizing: border-box; }
+    body {
+        min-height: 100vh;
+        margin: 0;
+        padding: 36px 28px;
+        display: grid;
+        place-items: center;
+        overflow-x: hidden;
+        position: relative;
+        background:
+            radial-gradient(ellipse at 8% 14%, rgba(201, 188, 255, .34), transparent 25rem),
+            radial-gradient(ellipse at 92% 82%, rgba(190, 218, 255, .42), transparent 26rem),
+            #FAF9FF;
+        font-family: 'Poppins', sans-serif;
+    }
+    body::before, body::after {
+        content: "";
+        position: fixed;
+        z-index: 0;
+        pointer-events: none;
+        border-radius: 50%;
+    }
+    body::before {
+        width: 380px;
+        height: 380px;
+        top: -230px;
+        right: 20%;
+        border: 1px solid rgba(153, 132, 235, .15);
+        box-shadow: 0 0 0 36px rgba(235, 230, 255, .19), 0 0 0 74px rgba(235, 230, 255, .12);
+    }
+    body::after {
+        width: 270px;
+        height: 270px;
+        bottom: -180px;
+        left: 25%;
+        background: rgba(227, 239, 255, .48);
+        filter: blur(2px);
+    }
+    button, input { font: inherit; }
+    .auth-layout {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        width: min(100%, 1310px);
+        grid-template-columns: minmax(220px, .88fr) minmax(370px, 1.12fr) minmax(225px, .9fr);
+        align-items: center;
+        gap: clamp(28px, 4.4vw, 68px);
+    }
+    .phone-art {
+        display: grid;
+        min-height: 410px;
+        place-items: center;
+        position: relative;
+        isolation: isolate;
+    }
+    .phone-art::before, .phone-art::after {
+        content: "";
+        position: absolute;
+        z-index: -1;
+        border-radius: 50%;
+    }
+    .phone-art::before {
+        width: 250px;
+        height: 250px;
+        background: linear-gradient(145deg, rgba(238, 232, 255, .88), rgba(222, 238, 255, .72));
+    }
+    .phone-art::after {
+        width: 78px;
+        height: 78px;
+        top: 40px;
+        right: 18px;
+        border: 1px solid rgba(134, 81, 247, .2);
+        box-shadow: 0 0 0 13px rgba(240, 235, 255, .52);
+    }
+    .phone-art svg { width: min(100%, 286px); height: auto; overflow: visible; }
+    .benefits { display: grid; gap: 18px; }
+    .benefit {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 13px 12px;
+        border: 1px solid rgba(229, 223, 255, .84);
+        border-radius: 15px;
+        background: rgba(255, 255, 255, .62);
+    }
+    .benefit-icon {
+        display: grid;
+        width: 34px;
+        height: 34px;
+        flex: 0 0 34px;
+        place-items: center;
+        border: 1px solid #E5DFFF;
+        border-radius: 11px;
+        background: linear-gradient(145deg, #F5F1FF, #EEF5FF);
+        color: #635BDA;
+    }
+    .benefit-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .benefit strong { display: block; color: #1A2343; font-size: 12px; font-weight: 700; line-height: 1.5; }
+    .benefit p { margin: 3px 0 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
+    .card {
+        width: 100%;
+        padding: clamp(30px, 4vw, 46px);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        background: rgba(255, 255, 255, .94);
+        box-shadow: 0 24px 70px rgba(66, 60, 126, .10), 0 3px 12px rgba(66, 60, 126, .04);
+        animation: card-enter .45s ease-out both;
+        backdrop-filter: blur(10px);
+    }
+    @keyframes card-enter {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .brand {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 11px;
+        margin-bottom: 30px;
+    }
+    .brand-mark {
+        display: grid;
+        width: 46px;
+        height: 46px;
+        flex: 0 0 46px;
+        place-items: center;
+        border: 1px solid #E5DFFF;
+        border-radius: 15px;
+        background: linear-gradient(145deg, #F4F0FF, #EDF5FF);
+        color: #6255CF;
+    }
+    .brand-mark svg { width: 27px; height: 27px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+    .brand-copy { text-align: left; }
+    .brand-name { display: block; color: var(--navy); font-size: 18px; font-weight: 700; letter-spacing: -.04em; line-height: 1.2; }
+    .brand-subtitle { display: block; margin-top: 3px; color: #79849A; font-size: 10px; font-weight: 500; letter-spacing: .025em; }
+    h1 {
+        margin: 0;
+        color: var(--navy);
+        font-size: 26px;
+        font-weight: 700;
+        line-height: 1.3;
+        letter-spacing: -.035em;
+        text-align: center;
+    }
+    .form-description { margin: 8px 0 27px; color: var(--muted); font-size: 12px; line-height: 1.65; text-align: center; }
+    .input-group { position: relative; margin-bottom: 17px; }
+    .input-group label { display: block; margin-bottom: 7px; color: #303B56; font-size: 12px; font-weight: 600; }
+    .input-group input {
+        display: block;
+        width: 100%;
+        min-height: 49px;
+        padding: 12px 14px;
+        border: 1px solid #E2E5EF;
+        border-radius: 11px;
+        outline: none;
+        background: #FCFCFF;
+        color: var(--navy);
+        font-size: 13px;
+        transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
+    }
+    .input-group input::placeholder { color: #9AA4B5; opacity: 1; }
+    .input-group input:focus { border-color: #8D7CF0; background: #fff; box-shadow: 0 0 0 4px rgba(134, 81, 247, .12); }
+    .password-wrapper input { padding-right: 52px; }
+    .toggle-eye {
+        position: absolute;
+        top: 31px;
+        right: 8px;
+        display: grid;
+        width: 38px;
+        height: 36px;
+        place-items: center;
+        border: 0;
+        border-radius: 8px;
+        background: transparent;
+        color: #737F97;
+        cursor: pointer;
+    }
+    .toggle-eye svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .toggle-eye:hover { background: #F3F0FF; color: #5949C7; }
+    .toggle-eye:focus-visible, button:focus-visible, .toggle-form:focus-visible {
+        outline: 3px solid rgba(103, 91, 224, .4);
+        outline-offset: 3px;
+    }
+    .strength-bar { height: 4px; margin-top: 8px; overflow: hidden; border-radius: 99px; background: #ECEAF3; }
+    .strength-fill { width: 0; height: 100%; transition: width .3s ease, background .3s ease; }
+    .strength-label { min-height: 15px; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 500; }
+    #submit-btn {
+        width: 100%;
+        min-height: 49px;
+        margin-top: 6px;
+        border: 0;
+        border-radius: 11px;
+        background: linear-gradient(110deg, #3975E6, #8651F7);
+        box-shadow: 0 9px 20px rgba(95, 91, 220, .2);
+        color: #fff;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 600;
+        transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
+    }
+    #submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(95, 91, 220, .27); filter: saturate(1.08); }
+    #submit-btn:active:not(:disabled) { transform: translateY(0); }
+    #submit-btn:disabled { cursor: wait; opacity: .76; }
+    .toggle-form { margin: 21px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
+    .toggle-form button { padding: 0; border: 0; background: none; color: #5545C4; cursor: pointer; font-size: inherit; font-weight: 700; }
+    .toggle-form button:hover { text-decoration: underline; text-underline-offset: 3px; }
+    #message { min-height: 18px; margin: 13px 0 0; color: #64748B; font-size: 12px; font-weight: 500; line-height: 1.5; text-align: center; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+    @media (max-width: 1080px) {
+        body { padding: 30px 22px; }
+        .auth-layout { grid-template-columns: minmax(180px, .72fr) minmax(350px, 1.28fr) minmax(190px, .8fr); gap: 24px; }
+        .phone-art { min-height: 350px; }
+        .phone-art::before { width: 210px; height: 210px; }
+        .benefits { gap: 11px; }
+        .benefit { padding: 10px; }
+    }
+    @media (max-width: 820px) {
+        body { padding: 32px 22px; }
+        .auth-layout { width: min(100%, 540px); grid-template-columns: minmax(0, 1fr); gap: 20px; }
+        .phone-art { display: none; }
+        .benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+        .benefit { min-height: 76px; }
+    }
+    @media (max-width: 480px) {
+        body { padding: 20px 15px; }
+        .auth-layout { gap: 16px; }
+        .card { padding: 29px 23px; border-radius: 20px; }
+        .brand { margin-bottom: 25px; }
+        h1 { font-size: 24px; }
+        .form-description { margin-bottom: 23px; }
+        .benefits { gap: 8px; }
+        .benefit { min-height: 72px; gap: 8px; padding: 9px 8px; border-radius: 12px; }
+        .benefit-icon { width: 30px; height: 30px; flex-basis: 30px; border-radius: 9px; }
+        .benefit-icon svg { width: 16px; height: 16px; }
+        .benefit strong { font-size: 10px; }
+        .benefit p { font-size: 9px; line-height: 1.45; }
+    }
+    @media (max-width: 340px) {
+        body { padding: 15px 11px; }
+        .card { padding: 25px 18px; }
+        .benefits { grid-template-columns: minmax(0, 1fr); }
+        .benefit { min-height: 0; padding: 9px 10px; }
+        .benefit strong { font-size: 11px; }
+        .benefit p { font-size: 10px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+</style>
+</head>
+<body>
+
+<main class="auth-layout">
+    <div class="phone-art" aria-hidden="true">
+        <svg viewBox="0 0 286 350" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="58" cy="282" r="13" fill="#D7ECFF"/>
+            <circle cx="239" cy="91" r="8" fill="#D9D0FF"/>
+            <path d="M218 270h28M232 256v28" stroke="#A79AEF" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+            <rect x="76" y="19" width="134" height="286" rx="27" fill="white" stroke="#DCD7F4" stroke-width="2"/>
+            <rect x="84" y="29" width="118" height="266" rx="20" fill="url(#phone-screen)"/>
+            <rect x="120" y="37" width="46" height="5" rx="2.5" fill="#D8D4E9"/>
+            <rect x="105" y="74" width="76" height="76" rx="15" fill="white" stroke="#E9E4FA"/>
+            <g fill="#313B70">
+                <path d="M116 85h21v21h-21zM120 89v13h13V89zM124 93h5v5h-5zM150 85h21v21h-21zM154 89v13h13V89zM158 93h5v5h-5zM116 116h21v21h-21zM120 120v13h13v-13zM124 124h5v5h-5z"/>
+                <path d="M145 113h6v6h-6zM157 113h5v7h-5zM168 111h5v6h-5zM144 124h7v6h-7zM155 124h6v6h-6zM167 123h6v6h-6zM145 135h5v6h-5zM157 135h7v5h-7zM169 135h5v6h-5z"/>
+            </g>
+            <rect x="107" y="164" width="78" height="6" rx="3" fill="#E2DEEF"/>
+            <rect x="118" y="178" width="56" height="5" rx="2.5" fill="#EEEAF7"/>
+            <rect x="99" y="200" width="88" height="48" rx="14" fill="white" stroke="#E7E2F6"/>
+            <path d="M143 209 158 215v10c0 10-6.4 16.2-15 20-8.6-3.8-15-10-15-20v-10l15-6Z" fill="#F0EBFF" stroke="#AA9AEF" stroke-width="1.5" stroke-linejoin="round"/>
+            <path d="m137 225 4 4 8-9" stroke="#5E62D8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            <circle cx="143" cy="280" r="7" fill="#F1EEFA"/>
+            <defs>
+                <linearGradient id="phone-screen" x1="84" y1="29" x2="202" y2="295" gradientUnits="userSpaceOnUse">
+                    <stop stop-color="#F8F5FF"/>
+                    <stop offset="1" stop-color="#F0F7FF"/>
+                </linearGradient>
+            </defs>
+        </svg>
+    </div>
+
+    <section class="card" aria-labelledby="form-title">
+        <div class="brand" aria-label="QR Shield, QR Security Platform">
+            <span class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <span class="brand-copy">
+                <span class="brand-name">QR Shield</span>
+                <span class="brand-subtitle">QR Security Platform</span>
+            </span>
+        </div>
+        <h1 id="form-title">Welcome Back</h1>
+        <p class="form-description" id="form-subtitle">Log in to scan and secure your QR codes.</p>
+
+        <div class="input-group">
+            <label for="email">Email address</label>
+            <input type="email" id="email" placeholder="Enter your email" autocomplete="email" aria-required="true">
+        </div>
+
+        <div class="input-group password-wrapper">
+            <label for="password">Password</label>
+            <input type="password" id="password" placeholder="Enter your password" autocomplete="current-password" aria-required="true" oninput="checkStrength()">
+            <button class="toggle-eye" id="password-toggle" type="button" aria-label="Show password" aria-pressed="false" onclick="togglePassword()">
+                <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M2.5 12s3.4-6 9.5-6 9.5 6 9.5 6-3.4 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.7"/></svg>
+            </button>
+            <div class="strength-bar" id="strength-bar-container" style="display:none;" aria-hidden="true">
+                <div class="strength-fill" id="strength-fill"></div>
+            </div>
+            <div class="strength-label" id="strength-label" aria-live="polite"></div>
+        </div>
+
+        <button type="button" onclick="handleSubmit()" id="submit-btn">Login</button>
+        <p class="toggle-form" id="toggle-form-copy">Don't have an account? <button type="button" onclick="toggleFormMode()">Register</button></p>
+        <p id="message" role="status" aria-live="polite"></p>
+    </section>
+
+    <aside class="benefits" aria-label="QR Shield security features">
+        <div class="benefit">
+            <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m12.5 12.5 4 4M6.5 8.5h4M8.5 6.5v4"/></svg></span>
+            <div><strong>Scan Safe</strong><p>Check suspicious links and destinations</p></div>
+        </div>
+        <div class="benefit">
+            <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 2 17 5v5c0 4.4-2.8 7.4-7 9-4.2-1.6-7-4.6-7-9V5l7-3Z"/><path d="m7 10 2 2 4-4"/></svg></span>
+            <div><strong>Stay Alert</strong><p>Detect phishing threats with ML analysis</p></div>
+        </div>
+        <div class="benefit">
+            <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 7V4a1 1 0 0 1 1-1h3M13 3h3a1 1 0 0 1 1 1v3M17 13v3a1 1 0 0 1-1 1h-3M7 17H4a1 1 0 0 1-1-1v-3"/><path d="M7 7h2v2H7zM12 7h2v2h-2zM7 12h2v2H7zM12 12h2v2h-2z"/></svg></span>
+            <div><strong>Stay Secure</strong><p>Review QR integrity indicators</p></div>
+        </div>
+        <div class="benefit">
+            <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="2.5" y="4.5" width="15" height="11" rx="2"/><path d="M3 8h14M6 12h3M12 12h2"/></svg></span>
+            <div><strong>Know Before You Pay</strong><p>View extracted UPI payment details</p></div>
+        </div>
+    </aside>
+</main>
+
+<script>
+    let isLoginMode = true;
+    const API_URL = "http://127.0.0.1:8000";
+
+    function togglePassword() {
+        const passwordInput = document.getElementById("password");
+        const toggle = document.getElementById("password-toggle");
+        const visible = passwordInput.type === "password";
+        passwordInput.type = visible ? "text" : "password";
+        passwordInput.autocomplete = isLoginMode ? "current-password" : "new-password";
+        toggle.setAttribute("aria-label", visible ? "Hide password" : "Show password");
+        toggle.setAttribute("aria-pressed", String(visible));
+    }
+
+    function checkStrength() {
+        if (isLoginMode) return;
+        const password = document.getElementById("password").value;
+        const barContainer = document.getElementById("strength-bar-container");
+        const fill = document.getElementById("strength-fill");
+        const label = document.getElementById("strength-label");
+
+        if (password.length === 0) {
+            barContainer.style.display = "none";
+            label.innerText = "";
+            return;
+        }
+        barContainer.style.display = "block";
+
+        let score = 0;
+        if (password.length >= 8) score++;
+        if (password.length >= 10) score++;
+        if (/[A-Z]/.test(password)) score++;
+        if (/[0-9]/.test(password)) score++;
+        if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
+
+        if (score <= 2) {
+            fill.style.width = "33%"; fill.style.background = "#e74c3c";
+            label.style.color = "#e74c3c"; label.innerText = "Weak password";
+        } else if (score <= 3) {
+            fill.style.width = "66%"; fill.style.background = "#f39c12";
+            label.style.color = "#f39c12"; label.innerText = "Medium strength";
+        } else {
+            fill.style.width = "100%"; fill.style.background = "#27ae60";
+            label.style.color = "#27ae60"; label.innerText = "Strong password";
+        }
+    }
+
+    function toggleFormMode() {
+        isLoginMode = !isLoginMode;
+        document.getElementById("form-title").innerText = isLoginMode ? "Welcome Back" : "Create Your Account";
+        document.getElementById("form-subtitle").innerText = isLoginMode
+            ? "Log in to scan and secure your QR codes."
+            : "Create an account to start scanning safely.";
+        document.getElementById("submit-btn").innerText = isLoginMode ? "Login" : "Register";
+        document.getElementById("toggle-form-copy").innerHTML = isLoginMode
+            ? 'Don\'t have an account? <button type="button" onclick="toggleFormMode()">Register</button>'
+            : 'Already have an account? <button type="button" onclick="toggleFormMode()">Login</button>';
+        document.getElementById("password").type = "password";
+        document.getElementById("password").autocomplete = isLoginMode ? "current-password" : "new-password";
+        document.getElementById("password-toggle").setAttribute("aria-label", "Show password");
+        document.getElementById("password-toggle").setAttribute("aria-pressed", "false");
+        document.getElementById("message").innerText = "";
+        document.getElementById("strength-bar-container").style.display = "none";
+        document.getElementById("strength-label").innerText = "";
+    }
+
+    async function handleSubmit() {
+        const email = document.getElementById("email").value;
+        const password = document.getElementById("password").value;
+        const messageEl = document.getElementById("message");
+        const submitBtn = document.getElementById("submit-btn");
+
+        if (!email || !password) {
+            messageEl.style.color = "#e74c3c";
+            messageEl.innerText = "Please fill in all fields";
+            return;
+        }
+
+        if (submitBtn.disabled) return;
+        const endpoint = isLoginMode ? "/login" : "/register";
+        submitBtn.disabled = true;
+        submitBtn.innerText = isLoginMode ? "Logging in..." : "Creating account...";
+
+        try {
+            const response = await fetch(API_URL + endpoint, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await response.json();
+
+            if (data.status === "success") {
+                if (isLoginMode) {
+                    localStorage.setItem("access_token", data.access_token);
+                    messageEl.style.color = "#27ae60";
+                    messageEl.innerText = "Login successful! Redirecting...";
+                    setTimeout(() => { window.location.href = "scan.html"; }, 1000);
+                } else {
+                    messageEl.style.color = "#27ae60";
+                    messageEl.innerText = "Registered successfully! You can now login.";
+                    setTimeout(() => toggleFormMode(), 1200);
+                }
+            } else {
+                messageEl.style.color = "#e74c3c";
+                messageEl.innerText = data.message;
+            }
+        } catch (error) {
+            messageEl.style.color = "#e74c3c";
+            messageEl.innerText = "Could not connect to server.";
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = isLoginMode ? "Login" : "Register";
+        }
+    }
+</script>
+
+</body>
+</html>

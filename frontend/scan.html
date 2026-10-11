@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>QR Shield - Scan</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    html { overflow-x: hidden; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Poppins', sans-serif; }
+
+    body {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        overflow-x: hidden;
+        background:
+            radial-gradient(circle at top left, rgba(141, 122, 221, 0.16), transparent 26rem),
+            radial-gradient(circle at bottom right, rgba(96, 155, 235, 0.12), transparent 24rem),
+            #FAF9FF;
+        position: relative;
+        padding: 30px 15px;
+    }
+
+    .bg-shape {
+        position: absolute;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.08);
+        z-index: 0;
+    }
+    .shape1 { width: 300px; height: 300px; top: -80px; left: -80px; }
+    .shape2 { width: 200px; height: 200px; bottom: -60px; right: -60px; }
+
+    .card {
+        background: rgba(255, 255, 255, 0.97);
+        padding: 40px;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        width: 100%;
+        max-width: 600px;
+        z-index: 10;
+        animation: slideUp 0.6s ease;
+        margin-bottom: 25px;
+    }
+
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2 {
+        color: #2d2d3a;
+        font-weight: 700;
+        font-size: 24px;
+        margin-bottom: 5px;
+        text-align: center;
+    }
+
+    .subtitle {
+        text-align: center;
+        color: #888;
+        font-size: 13px;
+        margin-bottom: 25px;
+    }
+
+    .drop-zone {
+        border: 2.5px dashed #c9c9e0;
+        border-radius: 14px;
+        padding: 40px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        background: #fafafd;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+        border-color: #764ba2;
+        background: #f3f0fa;
+    }
+    .drop-zone .icon { font-size: 42px; margin-bottom: 10px; }
+    .drop-zone p { color: #666; font-size: 14px; }
+    .drop-zone .hint { font-size: 12px; color: #aaa; margin-top: 4px; }
+
+    #file-input { display: none; }
+
+    #file-name {
+        font-size: 14px;
+        color: #764ba2;
+        font-weight: 600;
+        margin-top: 4px;
+    }
+
+    button.scan-btn {
+        width: 100%;
+        padding: 13px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 15px;
+        font-weight: 600;
+        margin-top: 18px;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    button.scan-btn:hover:not(:disabled) {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102,126,234,0.4);
+    }
+    button.scan-btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    #status-msg {
+        text-align: center;
+        margin-top: 12px;
+        font-size: 13px;
+        min-height: 18px;
+        font-weight: 500;
+    }
+
+    .mode-toggle {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 18px;
+        background: #f0f0f5;
+        padding: 4px;
+        border-radius: 10px;
+    }
+    .mode-btn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        color: #888;
+        transition: all 0.2s ease;
+    }
+    .mode-btn.active {
+        background: white;
+        color: #764ba2;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+
+    .camera-wrap {
+        position: relative;
+        border-radius: 16px;
+        overflow: hidden;
+        background: #0a0a0f;
+        aspect-ratio: 4 / 3;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+    }
+    .camera-wrap.captured {
+        aspect-ratio: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f5f5fa;
+    }
+    #camera-video {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        filter: brightness(1.15) contrast(1.05) saturate(1.03);
+    }
+    .captured-preview {
+        display: none;
+        width: 100%;
+        max-height: 400px;
+        object-fit: contain;
+        background: #f5f5fa;
+        border-radius: 12px;
+        aspect-ratio: 1;
+    }
+
+    .camera-frame {
+        position: absolute;
+        top: 14%; left: 14%; right: 14%; bottom: 22%;
+        pointer-events: none;
+    }
+    .corner {
+        position: absolute;
+        width: 28px;
+        height: 28px;
+        border: 3px solid #ffffff;
+        transition: border-color 0.25s ease;
+    }
+    .corner.tl { top: -2px; left: -2px; border-right: none; border-bottom: none; border-top-left-radius: 10px; }
+    .corner.tr { top: -2px; right: -2px; border-left: none; border-bottom: none; border-top-right-radius: 10px; }
+    .corner.bl { bottom: -2px; left: -2px; border-right: none; border-top: none; border-bottom-left-radius: 10px; }
+    .corner.br { bottom: -2px; right: -2px; border-left: none; border-top: none; border-bottom-right-radius: 10px; }
+    .camera-frame.found .corner { border-color: #2ecc71; }
+
+    .scan-line {
+        position: absolute;
+        left: 4%;
+        right: 4%;
+        height: 2px;
+        background: linear-gradient(90deg, transparent, #7ee787, transparent);
+        box-shadow: 0 0 8px 1px rgba(46,204,113,0.7);
+        animation: scanMove 2.1s ease-in-out infinite;
+    }
+    @keyframes scanMove {
+        0%   { top: 6%; opacity: 0; }
+        10%  { opacity: 1; }
+        50%  { top: 94%; opacity: 1; }
+        90%  { opacity: 1; }
+        100% { top: 6%; opacity: 0; }
+    }
+    .camera-frame.found .scan-line { display: none; }
+
+    .camera-status {
+        position: absolute;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0,0,0,0.55);
+        backdrop-filter: blur(4px);
+        color: white;
+        font-size: 12.5px;
+        font-weight: 600;
+        padding: 7px 16px;
+        border-radius: 999px;
+        white-space: nowrap;
+        letter-spacing: 0.02em;
+    }
+    .camera-status.found {
+        background: rgba(46,204,113,0.92);
+    }
+
+    .camera-confirmation {
+        display: none;
+        margin-top: 16px;
+        padding: 22px 20px;
+        border: 1px solid rgba(118,75,162,0.15);
+        border-radius: 16px;
+        background: linear-gradient(135deg, #faf9ff 0%, #f3effb 100%);
+        text-align: center;
+    }
+    .camera-confirmation .checkmark {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 46px;
+        height: 46px;
+        margin-bottom: 10px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #2ecc71, #219150);
+        color: white;
+        font-size: 25px;
+        font-weight: 700;
+        box-shadow: 0 6px 16px rgba(46,204,113,0.25);
+    }
+    .camera-confirmation h3 {
+        color: #2d2d3a;
+        font-size: 16px;
+        margin-bottom: 16px;
+    }
+    .camera-confirmation-actions {
+        display: flex;
+        gap: 10px;
+    }
+    .camera-confirmation-actions button {
+        flex: 1;
+        padding: 11px 12px;
+        border: none;
+        border-radius: 10px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+    .camera-confirmation-actions button:hover:not(:disabled) {
+        transform: translateY(-1px);
+    }
+    .retake-btn {
+        background: #eeeaf6;
+        color: #68429a;
+    }
+    .retake-btn:hover:not(:disabled) {
+        box-shadow: 0 5px 14px rgba(118,75,162,0.15);
+    }
+    .confirm-scan-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .confirm-scan-btn:hover:not(:disabled) {
+        box-shadow: 0 6px 16px rgba(102,126,234,0.3);
+    }
+    .camera-confirmation-actions button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .analysis-card {
+        display: none;
+        width: 100%;
+        max-width: 600px;
+        padding: 36px;
+        border: 1px solid rgba(255,255,255,0.75);
+        border-radius: 20px;
+        background: rgba(255,255,255,0.98);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        z-index: 10;
+        margin-bottom: 25px;
+    }
+    .analysis-visual {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 82px;
+        height: 82px;
+        margin: 0 auto 18px;
+        border: 1px solid #e4d9f2;
+        border-radius: 24px;
+        background: linear-gradient(145deg, #f7f3fc, #eef0ff);
+        color: #68429a;
+    }
+    .analysis-visual::before,
+    .analysis-visual::after {
+        content: "";
+        position: absolute;
+        inset: -7px;
+        border: 1px solid rgba(118,75,162,0.2);
+        border-radius: 29px;
+        animation: analysisPulse 2.4s ease-out infinite;
+    }
+    .analysis-visual::after { animation-delay: 1.2s; }
+    .analysis-visual svg { width: 39px; height: 39px; }
+    @keyframes analysisPulse {
+        0% { opacity: 0.65; transform: scale(0.94); }
+        100% { opacity: 0; transform: scale(1.16); }
+    }
+    .analysis-card h2 { margin-bottom: 7px; }
+    .analysis-subtitle {
+        max-width: 420px;
+        margin: 0 auto 24px;
+        color: #686273;
+        font-size: 13px;
+        line-height: 1.6;
+        text-align: center;
+    }
+    .analysis-progress-meta {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 8px;
+        color: #625b6e;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .analysis-progress-track {
+        height: 10px;
+        overflow: hidden;
+        border: 1px solid #e7e1ef;
+        border-radius: 999px;
+        background: #f0edf5;
+    }
+    .analysis-progress-fill {
+        width: 8%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #667eea, #764ba2 70%, #27ae60);
+        transition: width 0.35s ease;
+    }
+    .analysis-card.is-complete .analysis-progress-fill { background: linear-gradient(90deg, #27ae60, #219150); }
+    .analysis-current-status {
+        min-height: 21px;
+        margin-top: 10px;
+        color: #68429a;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+    }
+    .analysis-stage-note {
+        margin: 17px 0 11px;
+        color: #77717f;
+        font-size: 10.5px;
+        line-height: 1.5;
+        text-align: center;
+    }
+    .analysis-stages {
+        display: grid;
+        gap: 7px;
+        padding: 15px;
+        border: 1px solid #eeeaf4;
+        border-radius: 14px;
+        background: #fcfbfe;
+        list-style: none;
+    }
+    .analysis-stage {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-height: 31px;
+        color: #817b89;
+        font-size: 12px;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+    .analysis-stage-indicator {
+        display: grid;
+        place-items: center;
+        flex: 0 0 22px;
+        width: 22px;
+        height: 22px;
+        border: 1.5px solid #d9d4e0;
+        border-radius: 50%;
+        background: white;
+        color: transparent;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .analysis-stage.is-active { color: #68429a; font-weight: 700; }
+    .analysis-stage.is-active .analysis-stage-indicator {
+        border-color: #764ba2;
+        background: #f1eafb;
+        box-shadow: 0 0 0 3px rgba(118,75,162,0.08);
+        animation: activeStagePulse 1.5s ease-in-out infinite;
+    }
+    .analysis-stage.is-complete { color: #326f4c; }
+    .analysis-stage.is-complete .analysis-stage-indicator {
+        border-color: #36a96a;
+        background: #e7f6ed;
+        color: #21884e;
+    }
+    @keyframes activeStagePulse {
+        50% { box-shadow: 0 0 0 6px rgba(118,75,162,0.03); }
+    }
+    .analysis-error {
+        display: none;
+        margin-top: 18px;
+        padding: 13px 15px;
+        border: 1px solid #f2c9c5;
+        border-radius: 12px;
+        background: #fff5f4;
+        color: #9e3028;
+        font-size: 12px;
+        line-height: 1.55;
+        text-align: center;
+    }
+    .analysis-error strong { display: block; margin-bottom: 4px; color: #8e2922; font-size: 14px; }
+    .analysis-actions {
+        display: none;
+        gap: 10px;
+        margin-top: 14px;
+    }
+    .analysis-actions button {
+        flex: 1;
+        min-height: 42px;
+        padding: 10px 14px;
+        border: 1px solid #764ba2;
+        border-radius: 10px;
+        background: white;
+        color: #68429a;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .analysis-actions .analysis-retry-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+    .analysis-actions button:focus-visible { outline: 3px solid #667eea; outline-offset: 2px; }
+
+    .camera-controls {
+        display: flex;
+        justify-content: center;
+        margin-top: 12px;
+    }
+    .switch-cam-btn {
+        background: #f0f0f5;
+        color: #555;
+        border: none;
+        padding: 8px 16px;
+        border-radius: 999px;
+        font-size: 12.5px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.2s ease;
+    }
+    .switch-cam-btn:hover { background: #e6e6ee; }
+
+    /* Results card */
+    .results-card {
+        display: none;
+        width: 100%;
+        max-width: 780px;
+        padding: 34px;
+        background: rgba(255,255,255,0.98);
+        border-radius: 22px;
+        box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        z-index: 10;
+        animation: slideUp 0.4s ease;
+    }
+    .verdict-banner {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 18px;
+        padding: 28px;
+        margin-bottom: 22px;
+        overflow: hidden;
+        border-radius: 18px;
+        color: white;
+    }
+    .verdict-banner::after {
+        content: "";
+        position: absolute;
+        width: 180px;
+        height: 180px;
+        top: -90px;
+        right: -70px;
+        border-radius: 50%;
+        background: rgba(255,255,255,0.12);
+    }
+    .verdict-safe { background: linear-gradient(135deg, #27ae60, #168344); }
+    .verdict-review { background: linear-gradient(135deg, #f3b43f, #d97706); }
+    .verdict-suspicious { background: linear-gradient(135deg, #f39c12, #d97706); }
+    .verdict-dangerous { background: linear-gradient(135deg, #e74c3c, #b92e25); }
+    .verdict-neutral { background: linear-gradient(135deg, #667eea, #764ba2); }
+    .verdict-icon {
+        position: relative;
+        z-index: 1;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 64px;
+        width: 64px;
+        height: 64px;
+        border: 1px solid rgba(255,255,255,0.45);
+        border-radius: 50%;
+        background: rgba(255,255,255,0.16);
+    }
+    .verdict-icon svg { width: 34px; height: 34px; }
+    .verdict-copy { position: relative; z-index: 1; }
+    .verdict-title { display: block; font-size: 24px; font-weight: 700; }
+    .verdict-explanation, .verdict-disclaimer {
+        display: block;
+        line-height: 1.55;
+    }
+    .verdict-explanation { margin-top: 7px; font-size: 12.5px; font-weight: 500; }
+    .verdict-disclaimer { margin-top: 7px; font-size: 11px; opacity: 0.82; }
+    .risk-panel {
+        padding: 22px;
+        margin-bottom: 20px;
+        border: 1px solid #e9e4f4;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #fbfaff, #f6f3fc);
+    }
+    .risk-heading, .risk-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+    .risk-heading { color: #2d2d3a; font-size: 14px; font-weight: 700; }
+    .risk-score-wrap { display: flex; align-items: baseline; gap: 5px; }
+    .risk-score { color: #2d2d3a; font-size: 38px; line-height: 1; font-weight: 700; }
+    .risk-out-of { color: #888; font-size: 14px; font-weight: 600; }
+    .risk-meta { margin-top: 10px; color: #888; font-size: 12px; }
+    .risk-track {
+        height: 9px;
+        margin-top: 15px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e9e6f2;
+    }
+    .risk-fill {
+        width: 0;
+        height: 100%;
+        border-radius: inherit;
+        transition: width 0.55s ease;
+    }
+    .risk-fill.safe { background: #27ae60; }
+    .risk-fill.suspicious { background: #f39c12; }
+    .risk-fill.unsafe { background: #e74c3c; }
+    .risk-fill.neutral { background: #8b7bb8; }
+    .risk-badge, .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        width: fit-content;
+        padding: 4px 9px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .risk-badge.safe, .status-good { color: #187a43; background: #e3f6ea; }
+    .risk-badge.suspicious, .status-warn { color: #9a5b00; background: #fff1d8; }
+    .risk-badge.unsafe, .status-bad { color: #a22a22; background: #fde7e5; }
+    .risk-badge.neutral { color: #68429a; background: #eee9f8; }
+    .risk-explanation {
+        margin-top: 18px;
+        padding: 20px;
+        border: 1px solid #eae7f0;
+        border-radius: 16px;
+        background: #fdfcff;
+    }
+    .risk-explanation h3 { margin: 0; color: #764ba2; font-size: 15px; }
+    .risk-explanation-heading { display: flex; align-items: center; gap: 9px; }
+    .risk-explanation-heading svg { width: 19px; height: 19px; color: #764ba2; }
+    .risk-contribution-list { display: grid; gap: 10px; margin-top: 14px; }
+    .risk-contribution {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 5px 14px;
+        padding: 12px 13px;
+        border: 1px solid #f0dfc5;
+        border-radius: 11px;
+        background: #fffaf2;
+    }
+    .risk-contribution-name { color: #563c22; font-size: 13px; font-weight: 700; }
+    .risk-contribution-points {
+        grid-column: 2;
+        grid-row: 1 / span 2;
+        align-self: center;
+        color: #9a5b00;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+    }
+    .risk-contribution-reason { color: #71665a; font-size: 12px; line-height: 1.5; }
+    .risk-breakdown-empty { margin: 14px 0 0; color: #5d7665; font-size: 12.5px; line-height: 1.5; }
+    .hybrid-calculation {
+        margin-top: 18px;
+        padding-top: 15px;
+        border-top: 1px solid #ece8f2;
+    }
+    .hybrid-calculation h4 { margin: 0 0 10px; color: #3c3150; font-size: 13px; }
+    .hybrid-line {
+        display: flex;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 7px 0;
+        color: #696271;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    .hybrid-line span:last-child { color: #332c3c; font-weight: 600; text-align: right; }
+    .hybrid-line.final { margin-top: 4px; padding-top: 11px; border-top: 1px dashed #ddd6e8; color: #3c3150; font-weight: 700; }
+    .hybrid-line.final span:last-child { color: #68429a; }
+    .result-section {
+        margin-top: 18px;
+        padding: 19px 20px 8px;
+        border: 1px solid #eae7f0;
+        border-radius: 16px;
+        background: #fdfcff;
+        transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    }
+    .result-section:hover { border-color: #dcd1eb; box-shadow: 0 6px 18px rgba(92,65,130,0.06); }
+    .section-heading { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; color: #3c3150; }
+    .section-heading svg { width: 18px; height: 18px; color: #764ba2; }
+    .result-section h3 { margin: 0; color: #764ba2; font-size: 14px; }
+    .result-row {
+        display: grid;
+        grid-template-columns: minmax(150px, 0.85fr) minmax(0, 1.6fr);
+        gap: 20px;
+        align-items: start;
+        padding: 13px 0;
+        border-bottom: 1px solid #f0edf5;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    .result-row:last-child { border-bottom: none; }
+    .result-row .label { color: #77717f; font-weight: 600; }
+    .result-row .value {
+        min-width: 0;
+        color: #2d2d3a;
+        font-weight: 600;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+    .result-row .value .status-badge { margin-left: auto; }
+    .upi-identity-notice {
+        margin-top: 12px;
+        padding: 14px 16px;
+        border: 1px solid #dce3f2;
+        border-radius: 13px;
+        background: #f4f7fc;
+        color: #58647a;
+        font-size: 12px;
+        line-height: 1.55;
+    }
+    .upi-identity-notice strong { display: block; margin-bottom: 3px; color: #38445c; font-size: 12.5px; }
+    .info-tip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        margin-left: 4px;
+        border: 1px solid #b9a8d2;
+        border-radius: 50%;
+        background: white;
+        color: #764ba2;
+        font-size: 10px;
+        font-weight: 700;
+        cursor: help;
+        vertical-align: middle;
+    }
+    .info-tip:focus-visible { outline: 2px solid #667eea; outline-offset: 2px; }
+    .probability-value { display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+    .brand-match { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; }
+    .brand-match-name { color: #9a5b00; font-size: 12px; font-weight: 700; }
+    .brand-match-score { color: #756d80; font-size: 11px; font-weight: 600; }
+    .mini-meter { width: min(180px, 100%); height: 6px; overflow: hidden; border-radius: 999px; background: #e8e4ef; }
+    .mini-meter-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #27ae60, #f39c12, #e74c3c); }
+    .redirect-details {
+        margin-top: 18px;
+        padding: 15px 18px;
+        border: 1px solid #e9e4f4;
+        border-radius: 14px;
+        background: #fbfaff;
+    }
+    .redirect-details summary { color: #68429a; cursor: pointer; font-size: 13px; font-weight: 700; }
+    .redirect-chain {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin: 14px 0 2px;
+        padding: 0;
+        list-style: none;
+        color: #555;
+        font-size: 12px;
+        line-height: 1.55;
+        overflow-wrap: anywhere;
+    }
+    .redirect-chain li {
+        position: relative;
+        padding: 10px 12px;
+        border: 1px solid #eeeaf6;
+        border-radius: 9px;
+        background: white;
+    }
+    .redirect-chain li:not(:last-child)::after { content: "↓"; position: absolute; left: 50%; bottom: -18px; color: #9d8abb; font-weight: 700; }
+    .redirect-chain li::before { display: block; margin-bottom: 3px; color: #8b7aa5; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+    .redirect-chain li:first-child::before { content: "Original URL"; }
+    .redirect-chain li:last-child::before { content: "Final Destination"; }
+    .redirect-chain li:not(:first-child):not(:last-child)::before { content: "Redirect"; }
+    .summary-panel {
+        margin-top: 20px;
+        padding: 16px 18px;
+        border-left: 4px solid #764ba2;
+        border-radius: 10px;
+        background: #f8f5fc;
+        color: #5d5668;
+        font-size: 12.5px;
+        line-height: 1.55;
+    }
+    .summary-panel strong { display: block; margin-bottom: 4px; color: #3c3150; }
+    .scan-again-btn {
+        flex: 1;
+        padding: 13px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 11px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 700;
+        box-shadow: 0 7px 16px rgba(102,126,234,0.22);
+    }
+    .scan-again-btn:hover { transform: translateY(-1px); }
+    .results-actions {
+        display: flex;
+        gap: 12px;
+        margin-top: 22px;
+    }
+    .report-btn {
+        flex: 1;
+        padding: 13px;
+        border: 1px solid #764ba2;
+        border-radius: 11px;
+        background: white;
+        color: #68429a;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .report-btn:hover:not(:disabled) { background: #f6f1fc; }
+    .report-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+    .report-status {
+        min-height: 18px;
+        margin-top: 8px;
+        color: #e74c3c;
+        font-size: 12px;
+        text-align: center;
+    }
+    @media (max-width: 520px) {
+        .analysis-card { padding: 28px 18px; }
+        .results-card { padding: 22px 16px; }
+        .verdict-banner { align-items: flex-start; padding: 22px 18px; }
+        .verdict-icon { flex-basis: 50px; width: 50px; height: 50px; }
+        .verdict-icon svg { width: 27px; height: 27px; }
+        .verdict-title { font-size: 19px; }
+        .result-section { padding-left: 13px; padding-right: 13px; }
+        .result-row { grid-template-columns: 1fr; gap: 5px; }
+        .result-row .value { text-align: left; }
+        .result-row .value .status-badge { margin-left: 0; }
+        .probability-value { align-items: flex-start; }
+        .brand-match { align-items: flex-start; }
+        .results-actions { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .analysis-visual::before,
+        .analysis-visual::after,
+        .analysis-stage.is-active .analysis-stage-indicator { animation: none; }
+        .analysis-progress-fill,
+        .analysis-stage { transition: none; }
+    }
+
+    body.scanner-page {
+        align-items: center;
+        padding: 22px clamp(16px, 4vw, 52px) 52px;
+        background:
+            radial-gradient(ellipse at 7% 24%, rgba(132, 183, 241, 0.16), transparent 22rem),
+            radial-gradient(ellipse at 89% 11%, rgba(184, 174, 236, 0.18), transparent 24rem),
+            #f8fafc;
+        color: #18243b;
+    }
+
+    .bg-shape {
+        z-index: -1;
+        background: rgba(114, 164, 226, 0.09);
+        pointer-events: none;
+    }
+    .shape1 { width: 250px; height: 250px; top: 15%; left: -130px; }
+    .shape2 { width: 180px; height: 180px; bottom: 5%; right: -95px; background: rgba(164, 145, 221, 0.1); }
+
+    .scanner-shell {
+        width: min(1120px, 100%);
+        margin: 0 auto;
+    }
+
+    .scanner-layout {
+        display: grid;
+        grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+        align-items: center;
+        gap: clamp(34px, 6vw, 78px);
+        padding: 24px 0 28px;
+    }
+
+    .scanner-intro { position: relative; min-width: 0; padding: 18px 0; }
+    .intro-kicker {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 18px;
+        color: #6157C9;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: .12em;
+        text-transform: uppercase;
+    }
+    .intro-kicker::before {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        background: linear-gradient(110deg, #3975E6, #7654F6);
+        content: "";
+    }
+    .scanner-intro h1 {
+        max-width: 530px;
+        color: #111A3A;
+        font-size: clamp(36px, 5vw, 58px);
+        font-weight: 700;
+        line-height: 1.08;
+        letter-spacing: -.055em;
+    }
+    .scanner-intro h1 span {
+        background: linear-gradient(110deg, #3975E6, #7654F6);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+    .intro-copy {
+        max-width: 470px;
+        margin: 18px 0 16px;
+        color: #64748B;
+        font-size: 15px;
+        line-height: 1.75;
+    }
+    .scanner-illustration {
+        position: relative;
+        display: flex;
+        width: min(100%, 370px);
+        height: 104px;
+        align-items: center;
+        justify-content: center;
+        margin: 0 0 18px;
+        overflow: hidden;
+        border: 1px solid rgba(220, 231, 245, .75);
+        border-radius: 18px;
+        background:
+            radial-gradient(circle at 25% 80%, rgba(103, 170, 222, .15), transparent 30%),
+            radial-gradient(circle at 78% 18%, rgba(151, 139, 219, .16), transparent 32%),
+            rgba(255, 255, 255, .55);
+    }
+    .scanner-illustration::before,
+    .scanner-illustration::after {
+        position: absolute;
+        border: 1px solid rgba(103, 146, 202, .22);
+        border-radius: 50%;
+        content: "";
+    }
+    .scanner-illustration::before {
+        width: 74px;
+        height: 74px;
+        left: 12%;
+        bottom: -42px;
+    }
+    .scanner-illustration::after {
+        width: 46px;
+        height: 46px;
+        top: -23px;
+        right: 15%;
+        border-color: rgba(130, 117, 202, .24);
+    }
+    .scanner-illustration svg {
+        position: relative;
+        z-index: 1;
+        width: 190px;
+        height: 82px;
+        color: #557eb5;
+    }
+    .feature-list {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        max-width: 390px;
+    }
+    .feature-item {
+        display: flex;
+        min-width: 0;
+        align-items: center;
+        gap: 12px;
+        padding: 11px 12px;
+        border: 1px solid #E7E4F5;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.74);
+        color: #1A2942;
+        font-size: 12px;
+        font-weight: 600;
+        line-height: 1.45;
+        box-shadow: 0 4px 12px rgba(93, 87, 139, 0.04);
+    }
+    .feature-mark {
+        display: grid;
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        place-items: center;
+        border: 1px solid #E4DFFF;
+        border-radius: 10px;
+        background: linear-gradient(180deg, #F7F3FF, #EEF3FF);
+        color: #4F59D9;
+    }
+    .feature-mark svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.7;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .intro-note {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin: 29px 0 0;
+        padding: 12px 14px;
+        border: 1px solid #E7E4F5;
+        border-radius: 12px;
+        background: rgba(242, 238, 255, 0.5);
+        color: #66748B;
+        font-size: 11px;
+        line-height: 1.6;
+    }
+    .intro-note::before {
+        content: "";
+        width: 11px;
+        height: 11px;
+        flex: 0 0 11px;
+        border-radius: 4px;
+        background: linear-gradient(110deg, #3975E6, #7654F6);
+        box-shadow: 0 0 0 4px rgba(117, 110, 231, 0.12);
+    }
+
+    .scanner-workspace { min-width: 0; }
+    .card {
+        max-width: none;
+        padding: clamp(20px, 2.6vw, 28px);
+        border: 1px solid #E7E4F5;
+        border-radius: 20px;
+        background: rgba(255,255,255,.96);
+        box-shadow: 0 16px 36px rgba(60, 54, 106, 0.08), 0 2px 8px rgba(34, 54, 84, .025);
+        animation: none;
+    }
+    h2 {
+        color: #1a2942;
+        font-size: 21px;
+        text-align: left;
+    }
+    .subtitle {
+        margin-bottom: 17px;
+        color: #748096;
+        font-size: 12px;
+        text-align: left;
+    }
+    .mode-toggle {
+        gap: 3px;
+        padding: 3px;
+        border: 1px solid #EAE3FF;
+        background: #F5F3FF;
+    }
+    .mode-btn {
+        display: inline-flex;
+        min-height: 39px;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        color: #66748a;
+    }
+    .mode-btn svg {
+        width: 16px;
+        height: 16px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .mode-btn.active {
+        color: #2F2A83;
+        background: linear-gradient(180deg, #FFFFFF, #F5F1FF);
+        border: 1px solid #D9CCFF;
+        box-shadow: 0 1px 4px rgba(86, 72, 160, .08);
+    }
+    .drop-zone {
+        padding: clamp(23px, 3.3vw, 31px) 18px;
+        border: 1.5px dashed #C9BCF6;
+        border-radius: 12px;
+        background: linear-gradient(180deg, #FCFAFF, #F3F1FF);
+        transition: border-color 150ms ease, background-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+    }
+    .drop-zone:hover, .drop-zone.dragover {
+        border-color: #8B7AE8;
+        background: #F4F1FF;
+        box-shadow: inset 0 0 0 1px rgba(123, 110, 238, .08);
+    }
+    .drop-zone:focus-visible {
+        border-color: #7A66E8;
+        background: #F7F4FF;
+        box-shadow: 0 0 0 3px rgba(122, 102, 232, .14);
+    }
+    .drop-zone .icon {
+        display: grid;
+        width: 40px;
+        height: 40px;
+        place-items: center;
+        margin: 0 auto 10px;
+        border: 1px solid #E5DCFF;
+        border-radius: 12px;
+        background: #F0EBFF;
+        color: #5E53D5;
+    }
+    .drop-zone .icon svg {
+        width: 21px;
+        height: 21px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 1.8;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+    .drop-zone p { color: #35435a; font-size: 13px; font-weight: 600; }
+    .drop-zone .hint { color: #7b8798; font-size: 11px; font-weight: 400; }
+    #file-name { color: #315f9f; font-size: 12px; overflow-wrap: anywhere; }
+    button.scan-btn,
+    .confirm-scan-btn,
+    .analysis-actions .analysis-retry-btn,
+    .scan-again-btn {
+        border: 0;
+        background: linear-gradient(110deg, #3975E6, #7654F6);
+        color: #fff;
+        box-shadow: 0 10px 22px rgba(84, 90, 228, 0.2);
+    }
+    button.scan-btn {
+        min-height: 48px;
+        margin-top: 15px;
+        border-radius: 10px;
+        font-size: 14px;
+        transform: none;
+    }
+    button.scan-btn:hover:not(:disabled) {
+        transform: none;
+        background: linear-gradient(110deg, #2d6de6, #684aec);
+        box-shadow: 0 10px 24px rgba(84, 90, 228, 0.24);
+    }
+    button.scan-btn:disabled {
+        border: 1px solid #E0E7F0;
+        background: #EEF1F7;
+        color: #7B8798;
+        opacity: 1;
+        box-shadow: none;
+        cursor: not-allowed;
+    }
+    #status-msg { color: #53627a; font-size: 12px; }
+    #status-msg[style*="color: red"], #status-msg[style*="color: rgb(231, 76, 60)"] { color: #a4323d !important; }
+
+    .camera-wrap {
+        border: 1px solid #dfe5ee;
+        border-radius: 13px;
+        background: #172338;
+        box-shadow: 0 5px 15px rgba(25, 40, 63, .12);
+    }
+    .camera-confirmation {
+        border-color: #dfe9f5;
+        background: #f7faff;
+    }
+    .camera-confirmation .checkmark { background: #327d5a; box-shadow: none; }
+    .camera-confirmation h3 { color: #1a2942; }
+    .retake-btn { background: #eef2f7; color: #43526a; }
+    .confirm-scan-btn { background: #172a46; }
+    .switch-cam-btn { background: #eef2f7; color: #45546b; }
+
+    .analysis-card {
+        max-width: none;
+        padding: clamp(22px, 3vw, 32px);
+        border: 1px solid #e7ebf2;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 12px 35px rgba(34, 54, 84, .075), 0 2px 5px rgba(34, 54, 84, .035);
+    }
+    .analysis-visual {
+        width: 64px;
+        height: 64px;
+        margin-bottom: 15px;
+        border-color: #dce7f5;
+        border-radius: 18px;
+        background: #f0f5fc;
+        color: #396eaf;
+    }
+    .analysis-visual::before, .analysis-visual::after { border-color: rgba(65, 112, 174, .17); }
+    .analysis-card h2 { text-align: center; }
+    .analysis-progress-track { border-color: #e2e8f0; background: #edf1f6; }
+    .analysis-progress-fill { background: #477bc0; }
+    .analysis-card.is-complete .analysis-progress-fill { background: #31805b; }
+    .analysis-current-status { color: #3d6699; }
+    .analysis-stages { border-color: #e8edf4; background: #fafbfd; }
+    .analysis-stage.is-active { color: #315f9e; }
+    .analysis-stage.is-active .analysis-stage-indicator { border-color: #5482bd; background: #edf4fc; box-shadow: none; }
+    .analysis-stage.is-complete .analysis-stage-indicator { border-color: #5a9a76; background: #edf7f0; color: #32734d; }
+    .analysis-actions .analysis-retry-btn { background: #172a46; }
+    .analysis-actions button { border-color: #ccd6e4; color: #344d70; }
+
+    .results-card {
+        max-width: none;
+        padding: clamp(22px, 3vw, 34px);
+        border: 1px solid #e5eaf1;
+        border-radius: 18px;
+        background: #fff;
+        box-shadow: 0 8px 24px rgba(34, 54, 84, .055), 0 1px 3px rgba(34, 54, 84, .025);
+        animation: none;
+    }
+    .verdict-banner {
+        min-height: 112px;
+        padding: 22px 24px;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        color: #1d3047;
+    }
+    .verdict-banner::after { display: none; }
+    .verdict-safe { border-color: #cde6d8; background: #edf7f1; }
+    .verdict-review, .verdict-suspicious { border-color: #f0dfbd; background: #fff7e9; }
+    .verdict-dangerous { border-color: #efd0d0; background: #fff0ef; }
+    .verdict-neutral { border-color: #d9e4f1; background: #f0f5fb; }
+    .verdict-icon {
+        flex-basis: 52px;
+        width: 52px;
+        height: 52px;
+        border-color: rgba(37, 58, 85, .14);
+        border-radius: 15px;
+        background: rgba(255,255,255,.7);
+        color: #294c77;
+    }
+    .verdict-icon svg { width: 28px; height: 28px; }
+    .verdict-title { color: #1d3047; font-size: 22px; }
+    .verdict-explanation { color: #4e5d71; }
+    .verdict-disclaimer { color: #647187; opacity: 1; }
+    .risk-panel { border-color: #e2e9f2; border-radius: 13px; background: #f7f9fc; }
+    .risk-heading, .risk-score { color: #1c2b43; }
+    .risk-score { font-variant-numeric: tabular-nums; }
+    .risk-out-of, .risk-meta { color: #6e7a8f; }
+    .risk-track { background: #e4eaf1; }
+    .risk-explanation, .result-section { border-color: #e5eaf1; border-radius: 13px; background: #fff; }
+    .risk-explanation h3, .risk-explanation-heading svg, .result-section h3 { color: #315f9e; }
+    .result-section:hover { border-color: #d5dfeb; box-shadow: 0 4px 12px rgba(40, 61, 88, .045); }
+    .risk-badge.neutral { color: #315b91; background: #e9f1fb; }
+    .upi-identity-notice { border-color: #dbe5f1; background: #f4f7fb; color: #526078; }
+    .upi-identity-notice strong { color: #34445e; }
+    .redirect-details { border-color: #e2e9f2; background: #f8fafd; }
+    .redirect-details summary { color: #315f9e; }
+    .summary-panel { border-left-color: #4b78b6; background: #f3f7fc; color: #536178; }
+    .summary-panel strong { color: #263b5b; }
+    .scan-again-btn { border-radius: 10px; }
+    .scan-again-btn:hover { background: #203c62; }
+    .report-btn { border-color: #bdcce0; color: #315887; }
+    .report-btn:hover:not(:disabled) { background: #f3f7fc; }
+    .report-btn:focus-visible,
+    .scan-again-btn:focus-visible,
+    .mode-btn:focus-visible {
+        outline: 3px solid rgba(76, 127, 193, .55);
+        outline-offset: 2px;
+    }
+
+    button:focus-visible,
+    a:focus-visible,
+    summary:focus-visible,
+    .drop-zone:focus-visible {
+        outline: 3px solid #4c7fc1;
+        outline-offset: 3px;
+    }
+
+    @media (max-width: 900px) {
+        .scanner-layout { grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); gap: 30px; }
+        .scanner-intro h1 { font-size: clamp(34px, 5vw, 46px); }
+        .feature-list { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+        .scanner-illustration { width: min(100%, 330px); }
+    }
+    @media (max-width: 700px) {
+        body { padding: 15px 16px 34px; }
+        .scanner-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; padding: 10px 0 20px; }
+        .scanner-intro { padding: 10px 2px 8px; }
+        .intro-kicker { margin-bottom: 12px; }
+        .scanner-intro h1 { max-width: 600px; font-size: clamp(35px, 8vw, 48px); }
+        .intro-copy { max-width: 620px; margin: 12px 0 18px; font-size: 13px; }
+        .scanner-illustration { width: min(100%, 360px); height: 82px; margin-bottom: 14px; }
+        .scanner-illustration svg { height: 68px; }
+        .feature-list { grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: 620px; }
+        .intro-note { margin-top: 16px; }
+        .scanner-workspace { width: 100%; }
+        .results-card { margin-top: 16px; }
+    }
+    @media (max-width: 420px) {
+        body { padding: 12px 12px 26px; }
+        .scanner-intro h1 { font-size: 35px; }
+        .feature-list { gap: 9px 10px; }
+        .feature-item { gap: 7px; font-size: 10.5px; }
+        .feature-mark { width: 25px; height: 25px; flex-basis: 25px; }
+        .feature-mark svg { width: 15px; height: 15px; }
+        .card, .analysis-card, .results-card { padding: 20px 16px; }
+        .drop-zone { padding: 25px 12px; }
+        .verdict-banner { gap: 12px; padding: 17px 14px; }
+        .verdict-icon { flex-basis: 44px; width: 44px; height: 44px; }
+    }
+    .results-card,
+    #result-rows,
+    .result-section,
+    .result-row,
+    .result-row .label,
+    .result-row .value {
+        min-width: 0;
+    }
+    .result-section {
+        padding: 18px 20px 5px;
+    }
+    .section-heading {
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+    .result-section h3 {
+        font-size: 14px;
+        line-height: 1.4;
+    }
+    .result-row {
+        grid-template-columns: minmax(0, 0.52fr) minmax(0, 1fr);
+        gap: 16px;
+        align-items: start;
+        padding: 12px 0;
+        font-size: 13px;
+        line-height: 1.55;
+    }
+    .result-row .label,
+    .result-row .value {
+        text-align: left;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    .result-row .label { color: #65738a; }
+    .result-row .value {
+        color: #253650;
+        font-weight: 500;
+        white-space: pre-wrap;
+    }
+    .result-row .value .status-badge { margin-left: 0; }
+    .probability-value,
+    .brand-match {
+        min-width: 0;
+        align-items: flex-start;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    .mini-meter { max-width: 100%; }
+    .risk-contribution {
+        grid-template-columns: minmax(0, 0.52fr) minmax(0, 1fr);
+        gap: 5px 16px;
+    }
+    .risk-contribution-name { min-width: 0; overflow-wrap: anywhere; }
+    .risk-contribution-points {
+        grid-column: 2;
+        grid-row: 1;
+        justify-self: start;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .risk-contribution-reason {
+        grid-column: 2;
+        grid-row: 2;
+        min-width: 0;
+        overflow-wrap: anywhere;
+    }
+    .hybrid-line {
+        display: grid;
+        grid-template-columns: minmax(0, 0.52fr) minmax(0, 1fr);
+        gap: 6px 16px;
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+    .hybrid-line span:last-child { text-align: left; }
+    .risk-meta span { min-width: 0; overflow-wrap: anywhere; }
+    .redirect-details,
+    .upi-identity-notice,
+    .summary-panel { min-width: 0; overflow-wrap: anywhere; }
+    @media (max-width: 600px) {
+        .result-section { padding: 16px 15px 5px; }
+        .result-row {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 4px;
+            padding: 11px 0;
+        }
+        .result-row .label { font-size: 12px; }
+        .result-row .value { font-size: 13px; }
+        .risk-contribution {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 5px;
+        }
+        .risk-contribution-points,
+        .risk-contribution-reason {
+            grid-column: 1;
+            grid-row: auto;
+        }
+        .hybrid-line {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 3px;
+        }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+</style>
+<link rel="stylesheet" href="navigation.css">
+<script src="navigation.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+</head>
+<body class="scanner-page">
+
+<div class="bg-shape shape1"></div>
+<div class="bg-shape shape2"></div>
+
+<header class="qs-header">
+    <a class="qs-brand" href="scan.html" aria-label="QR Shield home">
+        <span class="qs-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/>
+                <path d="m9 12 2 2 4-4"/>
+            </svg>
+        </span>
+        <span class="qs-brand-copy">
+            <span class="qs-brand-name">QR Shield</span>
+            <span class="qs-brand-subtitle">QR Security Platform</span>
+        </span>
+    </a>
+    <button class="qs-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false">
+        <span class="qs-menu-icon" aria-hidden="true"></span>
+    </button>
+    <nav class="qs-nav-links" id="primary-navigation" aria-label="Main navigation">
+        <a class="qs-nav-link" href="scan.html" aria-current="page">Scan QR</a>
+        <a class="qs-nav-link" href="generate.html">Generate QR</a>
+        <a class="qs-nav-link" href="dashboard.html">Dashboard</a>
+        <button class="qs-nav-link" type="button" onclick="logout()">Logout</button>
+    </nav>
+</header>
+
+<main class="scanner-shell">
+    <div class="scanner-layout">
+        <section class="scanner-intro" aria-labelledby="scanner-intro-heading">
+            <p class="intro-kicker">QR Shield Security</p>
+            <h1 id="scanner-intro-heading">Scan QR.<br><span>Stay Protected.</span></h1>
+            <p class="intro-copy">
+                Check where a QR code leads before you trust it. Review suspicious destinations,
+                phishing signals, QR integrity indicators, and declared UPI payment details.
+            </p>
+            <div class="scanner-illustration" aria-hidden="true">
+                <svg viewBox="0 0 190 82" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M63 24v-7a4 4 0 0 1 4-4h13M127 24v-7a4 4 0 0 0-4-4h-13M63 58v7a4 4 0 0 0 4 4h13M127 58v7a4 4 0 0 1-4 4h-13" opacity=".55"/>
+                    <path d="M95 21 109 27v10c0 10-6 17-14 21-8-4-14-11-14-21V27l14-6Z" fill="rgba(255,255,255,.78)"/>
+                    <path d="m89 38 4 4 8-9" stroke="#3975b8" stroke-width="2.2"/>
+                    <circle cx="48" cy="39" r="3" fill="#77bfd0" stroke="none"/>
+                    <circle cx="143" cy="46" r="4" fill="#a79be0" stroke="none"/>
+                    <path d="M37 24h9M41.5 19.5v9M147 25h8M151 21v8" opacity=".55"/>
+                    <path d="M53 56h5M55.5 53.5v5M133 19h4M135 17v4" opacity=".45"/>
+                </svg>
+            </div>
+            <div class="feature-list" aria-label="Scanner capabilities">
+                <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m12.5 12.5 4 4M6.5 8.5h4M8.5 6.5v4"/></svg></span><span>URL Security Analysis</span></div>
+                <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 2.5 12 4l2.5-.2.8 2.4 2 1.5-.8 2.4.8 2.4-2 1.5-.8 2.4L12 16l-2 1.5L8 16l-2.5.2-.8-2.4-2-1.5.8-2.4-.8-2.4 2-1.5.8-2.4L8 4 10 2.5Z"/><path d="M7.5 10h5M10 7.5v5"/></svg></span><span>ML Phishing Detection</span></div>
+                <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 7V4a1 1 0 0 1 1-1h3M13 3h3a1 1 0 0 1 1 1v3M17 13v3a1 1 0 0 1-1 1h-3M7 17H4a1 1 0 0 1-1-1v-3"/><path d="M7 7h2v2H7zM12 7h2v2h-2zM7 12h2v2H7zM12 12h2v2h-2z"/></svg></span><span>QR Integrity Checks</span></div>
+                <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="2.5" y="4.5" width="15" height="11" rx="2"/><path d="M3 8h14M6 12h3M12 12h2"/></svg></span><span>UPI Payment Details</span></div>
+            </div>
+            <p class="intro-note">A QR scan provides security indicators; always review the destination and payment details before acting.</p>
+        </section>
+
+        <div class="scanner-workspace">
+<div class="card" id="upload-card">
+    <h2>Scan a QR Code</h2>
+    <p class="subtitle">Upload, drag in, or scan live with your camera</p>
+
+    <div class="mode-toggle">
+        <button class="mode-btn active" id="upload-mode-btn" onclick="switchMode('upload')">
+            <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M10 13V3M6.5 6.5 10 3l3.5 3.5M4 12v4a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1v-4"/></svg>
+            Upload
+        </button>
+        <button class="mode-btn" id="camera-mode-btn" onclick="switchMode('camera')">
+            <svg aria-hidden="true" viewBox="0 0 20 20"><path d="M3 6.5h3l1.2-2h5.6l1.2 2h3v9H3z"/><circle cx="10" cy="11" r="3"/></svg>
+            Camera
+        </button>
+    </div>
+
+    <div id="upload-mode-panel">
+        <div class="drop-zone" id="drop-zone" role="button" tabindex="0" aria-label="Choose a QR image or drop an image file here">
+            <div class="icon" id="drop-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>
+            </div>
+            <p id="drop-instructions">Click to upload or drag & drop</p>
+            <p class="hint" id="drop-hint">PNG, JPG up to 5MB</p>
+            <div id="file-name" style="display:none;"></div>
+        </div>
+        <input type="file" id="file-input" accept="image/*">
+    </div>
+
+    <div id="camera-mode-panel" style="display:none;">
+        <div class="camera-wrap">
+            <video id="camera-video" playsinline autoplay muted></video>
+            <img id="captured-preview" class="captured-preview" alt="Captured QR code">
+            <div class="camera-frame" id="camera-frame">
+                <div class="corner tl"></div>
+                <div class="corner tr"></div>
+                <div class="corner bl"></div>
+                <div class="corner br"></div>
+                <div class="scan-line"></div>
+            </div>
+            <div class="camera-status" id="camera-status">Point your camera at a QR code</div>
+        </div>
+        <div class="camera-controls" id="camera-controls">
+            <button class="switch-cam-btn" id="switch-cam-btn" onclick="switchCameraFacing()">🔄 Switch Camera</button>
+        </div>
+        <div class="camera-confirmation" id="camera-confirmation">
+            <div class="checkmark" aria-hidden="true">✓</div>
+            <h3>QR Code Captured Successfully!</h3>
+            <div class="camera-confirmation-actions">
+                <button class="retake-btn" id="retake-btn" onclick="retakeCameraScan()">Retake</button>
+                <button class="confirm-scan-btn" id="confirm-scan-btn" disabled onclick="scanImage()">Scan QR Code</button>
+            </div>
+        </div>
+        <canvas id="camera-canvas" style="display:none;"></canvas>
+    </div>
+
+    <button class="scan-btn" id="scan-btn" disabled onclick="scanImage()">Scan QR Code</button>
+    <p id="status-msg"></p>
+</div>
+
+<section class="analysis-card" id="analysis-card" aria-labelledby="analysis-heading" aria-busy="false">
+    <div class="analysis-visual" aria-hidden="true">
+        <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 4 32 9v9c0 8-5.2 14-12 18C12.2 32 7 26 7 18V9l13-5Z"></path>
+            <path d="M14 20h12M20 14v12"></path>
+        </svg>
+    </div>
+    <h2 id="analysis-heading" tabindex="-1">Analyzing QR Code</h2>
+    <p class="analysis-subtitle">QR Shield is evaluating the QR content and available security signals.</p>
+    <div class="analysis-progress-meta">
+        <span>Analysis activity</span>
+        <span id="analysis-progress-value">8%</span>
+    </div>
+    <div class="analysis-progress-track" id="analysis-progress-track" role="progressbar"
+         aria-label="QR analysis activity" aria-valuemin="0" aria-valuemax="100" aria-valuenow="8">
+        <div class="analysis-progress-fill" id="analysis-progress-fill"></div>
+    </div>
+    <p class="analysis-current-status" id="analysis-current-status" aria-live="polite">Reading QR content...</p>
+    <p class="analysis-stage-note">Workflow activity only — these stages do not report individual check results.</p>
+    <ol class="analysis-stages" id="analysis-stages">
+        <li class="analysis-stage" data-stage="0"><span class="analysis-stage-indicator" aria-hidden="true">1</span><span>Decoding QR content</span></li>
+        <li class="analysis-stage" data-stage="1"><span class="analysis-stage-indicator" aria-hidden="true">2</span><span>Inspecting destination</span></li>
+        <li class="analysis-stage" data-stage="2"><span class="analysis-stage-indicator" aria-hidden="true">3</span><span>Checking security signals</span></li>
+        <li class="analysis-stage" data-stage="3"><span class="analysis-stage-indicator" aria-hidden="true">4</span><span>Running phishing analysis</span></li>
+        <li class="analysis-stage" data-stage="4"><span class="analysis-stage-indicator" aria-hidden="true">5</span><span>Evaluating QR integrity</span></li>
+        <li class="analysis-stage" data-stage="5"><span class="analysis-stage-indicator" aria-hidden="true">6</span><span>Preparing security report</span></li>
+    </ol>
+    <div class="analysis-error" id="analysis-error" role="alert">
+        <strong>Analysis could not be completed.</strong>
+        <span id="analysis-error-message"></span>
+    </div>
+    <div class="analysis-actions" id="analysis-actions">
+        <button type="button" id="analysis-retry-btn" class="analysis-retry-btn" onclick="scanImage()">Try Again</button>
+        <button type="button" onclick="returnToScanner()">Back to Scanner</button>
+    </div>
+</section>
+
+</div>
+</div>
+
+<div class="results-card" id="results-card">
+    <div class="verdict-banner" id="verdict-banner">Result</div>
+    <div id="result-rows"></div>
+    <div class="results-actions">
+        <button class="report-btn" id="report-btn" disabled onclick="downloadReport()">Download PDF Report</button>
+        <button class="scan-again-btn" onclick="resetScan()">Scan Another QR</button>
+    </div>
+    <p class="report-status" id="report-status" aria-live="polite"></p>
+</div>
+</main>
+
+<script>
+    // NOTE: change this if your backend route/port differs
+    const API_URL = "http://127.0.0.1:8000";
+    const SCAN_ENDPOINT = "/scan"; // <-- update if your route name is different
+
+    let selectedFile = null;
+    let currentScanId = null;
+    let isAnalyzing = false;
+    let analysisTimer = null;
+    let analysisStartedAt = 0;
+    const analysisStageLabels = [
+        "Reading QR content...",
+        "Analyzing destination...",
+        "Evaluating security signals...",
+        "Running phishing detection...",
+        "Checking QR integrity...",
+        "Preparing results..."
+    ];
+
+    // Guard: bounce to login if no token
+    const token = localStorage.getItem("access_token");
+    if (!token) {
+        window.location.href = "login.html";
+    }
+
+    const dropZone = document.getElementById("drop-zone");
+    const fileInput = document.getElementById("file-input");
+    const dropIcon = document.getElementById("drop-icon");
+    const dropInstructions = document.getElementById("drop-instructions");
+    const dropHint = document.getElementById("drop-hint");
+    const fileNameEl = document.getElementById("file-name");
+    const scanBtn = document.getElementById("scan-btn");
+    const statusMsg = document.getElementById("status-msg");
+    const analysisCard = document.getElementById("analysis-card");
+    const analysisHeading = document.getElementById("analysis-heading");
+    const analysisSubtitle = document.querySelector(".analysis-subtitle");
+    const analysisProgressTrack = document.getElementById("analysis-progress-track");
+    const analysisProgressFill = document.getElementById("analysis-progress-fill");
+    const analysisProgressValue = document.getElementById("analysis-progress-value");
+    const analysisCurrentStatus = document.getElementById("analysis-current-status");
+    const analysisError = document.getElementById("analysis-error");
+    const analysisErrorMessage = document.getElementById("analysis-error-message");
+    const analysisActions = document.getElementById("analysis-actions");
+
+    // Camera mode elements
+    const uploadModeBtn = document.getElementById("upload-mode-btn");
+    const cameraModeBtn = document.getElementById("camera-mode-btn");
+    const uploadModePanel = document.getElementById("upload-mode-panel");
+    const cameraModePanel = document.getElementById("camera-mode-panel");
+    const cameraVideo = document.getElementById("camera-video");
+    const cameraCanvas = document.getElementById("camera-canvas");
+    const cameraWrap = document.querySelector(".camera-wrap");
+    const cameraStatus = document.getElementById("camera-status");
+    const capturedPreview = document.getElementById("captured-preview");
+    const cameraControls = document.getElementById("camera-controls");
+    const cameraFrame = document.getElementById("camera-frame");
+    const cameraConfirmation = document.getElementById("camera-confirmation");
+    const confirmScanBtn = document.getElementById("confirm-scan-btn");
+    let currentFacingMode = "environment";
+
+    let cameraStream = null;
+    let cameraLoopId = null;
+    let cameraQrFound = false;
+    let cameraStartId = 0;
+    let capturedCameraScan = null;
+    let currentMode = "upload";
+
+    function switchMode(mode) {
+        if (isAnalyzing) return;
+        stopCamera();
+        currentMode = mode;
+
+        if (mode === "upload") {
+            uploadModeBtn.classList.add("active");
+            cameraModeBtn.classList.remove("active");
+            uploadModePanel.style.display = "block";
+            cameraModePanel.style.display = "none";
+            scanBtn.style.display = "block";
+            resetFormFields();
+        } else {
+            uploadModeBtn.classList.remove("active");
+            cameraModeBtn.classList.add("active");
+            uploadModePanel.style.display = "none";
+            cameraModePanel.style.display = "block";
+            scanBtn.style.display = "none";
+            resetFormFields();
+            startCamera();
+        }
+    }
+
+    async function startCamera() {
+        stopCamera();
+        cameraQrFound = false;
+        capturedCameraScan = null;
+        cameraWrap.classList.remove("captured");
+        cameraFrame.classList.remove("found");
+        cameraFrame.style.display = "block";
+        cameraControls.style.display = "flex";
+        cameraVideo.style.display = "block";
+        capturedPreview.style.display = "none";
+        cameraConfirmation.style.display = "none";
+        cameraStatus.style.display = "block";
+        confirmScanBtn.disabled = true;
+        cameraStatus.className = "camera-status";
+        cameraStatus.innerText = "Requesting camera access...";
+        const requestId = cameraStartId;
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: { facingMode: currentFacingMode }
+            });
+            if (requestId !== cameraStartId || currentMode !== "camera") {
+                stream.getTracks().forEach(track => track.stop());
+                return;
+            }
+            cameraStream = stream;
+            cameraVideo.srcObject = cameraStream;
+            try {
+                await cameraVideo.play();
+            } catch (playErr) {
+                // Some browsers block autoplay in certain contexts; the
+                // video element usually still starts once the user
+                // interacts with the page, so don't treat this as fatal.
+                console.warn("Video play() was blocked:", playErr);
+            }
+            cameraStatus.innerText = "Point your camera at a QR code";
+            cameraLoopId = requestAnimationFrame(scanCameraFrame);
+        } catch (err) {
+            if (requestId !== cameraStartId || currentMode !== "camera") return;
+            cameraStatus.innerText = "Camera access denied or unavailable.";
+            statusMsg.style.color = "#e74c3c";
+            statusMsg.innerText = "Could not access camera. Check browser permissions, or use Upload instead.";
+        }
+    }
+
+    function switchCameraFacing() {
+        currentFacingMode = currentFacingMode === "environment" ? "user" : "environment";
+        stopCamera();
+        startCamera();
+    }
+
+    function stopCamera() {
+        cameraStartId += 1;
+        if (cameraLoopId) {
+            cancelAnimationFrame(cameraLoopId);
+            cameraLoopId = null;
+        }
+        if (cameraStream) {
+            cameraStream.getTracks().forEach(track => track.stop());
+            cameraStream = null;
+        }
+        cameraVideo.srcObject = null;
+    }
+
+    function scanCameraFrame() {
+        if (cameraQrFound || !cameraStream) return;
+
+        if (cameraVideo.readyState === cameraVideo.HAVE_ENOUGH_DATA) {
+            const nativeWidth = cameraVideo.videoWidth;
+            const nativeHeight = cameraVideo.videoHeight;
+            if (!nativeWidth || !nativeHeight) {
+                cameraStatus.innerText = "Position a QR code inside the frame.";
+                cameraLoopId = requestAnimationFrame(scanCameraFrame);
+                return;
+            }
+
+            cameraCanvas.width = nativeWidth;
+            cameraCanvas.height = nativeHeight;
+            const ctx = cameraCanvas.getContext("2d", { willReadFrequently: true });
+            // Match the on-screen brightness boost in the actual captured pixel
+            // data too, not just the CSS preview -- otherwise the image sent to
+            // the backend for tampering/quality analysis would still be dark.
+            ctx.filter = "brightness(1.15) contrast(1.05) saturate(1.03)";
+            ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+            ctx.filter = "none";
+            const imageData = ctx.getImageData(0, 0, cameraCanvas.width, cameraCanvas.height);
+
+            const code = jsQR(imageData.data, imageData.width, imageData.height);
+            if (code && typeof code.data === "string" && code.data.trim()) {
+                cameraQrFound = true;
+                cameraFrame.classList.add("found");
+                cameraStatus.className = "camera-status found";
+                cameraStatus.innerText = "✅ QR code detected!";
+                captureCameraFrame(code);
+                return;
+            }
+
+            if (code) {
+                cameraStatus.className = "camera-status";
+                cameraStatus.innerText = "QR code not readable. Move closer and try again.";
+            } else {
+                cameraStatus.className = "camera-status";
+                cameraStatus.innerText = "Position a QR code inside the frame.";
+            }
+        }
+        cameraLoopId = requestAnimationFrame(scanCameraFrame);
+    }
+
+    function captureCameraFrame(code) {
+        // cameraCanvas contains the exact native-resolution frame that jsQR
+        // decoded, so the preview and upload cannot come from another frame.
+        const sourceCanvas = document.createElement("canvas");
+        sourceCanvas.width = cameraCanvas.width;
+        sourceCanvas.height = cameraCanvas.height;
+        sourceCanvas.getContext("2d").drawImage(
+            cameraCanvas, 0, 0, cameraCanvas.width, cameraCanvas.height
+        );
+
+        const previewCanvas = createQrPreviewCanvas(sourceCanvas, code);
+        capturedPreview.src = previewCanvas.toDataURL("image/png");
+        cameraWrap.classList.add("captured");
+        capturedPreview.style.display = "block";
+        cameraVideo.style.display = "none";
+        cameraFrame.style.display = "none";
+        cameraControls.style.display = "none";
+        cameraConfirmation.style.display = "block";
+        cameraStatus.style.display = "none";
+        stopCamera();
+
+        sourceCanvas.toBlob((blob) => {
+            if (!blob) {
+                statusMsg.style.color = "#e74c3c";
+                statusMsg.innerText = "Could not save the captured QR image. Please retake it.";
+                return;
+            }
+            const file = new File([blob], "camera_capture.png", { type: "image/png" });
+            capturedCameraScan = { decodedContent: code.data, file };
+            selectedFile = capturedCameraScan.file;
+            fileNameEl.innerText = "Captured from camera";
+            fileNameEl.style.display = "block";
+            updateScanButtonState();
+            statusMsg.style.color = "#27ae60";
+            statusMsg.innerText = "QR captured — tap Scan QR Code to analyze it.";
+        }, "image/png");
+    }
+
+    function createQrPreviewCanvas(sourceCanvas, code) {
+        const width = sourceCanvas.width;
+        const height = sourceCanvas.height;
+        const corners = code && code.location
+            ? [
+                code.location.topLeftCorner,
+                code.location.topRightCorner,
+                code.location.bottomLeftCorner,
+                code.location.bottomRightCorner
+            ]
+            : [];
+        const hasValidCorners = corners.length === 4 && corners.every((point) =>
+            point && Number.isFinite(point.x) && Number.isFinite(point.y) &&
+            point.x >= 0 && point.x <= width && point.y >= 0 && point.y <= height
+        );
+
+        if (!hasValidCorners) {
+            return sourceCanvas;
+        }
+
+        const minX = Math.min(...corners.map((point) => point.x));
+        const maxX = Math.max(...corners.map((point) => point.x));
+        const minY = Math.min(...corners.map((point) => point.y));
+        const maxY = Math.max(...corners.map((point) => point.y));
+        const qrWidth = maxX - minX;
+        const qrHeight = maxY - minY;
+        if (qrWidth <= 0 || qrHeight <= 0) {
+            return sourceCanvas;
+        }
+
+        const padding = Math.max(qrWidth, qrHeight) * 0.18;
+        const cropWidth = qrWidth + padding * 2;
+        const cropHeight = qrHeight + padding * 2;
+        const side = Math.min(Math.max(cropWidth, cropHeight), width, height);
+        const centerX = (minX + maxX) / 2;
+        const centerY = (minY + maxY) / 2;
+        const sx = Math.max(0, Math.min(width - side, centerX - side / 2));
+        const sy = Math.max(0, Math.min(height - side, centerY - side / 2));
+
+        const previewCanvas = document.createElement("canvas");
+        previewCanvas.width = side;
+        previewCanvas.height = side;
+        previewCanvas.getContext("2d").drawImage(
+            sourceCanvas, sx, sy, side, side, 0, 0, side, side
+        );
+        return previewCanvas;
+    }
+
+    function retakeCameraScan() {
+        if (isAnalyzing) return;
+        selectedFile = null;
+        capturedCameraScan = null;
+        cameraQrFound = false;
+        capturedPreview.src = "";
+        fileNameEl.style.display = "none";
+        fileNameEl.innerText = "";
+        statusMsg.innerText = "";
+        updateScanButtonState();
+        startCamera();
+    }
+
+    dropZone.addEventListener("click", () => {
+        if (!isAnalyzing) fileInput.click();
+    });
+    dropZone.addEventListener("keydown", (event) => {
+        if (isAnalyzing) return;
+        if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            fileInput.click();
+        }
+    });
+
+    dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+    });
+    dropZone.addEventListener("dragleave", () => dropZone.classList.remove("dragover"));
+    dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        if (e.dataTransfer.files.length) {
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener("change", () => {
+        if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+        if (isAnalyzing) return;
+        if (!file.type.startsWith("image/")) {
+            statusMsg.style.color = "#e74c3c";
+            statusMsg.innerText = "Please select an image file.";
+            return;
+        }
+        selectedFile = file;
+        statusMsg.innerText = "";
+
+        dropIcon.innerHTML = '<svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>';
+        dropInstructions.style.display = "none";
+        dropHint.style.display = "none";
+        fileNameEl.innerText = file.name;
+        fileNameEl.style.display = "block";
+        updateScanButtonState();
+    }
+
+    function updateScanButtonState() {
+        const canScan = !isAnalyzing && selectedFile !== null;
+        scanBtn.disabled = !canScan || currentMode !== "upload";
+        scanBtn.innerText = isAnalyzing ? "Scanning..." : "Scan QR Code";
+        confirmScanBtn.disabled = !canScan || !capturedCameraScan || capturedCameraScan.file !== selectedFile;
+        confirmScanBtn.innerText = isAnalyzing ? "Scanning..." : "Scan QR Code";
+        uploadModeBtn.disabled = isAnalyzing;
+        cameraModeBtn.disabled = isAnalyzing;
+        fileInput.disabled = isAnalyzing;
+    }
+
+    async function scanImage() {
+        if (isAnalyzing || !selectedFile) return;
+        if (currentMode === "camera" &&
+            (!capturedCameraScan || capturedCameraScan.file !== selectedFile)) {
+            statusMsg.style.color = "#e74c3c";
+            statusMsg.innerText = "Please capture a readable QR code before scanning.";
+            return;
+        }
+
+        isAnalyzing = true;
+        updateScanButtonState();
+        beginAnalysisActivity();
+
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+
+        try {
+            const response = await fetch(API_URL + SCAN_ENDPOINT, {
+                method: "POST",
+                headers: {
+                    "Authorization": "Bearer " + token
+                },
+                body: formData
+            });
+
+            if (response.status === 401) {
+                setAnalysisError("Your session has expired. Redirecting to login...");
+                localStorage.removeItem("access_token");
+                setTimeout(() => window.location.href = "login.html", 1200);
+                return;
+            }
+
+            let data;
+            try {
+                data = await response.json();
+            } catch (error) {
+                setAnalysisError("The server returned an invalid response. Please try again.");
+                return;
+            }
+
+            if (!data || typeof data !== "object" || Array.isArray(data)) {
+                setAnalysisError("The server returned an invalid response. Please try again.");
+                return;
+            }
+
+            // Backend returns HTTP 200 even on decode failure, using a
+            // {status: "error", message: "..."} body instead of a 4xx/5xx code.
+            if (!response.ok || data.status === "error") {
+                const message = typeof data.message === "string" && data.message.trim()
+                    ? data.message
+                    : response.ok
+                        ? "Could not decode a QR code from this image. Please try another image."
+                        : "Scan failed (HTTP " + response.status + "). Please try again.";
+                setAnalysisError(message);
+                return;
+            }
+
+            if (typeof data.decoded_content !== "string" || !data.decoded_content.trim()) {
+                setAnalysisError("The server response did not include decoded QR content. Please try again.");
+                return;
+            }
+
+            stopAnalysisActivity();
+            completeAnalysisActivity();
+            currentScanId = data.scan_id || null;
+            await new Promise(resolve => setTimeout(resolve, 360));
+            showResults(data);
+
+        } catch (error) {
+            setAnalysisError("Could not connect to the server. Please check your connection and try again.");
+        } finally {
+            isAnalyzing = false;
+            updateScanButtonState();
+        }
+    }
+
+    function beginAnalysisActivity() {
+        stopAnalysisActivity();
+        document.getElementById("results-card").style.display = "none";
+        analysisCard.style.display = "block";
+        analysisCard.classList.remove("is-complete", "has-error");
+        analysisCard.setAttribute("aria-busy", "true");
+        analysisHeading.textContent = "Analyzing QR Code";
+        analysisSubtitle.textContent = "QR Shield is evaluating the QR content and available security signals.";
+        analysisError.style.display = "none";
+        analysisActions.style.display = "none";
+        analysisCurrentStatus.textContent = analysisStageLabels[0];
+        setAnalysisProgress(8);
+        updateAnalysisStages(0, false);
+        analysisHeading.focus();
+        analysisStartedAt = Date.now();
+        analysisTimer = setInterval(updateAnalysisActivity, 250);
+        statusMsg.innerText = "";
+    }
+
+    function updateAnalysisActivity() {
+        const elapsed = Date.now() - analysisStartedAt;
+        const stageIndex = Math.min(
+            analysisStageLabels.length - 1,
+            Math.floor(elapsed / 2200)
+        );
+        const progress = Math.min(88, 8 + 80 * (1 - Math.exp(-elapsed / 9000)));
+        setAnalysisProgress(progress);
+        analysisCurrentStatus.textContent = analysisStageLabels[stageIndex];
+        updateAnalysisStages(stageIndex, false);
+    }
+
+    function updateAnalysisStages(activeIndex, isComplete) {
+        document.querySelectorAll(".analysis-stage").forEach((stage, index) => {
+            const indicator = stage.querySelector(".analysis-stage-indicator");
+            stage.classList.toggle("is-complete", isComplete || index < activeIndex);
+            stage.classList.toggle("is-active", !isComplete && index === activeIndex);
+            if (isComplete || index < activeIndex) {
+                indicator.textContent = "✓";
+            } else {
+                indicator.textContent = String(index + 1);
+            }
+            if (!isComplete && index === activeIndex) {
+                stage.setAttribute("aria-current", "step");
+            } else {
+                stage.removeAttribute("aria-current");
+            }
+        });
+    }
+
+    function setAnalysisProgress(value) {
+        const progress = Math.max(0, Math.min(100, Math.round(value)));
+        analysisProgressFill.style.width = progress + "%";
+        analysisProgressTrack.setAttribute("aria-valuenow", String(progress));
+        analysisProgressValue.textContent = progress + "%";
+    }
+
+    function stopAnalysisActivity() {
+        if (analysisTimer !== null) {
+            clearInterval(analysisTimer);
+            analysisTimer = null;
+        }
+    }
+
+    function completeAnalysisActivity() {
+        analysisCard.classList.add("is-complete");
+        analysisCard.setAttribute("aria-busy", "false");
+        analysisHeading.textContent = "Analysis Complete";
+        analysisCurrentStatus.textContent = "Analysis complete. Opening your security report...";
+        setAnalysisProgress(100);
+        updateAnalysisStages(analysisStageLabels.length, true);
+    }
+
+    function setAnalysisError(message) {
+        stopAnalysisActivity();
+        analysisCard.classList.remove("is-complete");
+        analysisCard.classList.add("has-error");
+        analysisCard.setAttribute("aria-busy", "false");
+        analysisHeading.textContent = "Analysis could not be completed";
+        analysisSubtitle.textContent = "Your scan was not completed. Review the message and try again.";
+        analysisCurrentStatus.textContent = "Analysis stopped before completion.";
+        analysisErrorMessage.textContent = message;
+        analysisError.style.display = "block";
+        analysisActions.style.display = "flex";
+    }
+
+    function returnToScanner() {
+        if (isAnalyzing) return;
+        analysisCard.style.display = "none";
+        document.getElementById("upload-card").style.display = "block";
+        updateScanButtonState();
+    }
+
+    function displayValue(value, fallback = "Unavailable") {
+        return value === null || value === undefined || value === "" ? fallback : String(value);
+    }
+
+    function createInfoLabel(label, explanation) {
+        const wrapper = document.createElement("span");
+        wrapper.className = "label";
+        wrapper.appendChild(document.createTextNode(label + " "));
+        const icon = document.createElement("span");
+        icon.className = "info-tip";
+        icon.textContent = "i";
+        icon.tabIndex = 0;
+        icon.setAttribute("role", "img");
+        icon.setAttribute("aria-label", explanation);
+        icon.title = explanation;
+        wrapper.appendChild(icon);
+        return wrapper;
+    }
+
+    function createIcon(name) {
+        const paths = {
+            shield: '<path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z"></path><path d="m8.5 12 2.2 2.2 4.8-5"></path>',
+            link: '<circle cx="7.5" cy="12" r="3.5"></circle><circle cx="16.5" cy="12" r="3.5"></circle><path d="M10.5 12h3"></path>',
+            qr: '<path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"></path><path d="M14 14h3v3h-3zM18 18h2v2h-2zM18 14h2"></path>',
+            route: '<circle cx="5" cy="5" r="2"></circle><circle cx="19" cy="19" r="2"></circle><path d="M7 5h5a3 3 0 0 1 3 3v5a3 3 0 0 0 3 3h0"></path>',
+            gauge: '<path d="M4 16a8 8 0 1 1 16 0"></path><path d="m12 12 3-3"></path><path d="M6 19h12"></path>'
+        };
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 24 24");
+        svg.setAttribute("fill", "none");
+        svg.setAttribute("stroke", "currentColor");
+        svg.setAttribute("stroke-width", "1.8");
+        svg.setAttribute("stroke-linecap", "round");
+        svg.setAttribute("stroke-linejoin", "round");
+        svg.innerHTML = paths[name] || paths.shield;
+        return svg;
+    }
+
+    function createStatusBadge(text, tone) {
+        const badge = document.createElement("span");
+        badge.className = "status-badge status-" + tone;
+        badge.textContent = text;
+        return badge;
+    }
+
+    function createResultRow(label, value, explanation, options = {}) {
+        const row = document.createElement("div");
+        row.className = "result-row";
+        row.appendChild(explanation ? createInfoLabel(label, explanation) : (() => {
+            const labelEl = document.createElement("span");
+            labelEl.className = "label";
+            labelEl.textContent = label;
+            return labelEl;
+        })());
+        const valueEl = document.createElement("span");
+        valueEl.className = "value";
+        if (options.valueNode) {
+            valueEl.appendChild(options.valueNode);
+        } else if (options.status) {
+            valueEl.appendChild(createStatusBadge(options.status.text, options.status.tone));
+        } else {
+            valueEl.textContent = displayValue(value);
+        }
+        row.appendChild(valueEl);
+        return row;
+    }
+
+    function createSection(title, icon, rows) {
+        const section = document.createElement("section");
+        section.className = "result-section";
+        const headingWrap = document.createElement("div");
+        headingWrap.className = "section-heading";
+        headingWrap.appendChild(createIcon(icon));
+        const heading = document.createElement("h3");
+        heading.textContent = title;
+        headingWrap.appendChild(heading);
+        section.appendChild(headingWrap);
+        rows.forEach(row => section.appendChild(createResultRow(row[0], row[1], row[2], row[3] || {})));
+        return section;
+    }
+
+    function formatCalculationNumber(value) {
+        return Number(value.toFixed(4)).toString();
+    }
+
+    function createRiskExplanation(data) {
+        const section = document.createElement("section");
+        section.className = "risk-explanation";
+        const heading = document.createElement("div");
+        heading.className = "risk-explanation-heading";
+        heading.appendChild(createIcon("gauge"));
+        const title = document.createElement("h3");
+        title.textContent = "Why this score?";
+        heading.appendChild(title);
+        section.appendChild(heading);
+
+        const contributions = Array.isArray(data.risk_breakdown) ? data.risk_breakdown : [];
+        if (contributions.length === 0) {
+            const emptyMessage = document.createElement("p");
+            emptyMessage.className = "risk-breakdown-empty";
+            emptyMessage.textContent = "No rule-based risk indicators were triggered.";
+            section.appendChild(emptyMessage);
+        } else {
+            const list = document.createElement("div");
+            list.className = "risk-contribution-list";
+            contributions.forEach(contribution => {
+                if (!contribution || typeof contribution !== "object") return;
+                const item = document.createElement("article");
+                item.className = "risk-contribution";
+                const name = document.createElement("span");
+                name.className = "risk-contribution-name";
+                name.textContent = displayValue(contribution.name, "Risk indicator");
+                const points = document.createElement("span");
+                points.className = "risk-contribution-points";
+                const pointValue = Number(contribution.points);
+                points.textContent = Number.isFinite(pointValue)
+                    ? "+" + formatCalculationNumber(pointValue) + " rule points"
+                    : "Rule contribution";
+                const reason = document.createElement("span");
+                reason.className = "risk-contribution-reason";
+                reason.textContent = displayValue(contribution.reason, "Explanation unavailable.");
+                item.append(name, points, reason);
+                list.appendChild(item);
+            });
+            section.appendChild(list);
+        }
+
+        const calculationHeading = document.createElement("h4");
+        calculationHeading.textContent = "Hybrid Risk Calculation";
+        const calculation = document.createElement("div");
+        calculation.className = "hybrid-calculation";
+        calculation.appendChild(calculationHeading);
+        const explanation = data.score_explanation;
+        const requiredValues = explanation && [
+            explanation.rule_score,
+            explanation.rule_weight,
+            explanation.rule_contribution,
+            explanation.ml_probability,
+            explanation.ml_weight,
+            explanation.ml_contribution,
+            explanation.calculated_score,
+            explanation.final_score
+        ];
+        if (requiredValues && requiredValues.every(value => typeof value === "number" && Number.isFinite(value))) {
+            const addCalculationLine = (label, value, isFinal = false) => {
+                const line = document.createElement("div");
+                line.className = "hybrid-line" + (isFinal ? " final" : "");
+                const labelNode = document.createElement("span");
+                labelNode.textContent = label;
+                const valueNode = document.createElement("span");
+                valueNode.textContent = value;
+                line.append(labelNode, valueNode);
+                calculation.appendChild(line);
+            };
+            const ruleScore = Number(explanation.rule_score);
+            const ruleWeight = Number(explanation.rule_weight);
+            const mlProbability = Number(explanation.ml_probability);
+            const mlWeight = Number(explanation.ml_weight);
+            addCalculationLine(
+                "Rule-based analysis",
+                formatCalculationNumber(ruleScore) + " × " +
+                    formatCalculationNumber(ruleWeight * 100) + "% = " +
+                    formatCalculationNumber(Number(explanation.rule_contribution))
+            );
+            addCalculationLine(
+                "Machine-learning analysis",
+                formatCalculationNumber(mlProbability * 100) + "% × " +
+                    formatCalculationNumber(mlWeight * 100) + "% = " +
+                    formatCalculationNumber(Number(explanation.ml_contribution))
+            );
+            addCalculationLine(
+                "Calculated score before rounding and cap",
+                formatCalculationNumber(Number(explanation.calculated_score)) + " / 100"
+            );
+            addCalculationLine(
+                "Final Risk Score (rounded, capped at 100)",
+                formatCalculationNumber(Number(explanation.final_score)) + " / 100",
+                true
+            );
+        } else {
+            const unavailable = document.createElement("p");
+            unavailable.className = "risk-breakdown-empty";
+            unavailable.textContent = "Hybrid scoring details are unavailable for this scan.";
+            calculation.appendChild(unavailable);
+        }
+        section.appendChild(calculation);
+        return section;
+    }
+
+    function getVerdictDetails(data, isUrlContent) {
+        if (!isUrlContent) {
+            return {
+                className: "verdict-neutral",
+                title: "QR Content Decoded",
+                explanation: "This QR contains text or payment data, so URL phishing checks do not apply."
+            };
+        }
+        const findingCount = Array.isArray(data.risk_breakdown)
+            ? data.risk_breakdown.length
+            : 0;
+        const label = String(data.risk_label || "unknown").toLowerCase();
+        if (label !== "safe" && label !== "suspicious" && label !== "unsafe") {
+            return {
+                className: "verdict-neutral",
+                title: "Analysis Incomplete",
+                explanation: "Some URL analysis fields were unavailable, so a complete risk classification could not be confirmed."
+            };
+        }
+        if (label === "safe") {
+            if (findingCount > 0) {
+                return {
+                    className: "verdict-review",
+                    title: "Low Risk — Review Recommended",
+                    explanation: findingCount + " security indicator" +
+                        (findingCount === 1 ? " was" : "s were") +
+                        " detected, but the overall calculated risk remains low."
+                };
+            }
+            return {
+                className: "verdict-safe",
+                title: "No Threats Detected",
+                explanation: "No suspicious indicators were detected by the current security checks."
+            };
+        }
+        const explanation = findingCount > 0
+            ? findingCount + " security indicator" + (findingCount === 1 ? " was" : "s were") +
+                " detected. Review the destination carefully."
+            : "The backend classified this destination as " +
+                (label === "unsafe" ? "high risk." : "suspicious; review it carefully.");
+        return {
+            className: label === "unsafe" ? "verdict-dangerous" : "verdict-suspicious",
+            title: label === "unsafe" ? "High-Risk QR Code" : "Suspicious QR Code",
+            explanation
+        };
+    }
+
+    function showResults(data) {
+        stopCamera();
+        analysisCard.style.display = "none";
+        const resultsCard = document.getElementById("results-card");
+        resultsCard.style.display = "block";
+        document.getElementById("report-btn").disabled = !Number.isInteger(Number(data.scan_id));
+        document.getElementById("report-status").innerText = "";
+
+        const isUrlContent = data.final_url !== undefined && data.final_url !== null;
+        const verdict = getVerdictDetails(data, isUrlContent);
+        const banner = document.getElementById("verdict-banner");
+        banner.className = "verdict-banner " + verdict.className;
+        banner.replaceChildren();
+        const verdictIcon = document.createElement("span");
+        verdictIcon.className = "verdict-icon";
+        verdictIcon.appendChild(createIcon(isUrlContent && data.risk_label === "unsafe" ? "shield" : "shield"));
+        banner.appendChild(verdictIcon);
+        const verdictCopy = document.createElement("div");
+        verdictCopy.className = "verdict-copy";
+        const title = document.createElement("span");
+        title.className = "verdict-title";
+        title.textContent = verdict.title;
+        const explanation = document.createElement("span");
+        explanation.className = "verdict-explanation";
+        explanation.textContent = verdict.explanation;
+        verdictCopy.append(title, explanation);
+        if (isUrlContent && String(data.risk_label || "").toLowerCase() === "safe") {
+            const disclaimer = document.createElement("span");
+            disclaimer.className = "verdict-disclaimer";
+            disclaimer.textContent = "Automated analysis reduces risk but cannot guarantee that a destination is completely safe.";
+            verdictCopy.appendChild(disclaimer);
+        }
+        banner.appendChild(verdictCopy);
+
+        const resultRows = document.getElementById("result-rows");
+        resultRows.replaceChildren();
+        const redirectChain = isUrlContent && Array.isArray(data.redirect_chain)
+            ? data.redirect_chain.filter((url, index, chain) => url && chain.indexOf(url) === index)
+            : [];
+
+        if (isUrlContent) {
+            const rawScore = data.risk_score === null || data.risk_score === undefined
+                ? NaN : Number(data.risk_score);
+            const hasScore = Number.isFinite(rawScore);
+            const score = hasScore ? Math.max(0, Math.min(100, rawScore)) : 0;
+            const label = String(data.risk_label || "Unavailable").toLowerCase();
+            const riskPanel = document.createElement("div");
+            riskPanel.className = "risk-panel";
+            const riskHeading = document.createElement("div");
+            riskHeading.className = "risk-heading";
+            riskHeading.appendChild(createInfoLabel("Overall Risk", "The backend's combined risk score from 0 to 100."));
+            const riskBadge = document.createElement("span");
+            riskBadge.className = "risk-badge " + (label === "safe" || label === "suspicious" || label === "unsafe" ? label : "neutral");
+            riskBadge.textContent = label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Review" : "Unavailable";
+            riskHeading.appendChild(riskBadge);
+            const scoreWrap = document.createElement("div");
+            scoreWrap.className = "risk-score-wrap";
+            const scoreEl = document.createElement("span");
+            scoreEl.className = "risk-score";
+            scoreEl.textContent = hasScore ? score : "—";
+            const outOf = document.createElement("span");
+            outOf.className = "risk-out-of";
+            outOf.textContent = "/100";
+            scoreWrap.append(scoreEl, outOf);
+            riskHeading.appendChild(scoreWrap);
+            const track = document.createElement("div");
+            track.className = "risk-track";
+            const fill = document.createElement("div");
+            const fillClass = label === "unsafe" ? "unsafe" : label === "safe" ? "safe" : label === "suspicious" ? "suspicious" : "neutral";
+            fill.className = "risk-fill " + fillClass;
+            fill.style.width = (hasScore ? score : 0) + "%";
+            track.appendChild(fill);
+            const riskMeta = document.createElement("div");
+            riskMeta.className = "risk-meta";
+            const classificationLabel = document.createElement("span");
+            classificationLabel.textContent = "Backend classification";
+            const classification = label === "unavailable" ? "Unavailable" : label.charAt(0).toUpperCase() + label.slice(1);
+            const classificationValue = document.createElement("span");
+            classificationValue.textContent = classification;
+            riskMeta.append(classificationLabel, classificationValue);
+            riskPanel.append(riskHeading, track, riskMeta);
+            resultRows.appendChild(riskPanel);
+            resultRows.appendChild(createRiskExplanation(data));
+
+            resultRows.appendChild(createSection("URL Analysis", "link", [
+                ["Decoded Content", data.decoded_content],
+                ["Final Destination", data.final_url],
+                ["Domain", data.domain],
+                ["Redirect Hops", redirectChain.length > 0 ? redirectChain.length - 1 : "Unavailable"]
+            ]));
+            const httpsStatus = data.https_valid === true
+                ? { text: "✓ Valid", tone: "good" }
+                : data.https_valid === false ? { text: "⚠ Not valid", tone: "bad" } : null;
+            const brandValueNode = document.createElement("div");
+            if (data.lookalike_brand) {
+                brandValueNode.className = "brand-match";
+                const brandName = document.createElement("span");
+                brandName.className = "brand-match-name";
+                brandName.textContent = "⚠ Possible " + data.lookalike_brand + " lookalike";
+                brandValueNode.appendChild(brandName);
+                if (data.lookalike_score !== null && data.lookalike_score !== undefined) {
+                    const brandScore = document.createElement("span");
+                    brandScore.className = "brand-match-score";
+                    brandScore.textContent = "Similarity: " + data.lookalike_score + "%";
+                    brandValueNode.appendChild(brandScore);
+                }
+            } else {
+                brandValueNode.appendChild(createStatusBadge("✓ None detected", "good"));
+            }
+            const probabilityNode = document.createElement("div");
+            probabilityNode.className = "probability-value";
+            const probability = data.ml_phishing_probability === null || data.ml_phishing_probability === undefined
+                ? NaN : Number(data.ml_phishing_probability);
+            probabilityNode.appendChild(document.createTextNode(Number.isFinite(probability) ? probability + "%" : "Unavailable"));
+            if (Number.isFinite(probability)) {
+                const probabilityMeter = document.createElement("div");
+                probabilityMeter.className = "mini-meter";
+                const probabilityFill = document.createElement("div");
+                probabilityFill.className = "mini-meter-fill";
+                probabilityFill.style.width = Math.max(0, Math.min(100, probability)) + "%";
+                probabilityMeter.appendChild(probabilityFill);
+                probabilityNode.appendChild(probabilityMeter);
+            }
+            resultRows.appendChild(createSection("Security Checks", "shield", [
+                ["HTTPS", null, "Whether the URL uses an encrypted HTTPS connection.", { status: httpsStatus }],
+                ["Domain Age", data.domain_age_days !== null && data.domain_age_days !== undefined ? data.domain_age_days + " days" : null, "How long the domain has existed according to the domain-age lookup."],
+                ["Lookalike Brand", null, null, { valueNode: brandValueNode }],
+                ["ML Phishing Probability", null, "Probability estimated by the machine-learning model from URL characteristics. It is one component of the overall security analysis.", { valueNode: probabilityNode }]
+            ]));
+            if (redirectChain.length > 0) {
+                const details = document.createElement("details");
+                details.className = "redirect-details";
+                const summary = document.createElement("summary");
+                summary.textContent = "Redirect Journey";
+                const list = document.createElement("ol");
+                list.className = "redirect-chain";
+                redirectChain.forEach(url => {
+                    const item = document.createElement("li");
+                    item.textContent = url;
+                    list.appendChild(item);
+                });
+                details.append(summary, list);
+                resultRows.appendChild(details);
+            }
+        } else {
+            resultRows.appendChild(createSection("QR Content", "qr", [
+                ["Decoded Content", data.decoded_content],
+                ["Content Type", data.upi_details ? "UPI payment QR (URL security checks do not apply)" : "Text / UPI / Non-URL (URL security checks do not apply)"]
+            ]));
+            if (data.upi_details && typeof data.upi_details === "object") {
+                const details = data.upi_details;
+                const upiRows = [];
+                if (details.payee_vpa) upiRows.push(["Payee UPI ID", details.payee_vpa]);
+                if (details.payee_name) upiRows.push(["QR-declared Payee Name", details.payee_name]);
+                if (details.amount !== null && details.amount !== undefined && details.amount !== "") {
+                    const amount = String(details.amount);
+                    const numericAmount = Number(amount);
+                    const displayAmount = details.currency === "INR" &&
+                        details.amount_valid === true && Number.isFinite(numericAmount)
+                        ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(numericAmount)
+                        : amount;
+                    upiRows.push(["Amount", displayAmount]);
+                }
+                if (details.currency) upiRows.push(["Currency", details.currency]);
+                if (details.transaction_note) upiRows.push(["Transaction Note", details.transaction_note]);
+                if (details.transaction_reference) upiRows.push(["Transaction Reference", details.transaction_reference]);
+                if (details.merchant_code) upiRows.push(["Merchant Code", details.merchant_code]);
+                const vpaFormat = details.payee_vpa_present === false
+                    ? "Not provided"
+                    : details.vpa_format_valid === true ? "Valid (format only)" : "Invalid format";
+                upiRows.push([
+                    "UPI ID Format",
+                    vpaFormat,
+                    "Checks only the local name@handle format; it does not verify account ownership."
+                ]);
+                if (details.amount !== null && details.amount !== undefined && details.amount !== "") {
+                    upiRows.push(["Amount Format", details.amount_valid === true ? "Valid non-negative number" : "Invalid amount"]);
+                }
+                resultRows.appendChild(createSection("UPI Payment Details", "qr", upiRows));
+
+                const identityNotice = document.createElement("aside");
+                identityNotice.className = "upi-identity-notice";
+                identityNotice.setAttribute("role", "note");
+                const noticeTitle = document.createElement("strong");
+                noticeTitle.textContent = "Payee identity not independently verified";
+                const noticeText = document.createElement("span");
+                noticeText.textContent = "The payee name shown above is information encoded inside the QR code. QR Shield has not independently verified that the UPI ID belongs to this person or business.";
+                identityNotice.append(noticeTitle, noticeText);
+                resultRows.appendChild(identityNotice);
+            }
+        }
+
+        const hasTamperingReasons = Array.isArray(data.tampering_reasons);
+        const tamperingReasons = hasTamperingReasons ? data.tampering_reasons : [];
+        const tamperingStatus = !hasTamperingReasons
+            ? { text: "Unavailable", tone: "warn" }
+            : tamperingReasons.length
+            ? { text: "⚠ Review needed", tone: "warn" }
+            : { text: "✓ No tampering detected", tone: "good" };
+        resultRows.appendChild(createSection("QR Integrity", "qr", [
+            ["Tampering Score", data.tampering_score !== null && data.tampering_score !== undefined ? data.tampering_score + "/85" : null, "A signal of visual changes or manipulation detected in the QR image."],
+            ["Tampering Status", null, null, { status: tamperingStatus }],
+            ["Tampering Reasons", !hasTamperingReasons ? null : tamperingReasons.length ? tamperingReasons.join("; ") : "None detected"]
+        ]));
+
+        const findings = [];
+        const riskLabel = String(data.risk_label || "").toLowerCase();
+        if (isUrlContent) {
+            if (data.https_valid === false) findings.push("the URL is not using HTTPS");
+            else if (data.https_valid === null || data.https_valid === undefined) findings.push("HTTPS analysis was unavailable");
+            if (data.domain_age_days !== null && data.domain_age_days !== undefined && data.domain_age_days < 30) findings.push("the domain is newly registered");
+            if (data.lookalike_brand) findings.push("a possible lookalike brand was detected");
+            if (data.ml_phishing_probability !== null && data.ml_phishing_probability !== undefined &&
+                Number(data.ml_phishing_probability) >= 50) {
+                findings.push("the ML model found elevated phishing probability");
+            }
+        }
+        if (tamperingReasons.length) findings.push("QR integrity indicators require review");
+        const summary = document.createElement("div");
+        summary.className = "summary-panel";
+        const summaryTitle = document.createElement("strong");
+        summaryTitle.textContent = "Analysis complete";
+        const summaryText = document.createElement("span");
+        const analysisUnavailable = isUrlContent && (
+            data.risk_score === null || data.risk_score === undefined ||
+            data.risk_label === null || data.risk_label === undefined ||
+            data.https_valid === null || data.https_valid === undefined ||
+            data.ml_phishing_probability === null || data.ml_phishing_probability === undefined
+        );
+        const redirectHops = isUrlContent && redirectChain.length > 0
+            ? redirectChain.length - 1
+            : 0;
+        const redirectObservation = redirectHops === 0
+            ? ""
+            : redirectHops === 1
+                ? " 1 redirect hop was observed."
+                : " " + redirectHops + " redirect hops were observed.";
+        const safeSummary = "Analysis complete." + redirectObservation +
+            " No suspicious indicators were detected by the current security checks.";
+        summaryText.textContent = isUrlContent && riskLabel === "safe"
+            ? safeSummary
+            : findings.length
+                ? "Findings: " + findings.join("; ") + "."
+                : analysisUnavailable
+                    ? "Analysis completed, but some security checks were unavailable."
+                    : isUrlContent
+                        ? "Analysis completed without additional findings from the available checks."
+                        : "The QR content was decoded successfully; URL security checks do not apply to this content.";
+        summary.append(summaryTitle, summaryText);
+        resultRows.appendChild(summary);
+    }
+
+    function resetFormFields() {
+        stopAnalysisActivity();
+        isAnalyzing = false;
+        selectedFile = null;
+        currentScanId = null;
+        capturedCameraScan = null;
+        fileInput.value = "";
+        dropIcon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M12 16V4M8 8l4-4 4 4M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>';
+        dropInstructions.style.display = "block";
+        dropHint.style.display = "block";
+        fileNameEl.style.display = "none";
+        fileNameEl.innerText = "";
+        updateScanButtonState();
+        statusMsg.innerText = "";
+        analysisCard.style.display = "none";
+        analysisCard.setAttribute("aria-busy", "false");
+        analysisCard.classList.remove("is-complete", "has-error");
+        analysisHeading.textContent = "Analyzing QR Code";
+        analysisSubtitle.textContent = "QR Shield is evaluating the QR content and available security signals.";
+        analysisError.style.display = "none";
+        analysisActions.style.display = "none";
+        analysisCurrentStatus.textContent = analysisStageLabels[0];
+        setAnalysisProgress(8);
+        updateAnalysisStages(0, false);
+        document.getElementById("results-card").style.display = "none";
+        document.getElementById("upload-card").style.display = "block";
+    }
+
+    async function downloadReport() {
+        if (!currentScanId) return;
+        const reportButton = document.getElementById("report-btn");
+        const reportStatus = document.getElementById("report-status");
+        reportButton.disabled = true;
+        reportButton.innerText = "Preparing PDF...";
+        reportStatus.style.color = "#666";
+        reportStatus.innerText = "";
+        try {
+            const response = await fetch(API_URL + "/report/" + encodeURIComponent(currentScanId), {
+                headers: { "Authorization": "Bearer " + token }
+            });
+            if (response.status === 401) {
+                reportStatus.style.color = "#e74c3c";
+                reportStatus.innerText = "Session expired. Redirecting to login...";
+                localStorage.removeItem("access_token");
+                setTimeout(() => window.location.href = "login.html", 1200);
+                return;
+            }
+            if (!response.ok) {
+                throw new Error("Report generation failed");
+            }
+            const blob = await response.blob();
+            const downloadUrl = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = downloadUrl;
+            link.download = "qr-shield-report-" + currentScanId + ".pdf";
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(downloadUrl);
+            reportStatus.style.color = "#27ae60";
+            reportStatus.innerText = "PDF report downloaded.";
+        } catch (error) {
+            reportStatus.style.color = "#e74c3c";
+            reportStatus.innerText = "Could not generate the PDF report. Please try again.";
+        } finally {
+            reportButton.disabled = !currentScanId;
+            reportButton.innerText = "Download PDF Report";
+        }
+    }
+
+    function resetScan() {
+        resetFormFields();
+        // "Scan Another" should resume live scanning if the user was in camera mode
+        if (currentMode === "camera") {
+            startCamera();
+        }
+    }
+
+    function logout() {
+        stopCamera();
+        localStorage.removeItem("access_token");
+        window.location.href = "login.html";
+    }
+
+    window.addEventListener("pagehide", stopCamera);
+</script>
+
+</body>
+</html>
