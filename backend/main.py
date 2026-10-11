@@ -1054,8 +1054,13 @@ def download_report(scan_id: int, current_user: str = Depends(get_report_user)):
 @app.get("/history")
 def get_history(current_user: str = Depends(get_current_user)):
     db = SessionLocal()
-    records = db.query(ScanRecord).all()
-    db.close()
+    try:
+        user = db.query(User).filter(User.email == current_user).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+        records = db.query(ScanRecord).filter(ScanRecord.user_id == user.id).all()
+    finally:
+        db.close()
 
     history = []
     for r in records:
