@@ -13,7 +13,11 @@ pandas
 scikit-learn
 passlib[bcrypt]
 python-jose[cryptography]
+python-dotenv
 pydantic
 sqlalchemy
 qrcode[pil]
 reportlab
+
+# Existing offline PSL parser, now used by production URL analysis
+publicsuffix2

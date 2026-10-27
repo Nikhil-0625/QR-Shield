@@ -1,1060 +1,1952 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
     <meta charset="UTF-8">
+
     <title>QR Shield - Dashboard</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            color-scheme: light;
-            --ink: #111a3a;
-            --muted: #64748b;
-            --line: #e7e4f5;
-            --purple: #7654f6;
-            --purple-dark: #5143c2;
-            --surface: #ffffff;
-            --safe: #20845b;
-            --suspicious: #a96b0b;
-            --unsafe: #bf3d4c;
-            --neutral: #526b9a;
+
+    <script src="theme.js"></script>
+
+<style>
+
+        /* Dashboard components. The shared shell and themes are defined centrally. */
+        .container { min-width:0; }
+        .dashboard-intro { margin:0 0 28px; }
+        .intro-kicker { margin:0 0 9px; }
+        .dashboard-intro h1 { margin:0; }
+        .dashboard-intro-copy > p:last-child { max-width:700px; margin:10px 0 0; color:var(--muted); font-size:15px; line-height:1.65; }
+        .intro-visual { display:none; }
+        .section-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin:0 0 20px; }
+        h2,h3 { margin:0; color:var(--ink); line-height:1.4; }
+        h2 { font-size:19px; font-weight:650; letter-spacing:-.35px; }
+        h3 { font-size:16px; font-weight:650; }
+        .section-subtitle { margin-top:6px; color:var(--muted); font-size:14px; line-height:1.65; }
+        .card { min-width:0; padding:24px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
+        .summary-section { margin:0; }
+        .summary-heading { margin-bottom:16px; }
+
+        .dashboard-intro-top { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:20px; }
+        .dashboard-title-row { display:flex; align-items:flex-start; gap:14px; margin-top:4px; }
+        .header-shield-badge { display:grid; place-items:center; width:44px; height:44px; margin-top:2px; border-radius:12px; background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%); color:#fff; box-shadow:0 4px 14px rgba(79,70,229,0.3); flex:0 0 44px; }
+        .header-shield-badge svg { display:block; width:24px; height:24px; max-width:24px; max-height:24px; }
+        .summary-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+        .stat { position:relative; overflow:hidden; min-width:0; display:flex; flex-direction:column; min-height:180px; padding:22px 22px 26px; border:1px solid var(--border); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); transition:transform 0.2s ease,box-shadow 0.2s ease; }
+        .stat:hover { transform:translateY(-2px); box-shadow:var(--shadow-hover); }
+        .stat-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+        .stat-top-left { display:flex; align-items:center; gap:11px; }
+        .stat-icon { display:grid; place-items:center; width:38px; height:38px; border-radius:10px; background:var(--accent-soft); color:var(--accent-ink); flex-shrink:0; }
+        .stat-icon.tone-safe { background:var(--safe-bg); color:var(--safe-ink); }
+        .stat-icon.tone-warning { background:var(--warning-bg); color:var(--warning-ink); }
+        .stat-icon.tone-danger { background:var(--danger-bg); color:var(--danger-ink); }
+        .stat-icon.tone-neutral { background:var(--surface-soft); color:var(--neutral); }
+        .stat-label { font-size:14px; font-weight:600; color:var(--ink); line-height:1.3; }
+        .stat-value { color:var(--ink); font-size:36px; line-height:1.1; font-weight:750; letter-spacing:-1.3px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; margin-bottom:6px; }
+        .stat-subtext { color:var(--muted); font-size:13px; line-height:1.5; margin-bottom:auto; }
+        .stat-wave { position:absolute; bottom:0; left:0; right:0; height:32px; pointer-events:none; overflow:hidden; }
+        .stat-wave svg { display:block; width:100%; height:100%; }
+        .card-header-badge { display:grid; place-items:center; width:34px; height:34px; border-radius:9px; background:var(--accent-soft); color:var(--accent-ink); flex-shrink:0; }
+        .card-header-badge svg { width:18px; height:18px; }
+
+        .stat { min-width:0; display:grid; grid-template-columns:minmax(0,1fr); align-content:start; gap:14px 11px; min-height:174px; padding:22px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); box-shadow:var(--shadow); }
+        .stat-top { grid-column:1/-1; justify-content:flex-start; min-width:0; margin-bottom:0; }
+        .stat-top-left { min-width:0; gap:11px; }
+        .stat-icon { display:grid; place-items:center; width:38px; height:38px; border-radius:10px; background:var(--accent-soft); color:var(--accent-ink); }
+        .stat-icon svg { width:20px; height:20px; }
+        .stat-icon.tone-safe { background:var(--safe-bg); color:var(--safe-ink); }
+        .stat-icon.tone-warning { background:var(--warning-bg); color:var(--warning-ink); }
+        .stat-icon.tone-danger { background:var(--danger-bg); color:var(--danger-ink); }
+        .stat-icon.tone-neutral { background:var(--surface-soft); color:var(--neutral); }
+        .stat-label { min-width:0; align-self:center; color:var(--ink); font-size:14px; font-weight:600; line-height:1.4; overflow-wrap:normal; }
+        .stat-value { grid-column:1/-1; color:var(--ink); font-size:38px; line-height:1.1; font-weight:750; letter-spacing:-1.3px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+        .stat-subtext { grid-column:1/-1; color:var(--muted); font-size:13px; line-height:1.6; }
+        .analytics-grid,.insights-grid { display:grid; align-items:stretch; gap:20px; margin-top:24px; }
+        .analytics-grid { grid-template-columns:minmax(0,3fr) minmax(0,2fr); }
+        .insights-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .activity-card { display:flex; flex-direction:column; }
+        .activity-summary { max-width:190px; flex:0 1 auto; text-align:right; }
+        .activity-total { color:var(--ink); font-size:15px; font-weight:650; line-height:1.5; }
+        .activity-busiest { margin-top:4px; color:var(--muted); font-size:13px; line-height:1.55; }
+        .activity-chart { width:100%; min-width:0; margin:auto 0; }
+        .activity-svg { display:block; width:100%; height:auto; overflow:visible; }
+        .activity-grid-line { stroke:var(--line); stroke-width:1; }
+        .activity-grid-label,.activity-day-label { fill:var(--muted); font:18px ui-sans-serif,system-ui,sans-serif; }
+        .activity-day-label { text-anchor:middle; }
+        .activity-today-label { fill:var(--accent-ink); font:650 15px ui-sans-serif,system-ui,sans-serif; text-anchor:middle; }
+        .activity-area { fill:url(#activity-area-gradient); opacity:.8; }
+        .activity-line { fill:none; stroke:var(--purple); stroke-width:3; stroke-linecap:round; stroke-linejoin:round; }
+        .activity-point { fill:var(--surface); stroke:var(--purple); stroke-width:2.5; cursor:help; }
+        .activity-point:focus-visible { stroke:var(--ink); stroke-width:4; }
+        .activity-empty { margin:6px 0 0; color:var(--muted); font-size:14px; text-align:center; }
+        .distribution-bar,.content-summary-bar { display:flex; width:100%; height:12px; margin:4px 0 18px; overflow:hidden; border-radius:99px; background:var(--surface-soft); }
+        .distribution-segment,.content-segment { display:block; height:100%; min-width:0; }
+        .distribution-segment.safe,.legend-dot.safe { background:var(--safe); }
+        .distribution-segment.suspicious,.legend-dot.suspicious { background:var(--suspicious); }
+        .distribution-segment.unsafe,.legend-dot.unsafe { background:var(--unsafe); }
+        .distribution-segment.non-url,.legend-dot.non-url { background:#60a5fa; }
+        .distribution-segment.unclassified,.legend-dot.unclassified { background:var(--neutral); }
+        .content-segment.url,.legend-dot.url { background:var(--purple); }
+        .content-segment.upi,.legend-dot.upi { background:#06b6d4; }
+        .content-segment.other,.legend-dot.other { background:#a78bfa; }
+        .content-segment.unclassifiable,.legend-dot.unclassifiable-content { background:var(--neutral); }
+        .risk-legend,.content-legend { display:grid; gap:10px; }
+        .legend-row { display:grid; grid-template-columns:minmax(0,1fr) auto 42px; gap:12px; align-items:center; color:var(--ink); font-size:14px; line-height:1.6; }
+        .content-legend .legend-row { grid-template-columns:minmax(0,1fr) auto; }
+        .legend-label { display:flex; align-items:center; gap:9px; min-width:0; }
+        .legend-dot { width:9px; height:9px; flex:0 0 9px; border-radius:50%; }
+        .legend-value { font-weight:650; font-variant-numeric:tabular-nums; }
+        .legend-percent { color:var(--muted); font-size:13px; text-align:right; font-variant-numeric:tabular-nums; }
+        .distribution-note { margin:18px 0 0; color:var(--muted); font-size:13px; line-height:1.65; }
+        .indicators-list { display:grid; gap:10px; }
+        .indicator-row { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:50px; padding:12px; border:1px solid var(--line); border-radius:9px; background:var(--surface-soft); }
+        .indicator-title { display:flex; align-items:center; gap:10px; min-width:0; }
+        .indicator-icon { display:grid; place-items:center; width:30px; height:30px; flex:0 0 30px; border-radius:8px; background:var(--accent-soft); color:var(--accent-ink); }
+        .indicator-icon svg { width:17px; height:17px; }
+        .indicator-name { min-width:0; color:var(--ink); font-size:14px; line-height:1.6; overflow-wrap:anywhere; }
+        .indicator-count { min-width:32px; padding:4px 8px; border-radius:6px; background:var(--surface); color:var(--ink); font-size:14px; font-weight:650; text-align:center; font-variant-numeric:tabular-nums; }
+        .table-card { margin-top:24px; }
+        .table-heading { flex-wrap:wrap; align-items:center; }
+        .filter-list { display:flex; flex-wrap:wrap; gap:5px; padding:4px; border:1px solid var(--line); border-radius:9px; background:var(--surface-soft); }
+        .filter-btn { min-height:40px; padding:8px 12px; border:1px solid transparent; border-radius:6px; background:transparent; color:var(--muted); font-family:inherit; font-size:13px; font-weight:600; line-height:1.4; cursor:pointer; }
+        .filter-btn:hover:not(:disabled) { background:var(--hover-bg); color:var(--accent-ink); }
+        .filter-btn.active { border-color:var(--line); background:var(--surface); color:var(--accent-ink); box-shadow:0 1px 2px #00000009; }
+        .filter-btn:disabled { opacity:.55; cursor:not-allowed; }
+        .table-wrap { width:100%; min-width:0; margin-top:14px; overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+        table { width:100%; min-width:680px; table-layout:fixed; border-collapse:separate; border-spacing:0; }
+        th,td { padding:16px; border-bottom:1px solid var(--line); text-align:left; vertical-align:middle; }
+        th { background:var(--surface-soft); color:var(--muted); font-size:12px; font-weight:650; letter-spacing:.04em; text-transform:uppercase; white-space:nowrap; }
+        td { color:var(--ink); font-size:14px; line-height:1.65; }
+        tbody tr:last-child td { border-bottom:0; }
+        tbody tr:hover { background:var(--surface-soft); }
+        .time-cell { color:var(--muted); font-size:13px; font-variant-numeric:tabular-nums; }
+        .domain-cell,.content-cell { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .pill { display:inline-flex; align-items:center; padding:5px 10px; border-radius:99px; font-size:12px; font-weight:650; line-height:1.5; white-space:nowrap; }
+        .safe-pill { background:var(--safe-bg); color:var(--safe-ink); }
+        .suspicious-pill { background:var(--warning-bg); color:var(--warning-ink); }
+        .unsafe-pill { background:var(--danger-bg); color:var(--danger-ink); }
+        .non-url-pill { background:var(--accent-soft); color:var(--accent-ink); }
+        .unclassified-pill { background:var(--surface-soft); color:var(--neutral); }
+        .content-type-badge { display:inline-block; padding:4px 8px; border:1px solid var(--line); border-radius:6px; color:var(--muted); font-size:12px; line-height:1.5; }
+        .report-action-btn { display:inline-flex; align-items:center; justify-content:center; min-height:40px; padding:8px 12px; border:1px solid var(--line); border-radius:7px; background:var(--surface); color:var(--accent-ink); font-size:13px; font-weight:650; cursor:pointer; }
+        .report-action-btn:hover { border-color:var(--purple); background:var(--hover-bg); }
+        .report-na { color:var(--muted); }
+        #history-pagination { width:max-content; max-width:100%; margin-top:16px; }
+        #clear-history-btn { min-height:44px; margin:10px 0 0; padding:10px 16px; border:1px solid var(--line); border-radius:8px; background:var(--surface); color:var(--danger-ink); font-size:14px; font-weight:600; }
+        #clear-history-btn:hover:not(:disabled) { background:var(--danger-bg); border-color:var(--danger-ink); }
+        #clear-history-status { min-height:0; }
+        #clear-history-status:empty { display:none; }
+        .empty { padding:28px 18px; color:var(--muted); font-size:14px; text-align:center; }
+        #history-table-wrap.is-empty table { min-width:0; }
+        #history-table-wrap.is-empty .empty { padding:40px 18px; }
+        .history-empty-state { display:grid; justify-items:center; gap:18px; max-width:420px; margin:0 auto; }
+        .history-empty-state svg { width:44px; height:44px; color:var(--accent-ink); }
+        .history-empty-state p { margin:0; color:var(--muted); font-size:15px; line-height:1.7; }
+        .history-empty-link { display:inline-flex; align-items:center; justify-content:center; min-height:44px; max-width:100%; padding:11px 18px; text-decoration:none; }
+        .dashboard-status { margin:0 0 20px; padding:12px 15px; border:1px solid var(--line); border-radius:9px; background:var(--surface); color:var(--muted); font-size:14px; line-height:1.65; }
+        .dashboard-status.is-error,.dashboard-error-state { border:1px solid var(--danger-ink); border-radius:9px; background:var(--danger-bg); color:var(--danger-ink); }
+        .dashboard-inline-state { grid-column:1/-1; margin:18px 0; color:var(--muted); font-size:14px; text-align:center; }
+        @media (max-width:1199px) {
+            .summary-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
         }
-        * { box-sizing: border-box; }
-        body {
-            min-height: 100vh;
-            margin: 0;
-            padding: 24px clamp(14px, 3vw, 38px) 52px;
-            background:
-                radial-gradient(ellipse at 7% 5%, rgba(132, 183, 241, 0.15), transparent 25rem),
-                radial-gradient(ellipse at 91% 14%, rgba(184, 174, 236, 0.17), transparent 27rem),
-                #faf9ff;
-            color: var(--ink);
-            font-family: 'Poppins', 'Segoe UI', sans-serif;
-            font-size: 14px;
-            -webkit-font-smoothing: antialiased;
+        @media (max-width:900px) {
+            .analytics-grid { grid-template-columns:minmax(0,1fr); }
+            .activity-summary { max-width:220px; }
         }
-        button { font: inherit; }
-        .container { width: min(1320px, 100%); margin: 0 auto; }
-        .filter-btn:focus-visible { outline: 3px solid #b5abff; outline-offset: 3px; }
-        .card {
-            min-width: 0;
-            padding: 22px;
-            border: 1px solid #e8e9f1;
-            border-radius: 18px;
-            background: var(--surface);
-            box-shadow: 0 5px 18px rgba(36, 40, 71, 0.045), 0 1px 2px rgba(36, 40, 71, 0.04);
+        @media (max-width:599px) {
+            .summary-grid,.insights-grid { grid-template-columns:minmax(0,1fr); gap:14px; }
+            .stat { min-height:158px; padding:20px; gap:10px; }
+            .stat-value { font-size:36px; }
+            .card { padding:18px; }
+            .analytics-grid,.insights-grid,.table-card { margin-top:18px; }
+            .activity-card .section-heading { flex-direction:column; gap:10px; }
+            .activity-summary { text-align:left; max-width:none; }
+            .activity-grid-label { font-size:25px; }
+            .activity-day-label { font-size:29px; }
+            .activity-today-label { font-size:25px; }
+            .section-heading { gap:12px; }
+            .filter-list { width:100%; }
+            .filter-btn { flex:1 0 auto; padding:9px 10px; }
+            .legend-row { gap:8px; }
         }
-        .section-heading {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 14px;
-            margin-bottom: 18px;
+        @media (max-width:380px) {
+            .activity-grid-label { font-size:28px; }
+            .activity-day-label { font-size:34px; }
+            .activity-today-label { font-size:29px; }
         }
-        h1, h2, h3 { margin: 0; color: var(--ink); }
-        h1 { font-size: 22px; font-weight: 700; line-height: 1.25; letter-spacing: -0.035em; }
-        h2 { font-size: 16px; font-weight: 650; letter-spacing: -0.025em; }
-        h3 { font-size: 15px; font-weight: 650; letter-spacing: -0.02em; }
-        .section-subtitle { margin-top: 4px; color: var(--muted); font-size: 12px; }
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(7, minmax(0, 1fr));
-            gap: 13px;
+        @media (prefers-reduced-motion:reduce) {
+            *,*::before,*::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; }
         }
-        .stat {
-            position: relative;
-            display: grid;
-            grid-template-columns: 38px minmax(0, 1fr);
-            grid-template-rows: auto 1fr auto;
-            column-gap: 11px;
-            min-height: 137px;
-            padding: 16px 14px 15px;
-            overflow: hidden;
-            border: 1px solid #e9eaf2;
-            border-radius: 15px;
-            background: linear-gradient(150deg, #fff 34%, #fafaff 100%);
-            transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
-        }
-        .stat:hover { transform: translateY(-3px); border-color: #d9d6f0; box-shadow: 0 10px 22px rgba(49, 45, 104, 0.09); }
-        .stat-icon {
-            grid-row: 1 / 3;
-            width: 38px;
-            height: 38px;
-            display: grid;
-            place-items: center;
-            border-radius: 12px;
-            background: #f0edff;
-            color: #6151ae;
-        }
-        .stat-icon svg { width: 19px; height: 19px; }
-        .stat-icon.tone-safe { background: #e9f7f0; color: var(--safe); }
-        .stat-icon.tone-warning { background: #fff5e5; color: var(--suspicious); }
-        .stat-icon.tone-danger { background: #fff0f1; color: var(--unsafe); }
-        .stat-icon.tone-neutral { background: #eef1f6; color: var(--neutral); }
-        .stat-label { align-self: center; color: #6c7287; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.075em; line-height: 1.35; }
-        .stat-value { grid-column: 1 / -1; align-self: center; margin-top: 14px; color: #242840; font-size: clamp(22px, 1.8vw, 29px); font-weight: 700; line-height: 1.1; letter-spacing: -0.045em; overflow-wrap: anywhere; }
-        .stat-subtext { grid-column: 1 / -1; margin-top: 8px; color: #858a9b; font-size: 10px; line-height: 1.4; }
-        .analytics-grid, .insights-grid {
-            display: grid;
-            align-items: stretch;
-            gap: 18px;
-            margin-top: 18px;
-        }
-        .analytics-grid { grid-template-columns: minmax(0, 1.7fr) minmax(280px, 0.9fr); }
-        .insights-grid { grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr); }
-        .activity-card { min-height: 340px; }
-        .activity-summary { text-align: right; }
-        .activity-total { color: #342e69; font-size: 17px; font-weight: 700; line-height: 1.25; }
-        .activity-busiest { margin-top: 4px; color: var(--muted); font-size: 11px; }
-        .activity-chart { width: 100%; margin-top: 6px; }
-        .activity-svg { display: block; width: 100%; height: auto; overflow: visible; }
-        .activity-grid-line { stroke: #ececf4; stroke-width: 1; }
-        .activity-grid-label { fill: #9398a8; font: 10px 'Poppins', 'Segoe UI', sans-serif; }
-        .activity-area { fill: url(#activity-area-gradient); opacity: 0.8; }
-        .activity-line { fill: none; stroke: #6457b7; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
-        .activity-point { fill: #fff; stroke: #6457b7; stroke-width: 2.5; cursor: help; }
-        .activity-point:focus { outline: none; stroke: #31276f; stroke-width: 4; }
-        .activity-day-label { fill: #6e7488; font: 10px 'Poppins', 'Segoe UI', sans-serif; text-anchor: middle; }
-        .activity-today-label { fill: #55499f; font: 700 8px 'Poppins', 'Segoe UI', sans-serif; text-anchor: middle; letter-spacing: 0.07em; }
-        .activity-empty { margin-top: -3px; color: var(--muted); font-size: 12px; text-align: center; }
-        .activity-chart .activity-svg { animation: chart-enter 460ms ease-out both; }
-        .chart-key {
-            display: inline-flex;
-            align-items: center;
-            gap: 7px;
-            color: #73798d;
-            font-size: 11px;
-            white-space: nowrap;
-        }
-        .chart-key::before { width: 8px; height: 8px; border-radius: 50%; background: #6252b7; content: ""; }
-        .distribution-bar {
-            display: flex;
-            width: 100%;
-            height: 13px;
-            margin: 4px 0 18px;
-            overflow: hidden;
-            border-radius: 999px;
-            background: #f0f1f5;
-        }
-        .distribution-segment { display: block; min-width: 0; height: 100%; transition: width 250ms ease; }
-        .distribution-segment.safe, .legend-dot.safe { background: var(--safe); }
-        .distribution-segment.suspicious, .legend-dot.suspicious { background: var(--suspicious); }
-        .distribution-segment.unsafe, .legend-dot.unsafe { background: var(--unsafe); }
-        .distribution-segment.non-url, .legend-dot.non-url { background: var(--neutral); }
-        .distribution-segment.unclassified, .legend-dot.unclassified { background: #b7bdca; }
-        .risk-legend, .content-legend { display: grid; gap: 11px; }
-        .content-legend .legend-row { grid-template-columns: minmax(0, 1fr) auto; }
-        .legend-row {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto auto;
-            align-items: center;
-            gap: 12px;
-            color: #444a60;
-            font-size: 12px;
-        }
-        .legend-label { display: flex; align-items: center; gap: 9px; min-width: 0; }
-        .legend-dot { width: 9px; height: 9px; flex: 0 0 auto; border-radius: 50%; }
-        .legend-value { color: #32374e; font-weight: 650; font-variant-numeric: tabular-nums; }
-        .legend-percent { width: 43px; color: #858b9d; font-size: 11px; text-align: right; font-variant-numeric: tabular-nums; }
-        .distribution-note { margin: 15px 0 0; color: #81869a; font-size: 11px; line-height: 1.55; }
-        .content-summary-bar {
-            display: flex;
-            height: 10px;
-            margin: 4px 0 19px;
-            overflow: hidden;
-            border-radius: 999px;
-            background: #f0f1f5;
-        }
-        .content-segment { height: 100%; min-width: 0; }
-        .content-segment.url, .legend-dot.url { background: #6252b7; }
-        .content-segment.upi, .legend-dot.upi { background: #3d91c7; }
-        .content-segment.other, .legend-dot.other { background: #a1a8ba; }
-        .content-segment.unclassifiable, .legend-dot.unclassifiable-content { background: #d7dbe4; }
-        .indicator-panel { height: 100%; }
-        .indicators-list { display: grid; gap: 10px; margin-top: 4px; }
-        .indicator-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
-            min-height: 50px;
-            padding: 10px 12px;
-            border: 1px solid #ececf3;
-            border-radius: 12px;
-            background: #fbfbfe;
-        }
-        .indicator-title { display: flex; align-items: center; gap: 10px; min-width: 0; }
-        .indicator-icon {
-            width: 30px;
-            height: 30px;
-            display: grid;
-            place-items: center;
-            flex: 0 0 auto;
-            border-radius: 10px;
-            background: #fff5e8;
-            color: #bf7911;
-        }
-        .indicator-icon svg { width: 16px; height: 16px; }
-        .indicator-name { overflow: hidden; color: #41465b; font-size: 12px; font-weight: 550; text-overflow: ellipsis; white-space: nowrap; }
-        .indicator-count { min-width: 32px; padding: 5px 8px; border-radius: 8px; background: #f0edff; color: #51439d; font-size: 12px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
-        .table-card { margin-top: 18px; padding-bottom: 12px; }
-        .table-heading { align-items: center; flex-wrap: wrap; margin-bottom: 13px; }
-        .filter-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 4px;
-            padding: 4px;
-            border: 1px solid #e9e8f1;
-            border-radius: 12px;
-            background: #f7f7fb;
-        }
-        .filter-btn {
-            padding: 7px 11px;
-            border: 1px solid transparent;
-            border-radius: 9px;
-            background: transparent;
-            color: #73788c;
-            cursor: pointer;
-            font-size: 11px;
-            font-weight: 600;
-            transition: color 150ms ease, background 150ms ease, box-shadow 150ms ease;
-        }
-        .filter-btn:hover { color: #40367f; background: #efedfa; }
-        .filter-btn.active { border-color: #e7e4f6; background: white; color: #4d428f; box-shadow: 0 1px 4px rgba(48,43,92,0.1); }
-        .table-wrap { width: 100%; min-width: 0; overflow-x: auto; border: 1px solid #e9eaf1; border-radius: 13px; }
-        table { width: 100%; min-width: 780px; table-layout: fixed; border-collapse: separate; border-spacing: 0; }
-        th, td { padding: 13px 14px; border-bottom: 1px solid #edf0f5; text-align: left; font-size: 12px; vertical-align: middle; }
-        th { position: sticky; top: 0; background: #f7f7fb; color: #757b8e; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.065em; white-space: nowrap; }
-        tbody tr:last-child td { border-bottom: 0; }
-        tbody tr { transition: background-color 140ms ease; }
-        tbody tr:hover { background: #fafaff; }
-        td { color: #4d5267; }
-        .time-cell { color: #777d90; font-size: 11px; white-space: nowrap; font-variant-numeric: tabular-nums; }
-        .domain-cell, .content-cell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .pill { display: inline-flex; align-items: center; justify-content: center; min-width: 78px; padding: 5px 9px; border-radius: 999px; font-size: 9px; font-weight: 750; letter-spacing: 0.07em; white-space: nowrap; }
-        .safe-pill { background: #e8f6ef; color: #20764f; }
-        .suspicious-pill { background: #fff4df; color: #9b650e; }
-        .unsafe-pill { background: #ffedef; color: #a83945; }
-        .non-url-pill { background: #edf0f5; color: #59647b; }
-        .unclassified-pill { background: #f0f1f4; color: #646b7b; }
-        .empty { padding: 28px 14px; color: #777d90; font-size: 12px; text-align: center; }
-        @keyframes chart-enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        @media (max-width: 1260px) {
-            .summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        }
-        @media (max-width: 900px) {
-            body { padding: 22px 18px 36px; }
-            .analytics-grid, .insights-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr); gap: 14px; }
-            .card { padding: 19px; }
-            .summary-grid { gap: 11px; }
-            .stat { min-height: 128px; }
-        }
-        @media (max-width: 680px) {
-            body { padding: 14px 12px 28px; }
-            .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .stat { min-height: 126px; padding: 14px 12px; }
-            .analytics-grid, .insights-grid { grid-template-columns: minmax(0, 1fr); gap: 13px; margin-top: 13px; }
-            .card { padding: 17px; border-radius: 16px; }
-            .activity-card { min-height: unset; }
-            .activity-summary { max-width: 48%; }
-            .activity-total { font-size: 14px; }
-            .activity-busiest { font-size: 10px; line-height: 1.45; }
-            .table-card { margin-top: 13px; }
-            .table-heading { align-items: flex-start; }
-            .filter-list { width: 100%; gap: 2px; }
-            .filter-btn { flex: 1 0 auto; padding: 7px 8px; }
-            .table-wrap { margin-right: -2px; }
-        }
-        @media (max-width: 390px) {
-            .stat-value { font-size: 23px; }
-            .stat-label { font-size: 9px; }
-            .legend-row { gap: 7px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
-        }
-        .dashboard-page .qs-header { width: 100%; max-width: none; margin-bottom: 34px; }
-        .dashboard-intro {
-            position: relative;
-            display: flex;
-            min-height: 214px;
-            align-items: center;
-            justify-content: space-between;
-            gap: 28px;
-            margin: 0 0 26px;
-            padding: 22px clamp(22px, 4vw, 46px);
-            overflow: hidden;
-            border: 1px solid rgba(225, 222, 244, .85);
-            border-radius: 22px;
-            background:
-                radial-gradient(ellipse at 86% 14%, rgba(177, 177, 246, .20), transparent 18rem),
-                radial-gradient(ellipse at 72% 100%, rgba(169, 213, 255, .20), transparent 19rem),
-                rgba(255, 255, 255, .76);
-            box-shadow: 0 10px 28px rgba(53, 54, 105, .045);
-        }
-        .dashboard-intro-copy { position: relative; z-index: 1; max-width: 660px; }
-        .intro-kicker {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin: 0 0 11px;
-            color: #6157c9;
-            font-size: 11px;
-            font-weight: 700;
-            letter-spacing: .12em;
-            text-transform: uppercase;
-        }
-        .intro-kicker::before {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background: linear-gradient(110deg, #3975e6, #7654f6);
-            content: "";
-        }
-        .dashboard-intro h1 {
-            color: #111a3a;
-            font-size: clamp(35px, 4.4vw, 52px);
-            font-weight: 700;
-            line-height: 1.08;
-            letter-spacing: -.055em;
-        }
-        .dashboard-intro h1 span {
-            background: linear-gradient(110deg, #3975e6, #7654f6);
-            -webkit-background-clip: text;
-            background-clip: text;
-            color: transparent;
-        }
-        .dashboard-intro-copy > p:last-child {
-            max-width: 620px;
-            margin: 13px 0 0;
-            color: #64748b;
-            font-size: 14px;
-            line-height: 1.7;
-        }
-        .intro-visual {
-            position: relative;
-            display: grid;
-            width: 180px;
-            height: 150px;
-            flex: 0 0 180px;
-            place-items: center;
-            border: 1px solid rgba(221, 222, 246, .8);
-            border-radius: 24px;
-            background:
-                radial-gradient(circle at 25% 80%, rgba(103, 170, 222, .14), transparent 42%),
-                radial-gradient(circle at 78% 18%, rgba(151, 139, 219, .16), transparent 44%),
-                rgba(255, 255, 255, .64);
-        }
-        .intro-visual::before, .intro-visual::after {
-            position: absolute;
-            border: 1px solid rgba(111, 131, 198, .2);
-            border-radius: 50%;
-            content: "";
-        }
-        .intro-visual::before { width: 53px; height: 53px; left: -16px; bottom: -20px; }
-        .intro-visual::after { width: 34px; height: 34px; top: -12px; right: 15px; border-color: rgba(130, 117, 202, .22); }
-        .intro-visual svg { position: relative; z-index: 1; width: 80px; height: 80px; color: #5a76bd; }
-        .summary-section { margin-top: 0; }
-        .summary-heading { align-items: end; margin: 0 2px 13px; }
-        .summary-heading h2 { color: #111a3a; font-size: 18px; }
-        .card {
-            padding: 22px;
-            border-color: var(--line);
-            border-radius: 17px;
-            box-shadow: 0 7px 22px rgba(45, 48, 91, .045), 0 1px 3px rgba(45, 48, 91, .035);
-        }
-        .summary-grid { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 12px; }
-        .stat {
-            min-height: 142px;
-            padding: 16px 14px;
-            border-color: var(--line);
-            border-radius: 15px;
-            background: #fff;
-            box-shadow: 0 4px 14px rgba(45, 48, 91, .035);
-        }
-        .stat-icon { border: 1px solid #ebe7ff; background: #f2eeff; color: #6552c3; }
-        .stat-icon.tone-safe { border-color: #d8eee3; background: #eaf7f0; color: var(--safe); }
-        .stat-icon.tone-warning { border-color: #f3e5c7; background: #fff6e6; color: var(--suspicious); }
-        .stat-icon.tone-danger { border-color: #f3d9dd; background: #fff0f1; color: var(--unsafe); }
-        .stat-icon.tone-neutral { border-color: #dfe7f4; background: #eff4fb; color: #526b9a; }
-        .stat-label { color: #64708a; font-size: 9px; }
-        .stat-value { color: #111a3a; font-size: clamp(21px, 1.65vw, 28px); }
-        .stat-subtext { color: #818aa0; }
-        .analytics-grid, .insights-grid { gap: 16px; margin-top: 16px; }
-        .analytics-grid { grid-template-columns: minmax(0, 1.55fr) minmax(270px, .9fr); }
-        .insights-grid { grid-template-columns: minmax(0, 1.2fr) minmax(270px, .8fr); }
-        .section-heading { margin-bottom: 17px; }
-        h2, h3 { color: #111a3a; }
-        .section-subtitle { color: #7a8499; font-size: 11px; }
-        .activity-total { color: #3a4380; }
-        .activity-grid-line { stroke: #eceaf6; }
-        .activity-grid-label { fill: #8a91a5; }
-        .activity-line { stroke: #5d68ce; }
-        .activity-point { stroke: #5d68ce; }
-        .activity-today-label { fill: #5d55bd; }
-        .chart-key::before { background: linear-gradient(110deg, #3975e6, #7654f6); }
-        .distribution-bar, .content-summary-bar { background: #f1eff8; }
-        .distribution-segment.safe, .legend-dot.safe { background: #2b9a6a; }
-        .distribution-segment.suspicious, .legend-dot.suspicious { background: #e0a02d; }
-        .distribution-segment.unsafe, .legend-dot.unsafe { background: #d95360; }
-        .distribution-segment.non-url, .legend-dot.non-url { background: #7893bd; }
-        .content-segment.url, .legend-dot.url { background: #5b79d5; }
-        .content-segment.upi, .legend-dot.upi { background: #42a0b2; }
-        .content-segment.other, .legend-dot.other { background: #9b8bd4; }
-        .indicator-row { border-color: #ece9f6; background: #fcfbff; }
-        .indicator-icon { background: #f3efff; color: #7654c8; }
-        .indicator-count { background: #f0edff; color: #5143a1; }
-        .filter-list { border-color: #e7e4f5; background: #f8f7fc; }
-        .filter-btn { color: #6e7890; }
-        .filter-btn:hover { color: #5143c2; background: #f0edff; }
-        .filter-btn.active { border-color: #e5e0fb; color: #5143c2; box-shadow: 0 1px 4px rgba(48, 43, 92, .08); }
-        .filter-btn:focus-visible { outline: 3px solid #a89aec; outline-offset: 2px; }
-        .table-wrap { border-color: #e7e4f5; }
-        th { background: #f7f5fc; color: #66718a; }
-        th, td { border-bottom-color: #eeedf5; }
-        tbody tr:hover { background: #fbfaff; }
-        td { color: #48536b; }
-        .safe-pill { background: #e8f6ef; color: #20764f; }
-        .suspicious-pill { background: #fff4df; color: #94600d; }
-        .unsafe-pill { background: #ffedef; color: #a83945; }
-        .non-url-pill { background: #edf2fa; color: #4e658d; }
-        .unclassified-pill { background: #f0f1f5; color: #646b7b; }
-        .dashboard-status {
-            margin: -15px 2px 17px;
-            padding: 11px 14px;
-            border: 1px solid #e5e0fb;
-            border-radius: 11px;
-            background: rgba(255, 255, 255, .74);
-            color: #625b91;
-            font-size: 12px;
-        }
-        .dashboard-status[hidden] { display: none; }
-        .dashboard-status.is-error { border-color: #f1d7db; background: #fff7f8; color: #9e3745; }
-        .dashboard-inline-state { grid-column: 1 / -1; margin: 16px 0; color: #7c8498; font-size: 12px; text-align: center; }
-        .dashboard-error-state { border: 1px solid #f1d7db; border-radius: 12px; background: #fff7f8; color: #9e3745; }
-        @media (max-width: 1260px) {
-            .summary-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-        }
-        @media (max-width: 900px) {
-            .dashboard-intro { min-height: 196px; }
-            .analytics-grid, .insights-grid { grid-template-columns: minmax(0, 1fr) minmax(0, .9fr); }
-        }
-        @media (max-width: 760px) {
-            .dashboard-page .qs-header { margin-bottom: 25px; }
-            .dashboard-intro { min-height: 0; margin-bottom: 22px; padding: 23px; }
-            .intro-visual { width: 130px; height: 125px; flex-basis: 130px; }
-            .intro-visual svg { width: 67px; height: 67px; }
-        }
-        @media (max-width: 680px) {
-            .dashboard-page .qs-header { margin-bottom: 22px; }
-            .dashboard-intro { padding: 21px 19px; }
-            .dashboard-intro h1 { font-size: clamp(34px, 8vw, 42px); }
-            .dashboard-intro-copy > p:last-child { font-size: 13px; }
-            .intro-visual { display: none; }
-            .summary-heading { margin-bottom: 10px; }
-            .summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-            .stat { min-height: 126px; padding: 14px 12px; }
-            .analytics-grid, .insights-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; margin-top: 12px; }
-            .card { padding: 17px; border-radius: 16px; }
-            .table-heading { align-items: flex-start; }
-            .filter-list { width: 100%; gap: 2px; }
-            .filter-btn { flex: 1 0 auto; min-height: 34px; padding: 7px 8px; }
-            .table-wrap { margin-right: 0; }
-        }
-        @media (max-width: 360px) {
-            body { padding-right: 12px; padding-left: 12px; }
-            .dashboard-intro { padding: 19px 16px; }
-            .card { padding: 14px; }
-            .stat { padding: 12px 10px; }
-            .stat-value { font-size: 21px; }
-            .filter-btn { padding-right: 6px; padding-left: 6px; font-size: 10px; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-            .stat:hover { transform: none; }
-        }
-    </style>
+
+</style>
+
     <link rel="stylesheet" href="navigation.css">
+
     <script src="navigation.js" defer></script>
+
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="master-design.css">
+
 </head>
-<body class="dashboard-page">
-    <div class="container">
-        <header class="qs-header">
+
+<body class="dashboard-page" data-page="dashboard">
+<div class="qs-ambient-bg" aria-hidden="true">
+  <svg viewBox="0 0 1440 900" fill="none" preserveAspectRatio="xMidYMin slice">
+    <defs>
+      <linearGradient id="qs-shield-outer" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-shield-stroke1)"/>
+        <stop offset="45%" stop-color="var(--ambient-shield-stroke2)"/>
+        <stop offset="100%" stop-color="var(--ambient-shield-stroke3)"/>
+      </linearGradient>
+      <linearGradient id="qs-facet-left" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-facet-l1)"/>
+        <stop offset="100%" stop-color="var(--ambient-facet-l2)"/>
+      </linearGradient>
+      <linearGradient id="qs-facet-right" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-facet-r1)"/>
+        <stop offset="100%" stop-color="var(--ambient-facet-r2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-top" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-t1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-t2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-left" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-l1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-l2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-right" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-r1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-r2)"/>
+      </linearGradient>
+      <linearGradient id="qs-wave-line" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="var(--ambient-wave-c1)"/>
+        <stop offset="35%" stop-color="var(--ambient-wave-c2)"/>
+        <stop offset="70%" stop-color="var(--ambient-wave-c3)"/>
+        <stop offset="100%" stop-color="var(--ambient-wave-c4)"/>
+      </linearGradient>
+      <filter id="qs-subtle-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="10" result="blur"/>
+        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+      </filter>
+    </defs>
+    <path class="qs-ambient-wave" d="M180 110 C 400 45, 720 150, 1020 75 C 1200 30, 1340 115, 1440 85" stroke="url(#qs-wave-line)" stroke-width="1.8" fill="none"/>
+    <path class="qs-ambient-wave" d="M220 170 C 480 210, 800 95, 1100 160 C 1240 200, 1360 160, 1440 200" stroke="url(#qs-wave-line)" stroke-width="1.4" fill="none" opacity="0.75"/>
+    <path class="qs-ambient-wave" d="M260 55 C 540 130, 880 35, 1160 115 C 1280 150, 1380 95, 1440 125" stroke="url(#qs-wave-line)" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <g class="qs-ambient-cube" transform="translate(740, 68) rotate(18)">
+      <polygon points="16,0 32,9 16,18 0,9" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,9 16,18 16,36 0,27" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="16,18 32,9 32,27 16,36" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-cube" transform="translate(950, 78) rotate(-14) scale(1.15)">
+      <polygon points="18,0 36,10 18,20 0,10" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,10 18,20 18,40 0,30" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="18,20 36,10 36,30 18,40" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-cube" transform="translate(1310, 145) rotate(24) scale(0.85)">
+      <polygon points="16,0 32,9 16,18 0,9" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,9 16,18 16,36 0,27" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="16,18 32,9 32,27 16,36" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-shield" transform="translate(1060, 20)" filter="url(#qs-subtle-glow)">
+      <path d="M100 15 L190 52 V155 C190 220 152 268 100 290 C48 268 10 220 10 155 V52 Z" fill="none" stroke="url(#qs-shield-outer)" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M100 22 L18 56 V153 C18 214 53 259 100 280 Z" fill="url(#qs-facet-left)"/>
+      <path d="M100 22 L182 56 V153 C182 214 147 259 100 280 Z" fill="url(#qs-facet-right)"/>
+      <line x1="100" y1="22" x2="100" y2="280" stroke="var(--ambient-shield-ridge)" stroke-width="2"/>
+      <path d="M100 55 L42 80 V150 C42 195 68 230 100 248 C132 230 158 195 158 150 V80 Z" fill="none" stroke="var(--ambient-shield-inner-stroke)" stroke-width="1.5"/>
+      <path d="M100 58 L45 82 V149 C45 192 70 226 100 243 Z" fill="var(--ambient-shield-inner-l)"/>
+      <path d="M100 58 L155 82 V149 C155 192 130 226 100 243 Z" fill="var(--ambient-shield-inner-r)"/>
+    </g>
+  </svg>
+</div>
+
+    <header class="qs-header">
+
             <a class="qs-brand" href="scan.html" aria-label="QR Shield home">
+
                 <span class="qs-brand-mark" aria-hidden="true">
+
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
                         <path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/>
+
                         <path d="m9 12 2 2 4-4"/>
+
                     </svg>
+
                 </span>
+
                 <span class="qs-brand-copy">
+
                     <span class="qs-brand-name">QR Shield</span>
+
                     <span class="qs-brand-subtitle">QR Security Platform</span>
+
                 </span>
+
             </a>
+
             <button class="qs-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false">
+
                 <span class="qs-menu-icon" aria-hidden="true"></span>
+
             </button>
+
+            <div class="master-sidebar-promo" aria-hidden="true">
+                <div class="master-sidebar-promo-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+                <strong>Safer Scans<br>Brighter Internet</strong>
+                <span>Detect. Analyze. Stay Secure.</span><i></i>
+            </div>
             <nav class="qs-nav-links" id="primary-navigation" aria-label="Main navigation">
-                <a class="qs-nav-link" href="scan.html">Scan QR</a>
-                <a class="qs-nav-link" href="generate.html">Generate QR</a>
-                <a class="qs-nav-link" href="dashboard.html" aria-current="page">Dashboard</a>
+                <a class="qs-nav-link" href="dashboard.html" aria-current="page"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H4a1 1 0 0 1-1-1V9.5z"/></svg>Dashboard</a>
+                <a class="qs-nav-link" href="scan.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M9 9h6v6H9z"/></svg>Scan QR</a>
+                <a class="qs-nav-link" href="website-checker.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Website Checker</a>
+                <a class="qs-nav-link" href="generate.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Generate QR</a>
+                <a class="qs-nav-link" href="experimental-warning.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6m-5 0v6L4 19a1 1 0 0 0 1 2h14a1 1 0 0 0-1-2L14 9V3M8 14h8"/></svg>Experimental ML</a>
                 <button class="qs-nav-link" type="button" onclick="logout()">Logout</button>
             </nav>
+
+<button class="qs-theme-toggle" type="button" data-theme-toggle aria-label="Dark mode" aria-pressed="false" aria-describedby="theme-state" title="Switch to dark mode">
+
+<svg class="theme-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+
+<svg class="theme-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
+
+</button><span class="theme-state" id="theme-state" data-theme-state>Current theme: light</span>
+
         </header>
 
+    <main class="container app-workspace" id="main-content">
+
+
+
         <section class="dashboard-intro" aria-labelledby="dashboard-title">
-            <div class="dashboard-intro-copy">
-                <p class="intro-kicker">QR Shield Analytics</p>
-                <h1 id="dashboard-title">Your Security.<br><span>At a Glance.</span></h1>
-                <p>Monitor QR scan activity, review security findings, and explore your scan history.</p>
+            <div class="dashboard-intro-top">
+                <div class="dashboard-intro-copy">
+                    <p class="intro-kicker">QR SHIELD ANALYTICS</p>
+                    <div class="dashboard-title-row">
+                        <div class="header-shield-badge" aria-hidden="true">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/>
+                                <path d="m9 12 2 2 4-4"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 id="dashboard-title">Good Morning! 👋</h1>
+                            <p class="section-subtitle">Your QR scans, security checks, and online safety — all in one place.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="dashboard-header-actions">
+                    <div class="master-protection-status"><span>Protection Status</span><b><i></i> Monitoring</b></div>
+                    <button class="master-icon-button" type="button" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
+                    <div class="account-menu" id="account-menu">
+                        <button class="master-profile-button" id="profile-button" type="button" aria-label="Open account menu" aria-controls="profile-popover" aria-expanded="false">
+                            <span id="profile-initial" aria-hidden="true">U</span>
+                            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 10 5 5 5-5"/></svg>
+                        </button>
+                        <div class="account-popover" id="profile-popover" role="group" aria-label="Account information" aria-hidden="true" hidden>
+                            <div class="account-popover-user">
+                                <span class="account-popover-avatar" id="profile-popover-initial" aria-hidden="true">U</span>
+                                <div class="account-popover-identity">
+                                    <p class="account-popover-name" id="profile-name" hidden></p>
+                                    <p class="account-popover-email" id="profile-email">Account email unavailable</p>
+                                </div>
+                            </div>
+                            <div class="account-popover-divider" aria-hidden="true"></div>
+                            <button class="account-popover-logout" id="profile-logout" type="button">Logout</button>
+                        </div>
+                    </div>
+                </div>
             </div>
+
             <div class="intro-visual" aria-hidden="true">
+
                 <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">
+
                     <path d="M40 9 61 17v16c0 15-9 26-21 33-12-7-21-18-21-33V17l21-8Z" fill="rgba(255,255,255,.72)"/>
+
                     <path d="m31 39 6 6 13-14"/>
+
                     <path d="M8 22h8M64 56h8M12 59h7"/>
+
                     <circle cx="67" cy="22" r="3"/>
+
                     <circle cx="18" cy="42" r="2"/>
+
                 </svg>
+
             </div>
+
         </section>
+
+
 
         <p class="dashboard-status" id="dashboard-status" role="status" aria-live="polite">Loading your analytics and scan history…</p>
 
+
+
         <section class="summary-section" aria-labelledby="summary-title">
+
             <div class="section-heading summary-heading">
+
                 <div>
-                    <h2 id="summary-title">Your Overview</h2>
-                    <div class="section-subtitle">A clear picture of your QR scan activity</div>
+
+                    <h2 id="summary-title">Security Summary</h2>
+
+                    <div class="section-subtitle">A snapshot of your stored scans and URL security findings</div>
+
                 </div>
+
             </div>
+
             <div class="summary-grid" id="summary-grid">
+
                 <p class="dashboard-inline-state">Loading summary…</p>
+
             </div>
+
         </section>
 
+
+
         <div class="analytics-grid">
+
             <div class="card activity-card">
+
                 <div class="section-heading">
+
                     <div>
-                        <h2>Scan Activity</h2>
-                        <div class="section-subtitle">Last 7 Days</div>
+
+                        <h2>Seven-Day Scan Activity</h2>
+
+                        <div class="section-subtitle">Timeline of all scanned items (UTC)</div>
+
                     </div>
+
                     <div class="activity-summary" id="activity-summary" aria-live="polite"></div>
+
                 </div>
+
                 <div class="activity-chart" id="scan-activity"><p class="dashboard-inline-state">Loading scan activity…</p></div>
+
+                <p class="section-subtitle">Includes all scan types across the last 7 calendar days, shown in UTC.</p>
+
             </div>
 
-            <div class="card">
+
+
+            <div class="card risk-card">
+
                 <div class="section-heading">
+
                     <div>
-                        <h2>QR Content Types</h2>
-                        <div class="section-subtitle">Decoded scan destinations</div>
+
+                        <h2>Risk Distribution</h2>
+
+                        <div class="section-subtitle">URL &amp; non-URL classification breakdown</div>
+
                     </div>
+
                 </div>
-                <div class="mini-chart" id="content-chart"><p class="dashboard-inline-state">Loading content analytics…</p></div>
+
+                <div class="risk-chart" id="risk-chart"><p class="dashboard-inline-state">Loading risk distribution…</p></div>
+
+                <p class="distribution-note">Non-URL scans (UPI, text, Wi-Fi) do not undergo URL phishing classification.</p>
+
+
             </div>
+
         </div>
+
+
 
         <div class="insights-grid">
-            <div class="card">
-                <div class="section-heading">
-                    <div>
-                        <h2>Risk Distribution</h2>
-                        <div class="section-subtitle">Scan classification breakdown</div>
-                    </div>
-                </div>
-                <div class="risk-chart" id="risk-chart"><p class="dashboard-inline-state">Loading risk distribution…</p></div>
-                <p class="distribution-note">Non-URL scans include UPI, plain text, and other QR content that does not undergo URL phishing classification.</p>
-            </div>
-
-            <div class="card indicator-panel">
-                <div class="section-heading">
-                    <div>
-                        <h2>Security Indicators Detected</h2>
-                        <div class="section-subtitle">Stored rule-based signals</div>
-                    </div>
-                </div>
-                <div id="indicator-summary"><p class="dashboard-inline-state">Loading security indicators…</p></div>
-            </div>
+            <section class="card" aria-labelledby="content-types-title">
+                <div class="section-heading"><div>
+                    <h2 id="content-types-title">Scan Types</h2>
+                    <div class="section-subtitle">URLs, payments, and other QR content</div>
+                </div></div>
+                <div id="content-chart"><p class="dashboard-inline-state">Loading scan types?</p></div>
+            </section>
+            <section class="card indicator-panel" aria-labelledby="indicators-title">
+                <div class="section-heading"><div>
+                    <h2 id="indicators-title">Security Indicators</h2>
+                    <div class="section-subtitle">Findings recorded in your scan history</div>
+                </div></div>
+                <div id="indicator-summary"><p class="dashboard-inline-state">Loading stored findings?</p></div>
+            </section>
         </div>
+
+        <section class="master-dashboard-extras" aria-label="Quick actions and security call to action">
+            <article class="master-security-cta">
+                <div class="master-eyebrow">QR SHIELD PROTECTION</div>
+                <h3>Stronger Security<br>Starts Here</h3>
+                <p>Scan QR codes, check websites, and generate secure QR codes — all in one place.</p>
+                <a href="scan.html">Scan a QR Code <span aria-hidden="true">→</span></a>
+            </article>
+            <article class="master-quick-actions">
+                <h3>Quick Actions</h3>
+                <div class="master-action-grid">
+                    <a class="master-action" href="scan.html"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H5a1 1 0 0 0-1 1v3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></span><span class="master-action-copy"><strong>Scan QR</strong><span class="master-action-description">Check QR codes for safety</span></span></a>
+                    <a class="master-action" href="website-checker.html"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18M4.9 7h14.2M4.9 17h14.2"/></svg></span><span class="master-action-copy"><strong>Website Checker</strong><span class="master-action-description">Verify URLs and detect threats</span></span></a>
+                    <a class="master-action" href="generate.html"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M17 14.5v5M14.5 17h5"/></svg></span><span class="master-action-copy"><strong>Generate QR</strong><span class="master-action-description">Create secure QR codes</span></span></a>
+                    <a class="master-action" href="#history-table-wrap"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 17v-3m4 3v-6m4 6v-5"/></svg></span><span class="master-action-copy"><strong>View Reports</strong><span class="master-action-description">Review analytics and history</span></span></a>
+                </div>
+                <div class="master-latest-protection"><span class="master-latest-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span><strong>Latest Protection</strong><small>Real-time threat detection is active</small></span><span class="master-latest-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
+            </article>
+        </section>
 
         <div class="card table-card">
+
             <div class="section-heading table-heading">
+
                 <div>
-                    <h2>Recent Scans</h2>
-                    <div class="section-subtitle">Review your latest QR analyses</div>
+
+                    <h2>Recent Scan History</h2>
+
+                    <div class="section-subtitle">Review your latest QR analyses and download security reports</div>
+
                 </div>
+
                 <div class="filter-list" id="history-filters" role="group" aria-label="Filter recent scans">
+
                     <button class="filter-btn active" type="button" data-filter="all" aria-pressed="true">All</button>
+
                     <button class="filter-btn" type="button" data-filter="safe" aria-pressed="false">Safe</button>
+
                     <button class="filter-btn" type="button" data-filter="suspicious" aria-pressed="false">Suspicious</button>
+
                     <button class="filter-btn" type="button" data-filter="unsafe" aria-pressed="false">Unsafe</button>
+
                     <button class="filter-btn" type="button" data-filter="non_url" aria-pressed="false">Non-URL</button>
+
                     <button class="filter-btn" id="unclassified-filter" type="button" data-filter="unclassified" aria-pressed="false" hidden>Unclassified</button>
+
                 </div>
+
             </div>
-            <div class="table-wrap">
+
+            <p class="section-subtitle">Your scans are stored in your account. Only you can see them. You can clear them anytime.</p>
+
+            <p class="section-subtitle">The local server administrator can access the underlying database. Clearing history also removes access to its stored PDF reports.</p>
+
+            <button class="filter-btn" id="clear-history-btn" type="button" disabled>Clear all history</button>
+
+            <p class="section-subtitle" id="clear-history-status" role="status" aria-live="polite"></p>
+
+            <div class="table-wrap" id="history-table-wrap">
+
                 <table>
+
                     <colgroup>
-                        <col style="width: 18%">
+
                         <col style="width: 20%">
-                        <col style="width: 9%">
+
                         <col style="width: 14%">
-                        <col style="width: 39%">
+
+                        <col style="width: 32%">
+
+                        <col style="width: 20%">
+
+                        <col style="width: 14%">
+
                     </colgroup>
-                    <thead>
+
+                    <thead id="history-table-head">
+
                         <tr>
-                            <th>Time</th>
-                            <th>Domain</th>
-                            <th>Risk</th>
-                            <th>Label</th>
-                            <th>Decoded Content</th>
+
+                            <th style="width: 20%;">Date (UTC)</th>
+
+                            <th style="width: 14%;">Scan Type</th>
+
+                            <th style="width: 32%;">Destination</th>
+
+                            <th style="width: 20%;">Verdict</th>
+
+                            <th style="width: 14%;">Report</th>
+
                         </tr>
+
                     </thead>
+
                     <tbody id="history-body"><tr><td colspan="5" class="empty">Loading scan history…</td></tr></tbody>
+
                 </table>
+
             </div>
+
+            <div class="filter-list" id="history-pagination" role="group" aria-label="History pages">
+
+                <button class="filter-btn" id="history-previous" type="button" disabled>Previous</button>
+
+                <button class="filter-btn" id="history-next" type="button" disabled>Next</button>
+
+            </div>
+
+            <p class="section-subtitle" id="history-page-status" role="status" aria-live="polite">50 records per page. Dates shown in UTC.</p>
+
         </div>
+
+    </main>
+
+
+
+    <div id="history-modal-overlay" class="qr-modal-overlay" hidden>
+
+        <div class="qr-modal-panel" role="dialog" aria-modal="true" tabindex="-1" aria-labelledby="history-modal-title" aria-describedby="history-modal-message" data-danger="true">
+
+            <div class="qr-modal-body">
+
+                <h2 id="history-modal-title" class="qr-modal-title" data-modal-title>Delete History</h2>
+
+                <p id="history-modal-message" data-modal-message>Delete all your scan history? This cannot be undone.</p>
+
+            </div>
+
+            <div class="qr-modal-actions">
+
+                <button type="button" data-modal-cancel>Cancel</button>
+
+                <button type="button" data-modal-proceed>Proceed</button>
+
+            </div>
+
+        </div>
+
     </div>
 
+    <script src="link-warning.js"></script>
+
     <script>
-        const API_URL = "http://127.0.0.1:8000";
+
+        // Account display metadata comes from the signed-in token already held by this page.
+        (function setDynamicHeaderMeta() {
+            const initialEl = document.getElementById("profile-initial");
+            const profileButton = document.getElementById("profile-button");
+            const popoverInitialEl = document.getElementById("profile-popover-initial");
+            const nameEl = document.getElementById("profile-name");
+            const emailEl = document.getElementById("profile-email");
+
+            function decodeTokenAccount() {
+                try {
+                    const token = localStorage.getItem("access_token");
+                    if (!token) return { email: "", name: "" };
+                    const parts = token.split(".");
+                    if (parts.length !== 3) return { email: "", name: "" };
+                    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
+                    const padded = payload + "=".repeat((4 - payload.length % 4) % 4);
+                    const data = JSON.parse(atob(padded));
+                    const email = typeof data.email === "string" ? data.email : (typeof data.sub === "string" && data.sub.includes("@") ? data.sub : "");
+                    const name = typeof data.name === "string" ? data.name : (typeof data.full_name === "string" ? data.full_name : "");
+                    return { email, name };
+                } catch (_) {
+                    return { email: "", name: "" };
+                }
+            }
+
+            const account = decodeTokenAccount();
+            const displayName = account.name.trim();
+            const localPart = (displayName || account.email.split("@")[0]).trim();
+            const initial = (localPart.replace(/[^A-Za-z0-9]/g, "")[0] || "U").toUpperCase();
+            if (initialEl) initialEl.textContent = initial;
+            if (popoverInitialEl) popoverInitialEl.textContent = initial;
+            if (nameEl && displayName) { nameEl.textContent = displayName; nameEl.hidden = false; }
+            if (emailEl) emailEl.textContent = account.email || "Account email unavailable";
+            if (profileButton) profileButton.setAttribute("aria-label", account.email ? `Open account menu for ${account.email}` : "Open account menu");
+        })();
+
+        (function wireAccountPopover() {
+            const wrapper = document.getElementById("account-menu");
+            const button = document.getElementById("profile-button");
+            const popover = document.getElementById("profile-popover");
+            const logoutButton = document.getElementById("profile-logout");
+            if (!wrapper || !button || !popover || !logoutButton) return;
+
+            let closeTimer = null;
+            function setOpen(open, restoreFocus = false) {
+                if (closeTimer !== null) { clearTimeout(closeTimer); closeTimer = null; }
+                if (open) {
+                    popover.hidden = false;
+                    popover.setAttribute("aria-hidden", "false");
+                    popover.classList.remove("is-closing");
+                    button.setAttribute("aria-expanded", "true");
+                    button.setAttribute("aria-label", "Close account menu");
+                    requestAnimationFrame(() => popover.classList.add("is-open"));
+                    return;
+                }
+                if (popover.hidden) return;
+                const focusWasInside = popover.contains(document.activeElement);
+                button.setAttribute("aria-expanded", "false");
+                button.setAttribute("aria-label", "Open account menu");
+                popover.setAttribute("aria-hidden", "true");
+                popover.classList.remove("is-open");
+                popover.classList.add("is-closing");
+                if (restoreFocus || focusWasInside) button.focus();
+                closeTimer = setTimeout(() => {
+                    popover.hidden = true;
+                    popover.classList.remove("is-closing");
+                    closeTimer = null;
+                }, 160);
+            }
+
+            button.addEventListener("click", () => setOpen(button.getAttribute("aria-expanded") !== "true"));
+            logoutButton.addEventListener("click", () => logout());
+            document.addEventListener("pointerdown", event => {
+                if (!wrapper.contains(event.target)) setOpen(false);
+            });
+            document.addEventListener("keydown", event => {
+                if (event.key === "Escape" && button.getAttribute("aria-expanded") === "true") {
+                    event.preventDefault();
+                    setOpen(false, true);
+                }
+            });
+        })();
+
+        // Dynamic local-time greeting — presentation only.
+        (function setDynamicGreeting() {
+            const title = document.getElementById("dashboard-title");
+            if (!title) return;
+
+            const hour = new Date().getHours();
+            let greeting = "Good Morning!";
+
+            if (hour >= 12 && hour < 17) {
+                greeting = "Good Afternoon!";
+            } else if (hour >= 17 && hour < 21) {
+                greeting = "Good Evening!";
+            } else if (hour >= 21 || hour < 5) {
+                greeting = "Good Night!";
+            }
+
+            title.textContent = greeting + " 👋";
+        })();
+
+
+        // Gateway and forwarded pages use same-origin API; legacy localhost servers remain supported.
+
+    const API_URL = window.QR_SHIELD_API_BASE || (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:"
+
+        ? "http://127.0.0.1:8000" : "/api");
+
+
 
         function getAccessToken() {
+
             return localStorage.getItem("access_token");
+
         }
+
+
 
         if (!getAccessToken()) {
+
             window.location.href = "login.html";
+
         }
+
+
 
         function parseStoredBreakdown(value) {
+
             if (!value) return [];
+
             if (Array.isArray(value)) return value;
+
             if (typeof value === "string") {
+
                 try {
+
                     const parsed = JSON.parse(value);
+
                     return Array.isArray(parsed) ? parsed : [];
+
                 } catch (error) {
+
                     return [];
+
                 }
+
             }
+
             return [];
+
         }
+
+
 
         function classifyContent(content) {
+
             const value = String(content || "").trim();
+
             if (!value) return "Unclassifiable";
+
             const lower = value.toLowerCase();
+
             if (lower.startsWith("http://") || lower.startsWith("https://")) return "URL";
+
             if (lower.startsWith("upi://")) return "UPI";
+
             return "Text / Other";
+
         }
+
+
 
         function classifyScan(row) {
+
             const contentType = classifyContent(row.decoded_content);
+
             if (contentType === "Unclassifiable") return "unclassified";
+
             if (contentType !== "URL") return "non_url";
 
+
+
             const label = String(row.risk_label || "").toLowerCase();
+
             return ["safe", "suspicious", "unsafe"].includes(label) ? label : "unclassified";
+
         }
+
+
 
         function getNumericRiskScore(value) {
+
             if (value === null || value === undefined || value === "") return null;
+
             const score = Number(value);
+
             return Number.isFinite(score) ? score : null;
+
         }
+
+
 
         function escapeHtml(value) {
+
             return String(value).replace(/[&<>"']/g, character => ({
+
                 "&": "&amp;",
+
                 "<": "&lt;",
+
                 ">": "&gt;",
+
                 "\"": "&quot;",
+
                 "'": "&#39;"
+
             })[character]);
+
         }
+
+
 
         function getClassificationCounts(rows) {
+
             return rows.reduce((counts, row) => {
+
                 counts[classifyScan(row)] += 1;
+
                 return counts;
+
             }, { safe: 0, suspicious: 0, unsafe: 0, non_url: 0, unclassified: 0 });
+
         }
+
+
+
+        function parseScanTime(value) {
+
+            if (typeof value !== "string" || !value) return null;
+
+            // ORM datetime.utcnow records are naive UTC, never browser-local time.
+
+            const normalized = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(value)
+
+                ? value.replace(" ", "T") + "Z" : value;
+
+            const date = new Date(normalized);
+
+            return Number.isNaN(date.getTime()) ? null : date;
+
+        }
+
+
 
         function getDayLabel(date) {
-            return date.toLocaleDateString("en-US", { weekday: "short" });
+
+            return date.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" });
+
         }
 
-        function renderSummary(rows) {
-            const total = rows.length;
-            const counts = getClassificationCounts(rows);
-            const numericScores = rows
-                .filter(row => classifyContent(row.decoded_content) === "URL")
-                .map(row => getNumericRiskScore(row.risk_score))
-                .filter(value => value !== null);
-            const average = numericScores.length ? numericScores.reduce((sum, value) => sum + value, 0) / numericScores.length : 0;
-            const storedFindings = rows.reduce((count, row) => count + parseStoredBreakdown(row.risk_breakdown).length, 0);
-            const averageText = numericScores.length ? `${average.toFixed(1)} / 100` : "0 / 100";
-            const findingsText = storedFindings > 0 ? `${storedFindings} finding${storedFindings === 1 ? "" : "s"}` : "No stored findings";
-            const unclassifiedStat = counts.unclassified ? `
-                <div class="stat">
-                    <div class="stat-label">Unclassified</div>
-                    <div class="stat-value">${counts.unclassified}</div>
-                    <div class="stat-subtext">Missing or invalid legacy classification</div>
-                </div>
-            ` : "";
+
+
+        function renderSummaryCards(counts) {
+
+            for (const [key, id] of [["safe", "safe-scans-count"], ["suspicious", "caution-scans-count"], ["unsafe", "unsafe-scans-count"]]) {
+
+                const count = document.getElementById(id);
+
+                if (!count) continue;
+
+                const value = counts?.[key];
+
+                const valid = Number.isSafeInteger(value) && value >= 0;
+
+                count.textContent = valid ? value.toLocaleString() : "Unavailable";
+
+                count.classList.toggle("is-unavailable", !valid);
+
+            }
+
+            const grid = document.getElementById("scan-summary-grid");
+
+            if (grid) grid.setAttribute("aria-busy", "false");
+
+        }
+
+
+
+        function renderSummary(rows, stats = null) {
+
+            const total = stats ? stats.total : rows.length;
+
+            const counts = stats ? stats.counts : getClassificationCounts(rows);
+
+            renderSummaryCards(counts);
+
+
+
+            // Unclassified also includes empty payloads; only actual URL records
+            // belong in the Unverified URLs card. Keep safe and non-URL counts separate.
+            const urlCount = (stats && stats.content_counts && typeof stats.content_counts.URL === "number")
+                ? stats.content_counts.URL
+                : rows.filter(row => classifyContent(row.decoded_content) === "URL").length;
+            // Backend "unclassified" also includes empty content; this card counts URLs only.
+            const unverifiedUrls = Math.max(0, urlCount - (counts.safe || 0) - (counts.suspicious || 0) - (counts.unsafe || 0));
 
             const summaryGrid = document.getElementById("summary-grid");
+
             const metrics = [
-                { label: "Total Scans", value: total, context: "All recorded analyses", tone: "", icon: '<path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/>' },
-                { label: "Safe URL Scans", value: counts.safe, context: "URL scans classified safe", tone: "tone-safe", icon: '<path d="m5 12 4 4L19 6"/>' },
-                { label: "Suspicious URL Scans", value: counts.suspicious, context: "URLs to review", tone: "tone-warning", icon: '<path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4m0 3h.01"/>' },
-                { label: "Unsafe URL Scans", value: counts.unsafe, context: "High-risk URL scans", tone: "tone-danger", icon: '<path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9.5 9.5 5 5m0-5-5 5"/>' },
-                { label: "Non-URL Scans", value: counts.non_url, context: "UPI, text &amp; other", tone: "tone-neutral", icon: '<path d="M8 5H5v14h3m8-14h3v14h-3M10 9l-2 3 2 3m4-6 2 3-2 3"/>' },
-                { label: "Average URL Risk", value: averageText, context: "URL scans with stored scores", tone: "", icon: '<path d="M4 18V6m0 12h16"/><path d="m7 14 4-4 3 2 5-6"/>' },
-                { label: "Security Findings", value: findingsText, context: storedFindings > 0 ? "Stored rule-based findings" : "No stored findings available", tone: "tone-warning", icon: '<path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="M12 8v5m0 3h.01"/>' }
-            ];
-            if (counts.unclassified) {
-                metrics.push({
-                    label: "Unclassified",
-                    value: counts.unclassified,
-                    context: "Missing or invalid legacy classification",
+                {
+                    label: "Total Scans",
+                    value: total,
+                    context: `${urlCount} URL scans / ${counts.non_url || 0} non-URL scans`,
+                    tone: "",
+                    icon: '<path d="M4 5h16v14H4z"/><path d="M8 9h8M8 13h5"/>',
+                    wave: '<svg viewBox="0 0 280 32" preserveAspectRatio="none"><defs><linearGradient id="w-tot" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4F46E5" stop-opacity="0.25"/><stop offset="100%" stop-color="#4F46E5" stop-opacity="0.02"/></linearGradient></defs><path d="M0 24 C50 16, 110 28, 170 18 C220 10, 250 22, 280 14 L280 32 L0 32 Z" fill="url(#w-tot)"/><path d="M0 24 C50 16, 110 28, 170 18 C220 10, 250 22, 280 14" stroke="#4F46E5" stroke-width="2" fill="none" opacity="0.6"/></svg>'
+                },
+                {
+                    label: "Suspicious URLs",
+                    value: counts.suspicious || 0,
+                    context: "Heuristic indicators detected",
+                    tone: "tone-warning",
+                    icon: '<path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4m0 3h.01"/>',
+                    wave: '<svg viewBox="0 0 280 32" preserveAspectRatio="none"><defs><linearGradient id="w-sus" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#D97706" stop-opacity="0.25"/><stop offset="100%" stop-color="#D97706" stop-opacity="0.02"/></linearGradient></defs><path d="M0 26 C60 20, 120 28, 180 16 C230 8, 260 20, 280 12 L280 32 L0 32 Z" fill="url(#w-sus)"/><path d="M0 26 C60 20, 120 28, 180 16 C230 8, 260 20, 280 12" stroke="#D97706" stroke-width="2" fill="none" opacity="0.6"/></svg>'
+                },
+                {
+                    label: "High-Risk URLs",
+                    value: counts.unsafe || 0,
+                    context: "High-risk indicators detected",
+                    tone: "tone-danger",
+                    icon: '<path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9.5 9.5 5 5m0-5-5 5"/>',
+                    wave: '<svg viewBox="0 0 280 32" preserveAspectRatio="none"><defs><linearGradient id="w-dang" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#DC2626" stop-opacity="0.25"/><stop offset="100%" stop-color="#DC2626" stop-opacity="0.02"/></linearGradient></defs><path d="M0 22 C50 14, 110 26, 170 16 C220 12, 250 20, 280 15 L280 32 L0 32 Z" fill="url(#w-dang)"/><path d="M0 22 C50 14, 110 26, 170 16 C220 12, 250 20, 280 15" stroke="#DC2626" stroke-width="2" fill="none" opacity="0.6"/></svg>'
+                },
+                {
+                    label: "Unverified URLs",
+                    value: unverifiedUrls,
+                    context: "Safety not confirmed.",
                     tone: "tone-neutral",
-                    icon: '<circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 0 1 4.8 1c0 1.8-2.4 2-2.4 3.8m0 3h.01"/>'
-                });
-            }
+                    icon: '<path d="M12 9v4m0 3h.01M12 3a9 9 0 1 0 9 9 9 9 0 0 0-9-9Z"/>',
+                    wave: '<svg viewBox="0 0 280 32" preserveAspectRatio="none"><defs><linearGradient id="w-neut" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#64748B" stop-opacity="0.2"/><stop offset="100%" stop-color="#64748B" stop-opacity="0.02"/></linearGradient></defs><path d="M0 25 C60 18, 130 26, 190 20 C240 15, 265 22, 280 18 L280 32 L0 32 Z" fill="url(#w-neut)"/><path d="M0 25 C60 18, 130 26, 190 20 C240 15, 265 22, 280 18" stroke="#64748B" stroke-width="2" fill="none" opacity="0.5"/></svg>'
+                }
+            ];
+
+
+
             summaryGrid.innerHTML = metrics.map(metric => `
                 <div class="stat">
-                    <div class="stat-icon ${metric.tone}" aria-hidden="true">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${metric.icon}</svg>
+                    <div class="stat-top">
+                        <div class="stat-top-left">
+                            <div class="stat-icon ${metric.tone}" aria-hidden="true">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${metric.icon}</svg>
+                            </div>
+                            <span class="stat-label">${metric.label}</span>
+                        </div>
                     </div>
-                    <div class="stat-label">${metric.label}</div>
                     <div class="stat-value">${metric.value}</div>
                     <div class="stat-subtext">${metric.context}</div>
+                    <div class="stat-wave" aria-hidden="true">${metric.wave}</div>
                 </div>
             `).join("");
+
         }
 
-        function renderRiskChart(rows) {
-            const total = rows.length;
-            const counts = getClassificationCounts(rows);
+
+
+        function renderRiskChart(rows, stats = null) {
+
+            const total = stats ? stats.total : rows.length;
+
+            const counts = stats ? stats.counts : getClassificationCounts(rows);
+
             const labels = [
+
                 { key: "safe", label: "Safe", className: "safe" },
+
                 { key: "suspicious", label: "Suspicious", className: "suspicious" },
+
                 { key: "unsafe", label: "Unsafe", className: "unsafe" },
+
                 { key: "non_url", label: "NON-URL", className: "non-url" }
+
             ];
+
             if (counts.unclassified) {
+
                 labels.push({ key: "unclassified", label: "Unclassified", className: "unclassified" });
+
             }
+
             const chart = document.getElementById("risk-chart");
+
             const segments = labels.map(item => {
+
                 const count = counts[item.key];
+
                 const width = total ? (count / total) * 100 : 0;
+
                 return `<span class="distribution-segment ${item.className}" style="width:${width}%" title="${item.label}: ${count} (${width.toFixed(1)}%)"></span>`;
+
             }).join("");
+
             const legend = labels.map(item => {
+
                 const count = counts[item.key];
+
                 const percentage = total ? (count / total) * 100 : 0;
+
                 return `
+
                     <div class="legend-row">
+
                         <span class="legend-label"><span class="legend-dot ${item.className}"></span>${item.label}</span>
+
                         <span class="legend-value">${count}</span>
+
                         <span class="legend-percent">${percentage.toFixed(0)}%</span>
+
                     </div>
+
                 `;
+
             }).join("");
+
             const unclassifiedNote = counts.unclassified
+
                 ? `<p class="distribution-note">${counts.unclassified} record${counts.unclassified === 1 ? "" : "s"} could not be classified from stored content or URL risk labels.</p>`
+
                 : "";
+
             chart.innerHTML = `
+
                 <div class="distribution-bar" role="img" aria-label="${labels.map(item => `${item.label}: ${counts[item.key]}`).join(", ")}">${segments}</div>
+
                 <div class="risk-legend">${legend}</div>
+
                 ${unclassifiedNote}
+
             `;
+
         }
 
-        function renderScanActivity(rows) {
-            const activity = Array.from({ length: 7 }, (_, index) => {
+
+
+        function renderScanActivity(rows, stats = null) {
+
+            const activity = stats ? stats.activity.map(day => ({ ...day, label:getDayLabel(new Date(day.key + "T00:00:00Z")) })) : Array.from({ length: 7 }, (_, index) => {
+
                 const date = new Date();
-                date.setHours(0, 0, 0, 0);
-                date.setDate(date.getDate() - (6 - index));
+
+                date.setUTCHours(0, 0, 0, 0);
+
+                date.setUTCDate(date.getUTCDate() - (6 - index));
+
                 return { key: date.toISOString().slice(0, 10), label: getDayLabel(date), count: 0 };
+
             });
 
-            rows.forEach(row => {
+
+
+            if (!stats) rows.forEach(row => {
+
                 if (!row.scanned_at) return;
-                const date = new Date(row.scanned_at);
-                if (Number.isNaN(date.getTime())) return;
+
+                const date = parseScanTime(row.scanned_at);
+
+                if (!date) return;
+
                 const key = date.toISOString().slice(0, 10);
+
                 const day = activity.find(item => item.key === key);
+
                 if (day) day.count += 1;
+
             });
+
+
 
             const activityContainer = document.getElementById("scan-activity");
+
             const activitySummary = document.getElementById("activity-summary");
+
             const weeklyTotal = activity.reduce((sum, day) => sum + day.count, 0);
+
             const busiestDay = activity.reduce((busiest, day) => day.count > busiest.count ? day : busiest, activity[0]);
+
             const today = new Date();
-            today.setHours(0, 0, 0, 0);
+
+            today.setUTCHours(0, 0, 0, 0);
+
             const todayKey = today.toISOString().slice(0, 10);
+
             const allZero = weeklyTotal === 0;
+
             activitySummary.innerHTML = `
+
                 <div class="activity-total">${weeklyTotal} scan${weeklyTotal === 1 ? "" : "s"} this week</div>
+
                 <div class="activity-busiest">${allZero ? "No busiest day yet" : `Busiest day: ${busiestDay.label} \u2022 ${busiestDay.count} scan${busiestDay.count === 1 ? "" : "s"}`}</div>
+
             `;
 
-            const left = 48;
+
+
+            const left = 72;
+
             const right = 704;
+
             const top = 25;
+
             const baseline = 158;
+
             const chartMax = Math.max(...activity.map(day => day.count), 1);
+
             const points = activity.map((day, index) => ({
+
                 ...day,
+
                 x: left + (right - left) * index / (activity.length - 1),
+
                 y: baseline - (day.count / chartMax) * (baseline - top)
+
             }));
+
             const linePath = points.reduce((path, point, index) => {
+
                 if (index === 0) return `M ${point.x} ${point.y}`;
+
                 const previous = points[index - 1];
+
                 const controlOffset = (point.x - previous.x) / 3;
+
                 return `${path} C ${previous.x + controlOffset} ${previous.y}, ${point.x - controlOffset} ${point.y}, ${point.x} ${point.y}`;
+
             }, "");
+
             const areaPath = `${linePath} L ${right} ${baseline} L ${left} ${baseline} Z`;
+
             const gridLines = [0, 1, 2, 3].map(index => {
+
                 const y = top + (baseline - top) * index / 3;
+
                 const value = Math.round(chartMax * (3 - index) / 3);
+
                 return `<line class="activity-grid-line" x1="${left}" y1="${y}" x2="${right}" y2="${y}"/><text class="activity-grid-label" x="4" y="${y + 3}">${value}</text>`;
+
             }).join("");
+
             const dayLabels = points.map(point => `
+
                 <text class="activity-day-label" x="${point.x}" y="185">${point.label}</text>
+
                 ${point.key === todayKey ? `<text class="activity-today-label" x="${point.x}" y="202">TODAY</text>` : ""}
+
             `).join("");
+
             const dataPoints = points.map(point => `
+
                 <circle class="activity-point" cx="${point.x}" cy="${point.y}" r="5" tabindex="0" role="img" aria-label="${point.label}: ${point.count} scan${point.count === 1 ? "" : "s"}${point.key === todayKey ? ", today" : ""}">
+
                     <title>${point.label}: ${point.count} scan${point.count === 1 ? "" : "s"}${point.key === todayKey ? " (Today)" : ""}</title>
+
                 </circle>
+
             `).join("");
+
             activityContainer.innerHTML = `
+
                 <svg class="activity-svg" viewBox="0 0 720 218" role="img" aria-label="Scan activity over the last seven days">
+
                     <defs>
+
                         <linearGradient id="activity-area-gradient" x1="0" y1="0" x2="0" y2="1">
+
                             <stop offset="0%" stop-color="#7164c2" stop-opacity="0.22"/>
+
                             <stop offset="100%" stop-color="#7164c2" stop-opacity="0.015"/>
+
                         </linearGradient>
+
                     </defs>
+
                     ${gridLines}
+
                     <path class="activity-area" d="${areaPath}"/>
+
                     <path class="activity-line" d="${linePath}"/>
+
                     ${dataPoints}
+
                     ${dayLabels}
+
                 </svg>
+
                 ${allZero ? '<p class="activity-empty">No scan activity in the last 7 days.</p>' : ""}
+
             `;
+
         }
 
-        function renderContentChart(rows) {
-            const counts = { URL: 0, UPI: 0, "Text / Other": 0, Unclassifiable: 0 };
-            rows.forEach(row => {
+
+
+        function renderContentChart(rows, stats = null) {
+
+            const counts = stats ? stats.content_counts : { URL: 0, UPI: 0, "Text / Other": 0, Unclassifiable: 0 };
+
+            if (!stats) rows.forEach(row => {
+
                 const bucket = classifyContent(row.decoded_content);
+
                 if (bucket in counts) counts[bucket] += 1;
+
                 else counts["Text / Other"] += 1;
+
             });
+
+
 
             const chart = document.getElementById("content-chart");
+
             const items = [
+
                 { label: "URL", key: "URL", className: "url" },
+
                 { label: "UPI", key: "UPI", className: "upi" },
+
                 { label: "Text / Other", key: "Text / Other", className: "other" }
+
             ];
+
             if (counts.Unclassifiable) {
+
                 items.push({ label: "Unclassifiable", key: "Unclassifiable", className: "unclassifiable" });
+
             }
 
-            const total = rows.length;
+
+
+            const total = stats ? stats.total : rows.length;
+
             const segments = items.map(item => {
+
                 const count = counts[item.key] || 0;
+
                 const width = total ? (count / total) * 100 : 0;
+
                 return `<span class="content-segment ${item.className}" style="width:${width}%" title="${item.label}: ${count} (${width.toFixed(1)}%)"></span>`;
+
             }).join("");
+
             const legend = items.map(item => {
+
                 const count = counts[item.key] || 0;
+
                 const percentage = total ? (count / total) * 100 : 0;
+
                 return `
+
                     <div class="legend-row">
+
                         <span class="legend-label"><span class="legend-dot ${item.className === "unclassifiable" ? "unclassifiable-content" : item.className}"></span>${item.label}</span>
+
                         <span class="legend-value">${count} <span aria-hidden="true">\u2022</span> ${percentage.toFixed(0)}%</span>
+
                     </div>
+
                 `;
+
             }).join("");
+
             chart.innerHTML = `
+
                 <div class="content-summary-bar" role="img" aria-label="${items.map(item => `${item.label}: ${counts[item.key] || 0}`).join(", ")}">${segments}</div>
+
                 <div class="content-legend">${legend}</div>
+
             `;
+
         }
 
-        function renderIndicators(rows) {
-            const counts = {};
-            rows.forEach(row => {
+
+
+        function renderIndicators(rows, stats = null) {
+
+            const counts = stats ? stats.indicators : {};
+
+            if (!stats) rows.forEach(row => {
+
                 const breakdown = parseStoredBreakdown(row.risk_breakdown);
+
                 breakdown.forEach(item => {
+
                     if (!item || !item.name) return;
+
                     counts[item.name] = (counts[item.name] || 0) + 1;
+
                 });
+
             });
+
+
 
             const container = document.getElementById("indicator-summary");
+
             const entries = Object.entries(counts).sort((a, b) => b[1] - a[1]);
 
+
+
             if (!entries.length) {
+
                 container.innerHTML = '<div class="empty">No stored security findings available.</div>';
+
                 return;
+
             }
+
+
 
             container.innerHTML = `
+
                 <div class="indicators-list">
+
                     ${entries.map(([name, count]) => `
+
                         <div class="indicator-row">
+
                             <span class="indicator-title">
+
                                 <span class="indicator-icon" aria-hidden="true">
+
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+
                                         <path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/>
+
                                         <path d="M12 8v5m0 3h.01"/>
+
                                     </svg>
+
                                 </span>
+
                                 <span class="indicator-name" title="${escapeHtml(name)}">${escapeHtml(name)}</span>
+
                             </span>
+
                             <span class="indicator-count">${count}</span>
+
                         </div>
+
                     `).join("")}
+
                 </div>
+
             `;
+
         }
 
-        function renderRecentScans(rows, filter = "all") {
-            const tbody = document.getElementById("history-body");
-            const filteredRows = filter === "all" ? rows : rows.filter(row => classifyScan(row) === filter);
-            if (!filteredRows.length) {
-                const message = filter === "all" ? "No scans yet." : "No scans match this filter.";
-                tbody.innerHTML = `<tr><td colspan="5" class="empty">${message}</td></tr>`;
-                return;
-            }
 
-            tbody.innerHTML = filteredRows.slice().reverse().map(row => {
-                const classification = classifyScan(row);
-                const label = classification === "non_url" ? "NON-URL" : classification === "unclassified" ? "Unclassified" : classification;
-                const pillClass = classification === "safe" ? "safe-pill" :
-                    classification === "unsafe" ? "unsafe-pill" :
-                    classification === "suspicious" ? "suspicious-pill" :
-                    classification === "non_url" ? "non-url-pill" : "unclassified-pill";
-                return `
-                    <tr>
-                        <td class="time-cell"><time datetime="${escapeHtml(row.scanned_at || "")}">${escapeHtml(row.scanned_at ? new Date(row.scanned_at).toLocaleString() : "—")}</time></td>
-                        <td class="domain-cell" title="${escapeHtml(row.domain || row.final_url || "—")}">${escapeHtml(row.domain || row.final_url || "—")}</td>
-                        <td>${escapeHtml(row.risk_score ?? "—")}</td>
-                        <td><span class="pill ${pillClass}">${escapeHtml(label)}</span></td>
-                        <td class="content-cell" title="${escapeHtml(row.decoded_content || "—")}">${escapeHtml(row.decoded_content || "—")}</td>
-                    </tr>
-                `;
-            }).join("");
+
+        function setHistoryEmptyState(empty) {
+
+            document.getElementById("history-table-head").hidden = empty;
+
+            document.getElementById("history-pagination").hidden = empty;
+
+            document.getElementById("history-page-status").hidden = empty;
+
+            document.getElementById("history-table-wrap").classList.toggle("is-empty", empty);
+
         }
 
-        function renderDashboard(rows) {
-            const recordList = Array.isArray(rows) ? rows : [];
-            const counts = getClassificationCounts(recordList);
-            currentHistory = recordList;
-            renderSummary(recordList);
-            renderRiskChart(recordList);
-            renderScanActivity(recordList);
-            renderContentChart(recordList);
-            renderIndicators(recordList);
-            renderRecentScans(recordList, activeHistoryFilter);
-            document.getElementById("unclassified-filter").hidden = counts.unclassified === 0;
-        }
 
-        function showDashboardError(message) {
-            const status = document.getElementById("dashboard-status");
-            status.textContent = message;
-            status.hidden = false;
-            status.classList.add("is-error");
-            status.setAttribute("role", "alert");
 
-            document.getElementById("summary-grid").innerHTML =
-                '<p class="dashboard-inline-state dashboard-error-state">Analytics are unavailable until scan history loads.</p>';
-            document.getElementById("scan-activity").innerHTML =
-                '<p class="dashboard-inline-state dashboard-error-state">Scan activity could not be loaded.</p>';
-            document.getElementById("content-chart").innerHTML =
-                '<p class="dashboard-inline-state dashboard-error-state">Content analytics could not be loaded.</p>';
-            document.getElementById("risk-chart").innerHTML =
-                '<p class="dashboard-inline-state dashboard-error-state">Risk distribution could not be loaded.</p>';
-            document.getElementById("indicator-summary").innerHTML =
-                '<p class="dashboard-inline-state dashboard-error-state">Security indicators could not be loaded.</p>';
-            document.getElementById("history-body").innerHTML =
-                `<tr><td colspan="5" class="empty">${escapeHtml(message)}</td></tr>`;
-        }
+        async function downloadReport(id) {
 
-        async function loadHistory() {
             try {
-                const accessToken = getAccessToken();
-                if (!accessToken) {
-                    window.location.href = "login.html";
-                    return;
-                }
 
-                const response = await fetch(API_URL + "/history", {
-                    headers: { "Authorization": "Bearer " + accessToken }
+                const token = getAccessToken();
+
+                if (!token) { window.location.href = "login.html"; return; }
+
+                const response = await fetch(API_URL + "/report/" + encodeURIComponent(id), {
+
+                    headers: { Authorization: "Bearer " + token }
+
                 });
 
-                if (response.status === 401) {
-                    localStorage.removeItem("access_token");
+                if (!response.ok) throw new Error("Report download failed");
+
+                const blob = await response.blob();
+
+                const url = URL.createObjectURL(blob);
+
+                const a = document.createElement("a");
+
+                a.href = url;
+
+                a.download = `qr-shield-report-${id}.pdf`;
+
+                document.body.appendChild(a);
+
+                a.click();
+
+                a.remove();
+
+                URL.revokeObjectURL(url);
+
+            } catch (err) {
+
+                alert("Unable to download report. It may not be available for this scan.");
+
+            }
+
+        }
+
+        window.downloadReport = downloadReport;
+
+
+
+        function renderRecentScans(rows, filter = "all") {
+
+            const tbody = document.getElementById("history-body");
+
+            const filteredRows = filter === "all" ? rows : rows.filter(row => classifyScan(row) === filter);
+
+            setHistoryEmptyState(!filteredRows.length);
+
+            if (!filteredRows.length) {
+
+                const message = filter === "all"
+
+                    ? "No scans yet. Upload a QR image or use your camera to get started."
+
+                    : "No scans match this filter.";
+
+                tbody.innerHTML = `<tr><td colspan="5" class="empty"><div class="history-empty-state">
+
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5M8 8h5v5H8Z"/></svg>
+
+                    <p>${message}</p>
+
+                    <a class="primary-btn history-empty-link" href="scan.html">Scan a QR Code</a>
+
+                </div></td></tr>`;
+
+                return;
+
+            }
+
+
+
+            tbody.innerHTML = filteredRows.map(row => {
+
+                const classification = classifyScan(row);
+
+                const contentType = classifyContent(row.decoded_content);
+
+                const destination = row.domain || row.final_url || row.decoded_content || "—";
+
+                const label = classification === "non_url" ? "Non-URL" :
+
+                    classification === "safe" ? "Low Risk" :
+
+                    classification === "suspicious" ? "Suspicious" :
+
+                    classification === "unsafe" ? "High Risk" : "Unverified";
+
+                const pillClass = classification === "safe" ? "safe-pill" :
+
+                    classification === "unsafe" ? "unsafe-pill" :
+
+                    classification === "suspicious" ? "suspicious-pill" :
+
+                    classification === "non_url" ? "non-url-pill" : "unclassified-pill";
+
+                const timeText = parseScanTime(row.scanned_at)?.toLocaleString(undefined, { timeZone:"UTC", timeZoneName:"short" }) || "Unknown";
+
+                const hasReport = Number.isInteger(Number(row.id)) && Number(row.id) > 0;
+
+                const reportButton = hasReport
+
+                    ? `<button class="report-action-btn" type="button" onclick="downloadReport(${row.id})" aria-label="Download PDF report for scan #${row.id}">PDF</button>`
+
+                    : `<span class="report-na">—</span>`;
+
+
+
+                return `
+
+                    <tr>
+
+                        <td class="time-cell"><time datetime="${escapeHtml(parseScanTime(row.scanned_at)?.toISOString() || "")}">${escapeHtml(timeText)}</time></td>
+
+                        <td class="type-cell"><span class="content-type-badge">${escapeHtml(contentType)}</span></td>
+
+                        <td class="domain-cell" title="${escapeHtml(destination)}">${escapeHtml(destination)}</td>
+
+                        <td><span class="pill ${pillClass}">${escapeHtml(label)}</span></td>
+
+                        <td class="report-cell">${reportButton}</td>
+
+                    </tr>
+
+                `;
+
+            }).join("");
+
+        }
+
+
+
+        function renderDashboard(rows) {
+
+            const recordList = Array.isArray(rows) ? rows : [];
+
+            const counts = getClassificationCounts(recordList);
+
+            currentHistory = recordList.slice().sort((a,b) => (parseScanTime(b.scanned_at)?.getTime() ?? -Infinity) - (parseScanTime(a.scanned_at)?.getTime() ?? -Infinity) || b.id - a.id);
+
+            renderSummary(recordList);
+
+            renderRiskChart(recordList);
+
+            renderScanActivity(recordList);
+
+            renderContentChart(recordList);
+
+            renderIndicators(recordList);
+
+            renderRecentScans(currentHistory, activeHistoryFilter);
+
+            document.getElementById("unclassified-filter").hidden = counts.unclassified === 0;
+
+        }
+
+
+
+        function showDashboardError(message) {
+
+            setHistoryEmptyState(false);
+
+            renderSummaryCards(null);
+
+            const status = document.getElementById("dashboard-status");
+
+            status.textContent = message;
+
+            status.hidden = false;
+
+            status.classList.add("is-error");
+
+            status.setAttribute("role", "alert");
+
+
+
+            document.getElementById("summary-grid").innerHTML =
+
+                '<p class="dashboard-inline-state dashboard-error-state">Analytics are unavailable until scan history loads.</p>';
+
+            document.getElementById("scan-activity").innerHTML =
+
+                '<p class="dashboard-inline-state dashboard-error-state">Scan activity could not be loaded.</p>';
+
+            document.getElementById("content-chart").innerHTML =
+
+                '<p class="dashboard-inline-state dashboard-error-state">Content analytics could not be loaded.</p>';
+
+            document.getElementById("risk-chart").innerHTML =
+
+                '<p class="dashboard-inline-state dashboard-error-state">Risk distribution could not be loaded.</p>';
+
+            document.getElementById("indicator-summary").innerHTML =
+
+                '<p class="dashboard-inline-state dashboard-error-state">Security indicators could not be loaded.</p>';
+
+            document.getElementById("history-body").innerHTML =
+
+                `<tr><td colspan="5" class="empty">${escapeHtml(message)}</td></tr>`;
+
+        }
+
+
+
+        async function loadHistory() {
+
+            try {
+
+                const accessToken = getAccessToken();
+
+                if (!accessToken) {
+
                     window.location.href = "login.html";
+
                     return;
+
                 }
+
+
+
+                const response = await fetch(API_URL + "/history/summary", {
+
+                    headers: { "Authorization": "Bearer " + accessToken }
+
+                });
+
+
+
+                if (response.status === 401) {
+
+                    localStorage.removeItem("access_token");
+
+                    window.location.href = "login.html";
+
+                    return;
+
+                }
+
+
 
                 if (!response.ok) {
+
+                    if (response.status === 413) throw new Error("Dashboard summary limit");
+
                     throw new Error(`History request failed with status ${response.status}`);
+
                 }
+
+
 
                 const data = await response.json();
-                if (!Array.isArray(data)) {
+
+                if (!data || !Number.isInteger(data.total) || !data.counts || !Array.isArray(data.activity)) {
+
                     throw new Error("History response did not contain a scan list");
+
                 }
 
-                renderDashboard(data);
-                document.getElementById("dashboard-status").hidden = true;
+
+
+                historySnapshot = data.snapshot_id;
+
+                renderSummary([], data);
+
+                renderRiskChart([], data);
+
+                renderScanActivity([], data);
+
+                renderContentChart([], data);
+
+                renderIndicators([], data);
+
+                document.getElementById("unclassified-filter").hidden = data.counts.unclassified === 0;
+
+                await loadHistoryPage(null, []);
+
+                const status = document.getElementById("dashboard-status");
+
+                status.hidden = data.unknown_timestamps === 0;
+
+                if (data.unknown_timestamps) status.textContent = data.unknown_timestamps + " records have no timestamp; they are counted in totals but excluded from seven-day activity.";
+
             } catch (error) {
+
                 console.error("Unable to load dashboard scan history:", error);
-                const message = error instanceof Error && error.message.startsWith("History request failed with status ")
+
+                const message = error instanceof Error && error.message === "Dashboard summary limit"
+
+                    ? "Dashboard analytics exceed the 5,000-record or 8 MiB processing limit. No partial totals are shown. Contact the local administrator; paged history remains available through the API."
+
+                    : error instanceof Error && error.message.startsWith("History request failed with status ")
+
                     ? `The QR Shield API returned an error (${error.message.replace("History request failed with status ", "HTTP ")}). Please reload to try again.`
+
                     : error instanceof SyntaxError || (error instanceof Error && error.message === "History response did not contain a scan list")
+
                         ? "The QR Shield API returned invalid scan-history data. Please reload or contact support."
+
                         : "Unable to load dashboard data. Check your connection and the QR Shield API, then reload this page.";
+
                 showDashboardError(message);
-                }
+
+            } finally {
+
+                document.getElementById("clear-history-btn").disabled = clearingHistory;
+
+            }
+
         }
+
+
 
         function logout() {
+
             localStorage.removeItem("access_token");
+
             window.location.href = "login.html";
+
         }
 
+
+
         let currentHistory = [];
+
         let activeHistoryFilter = "all";
-        document.getElementById("history-filters").addEventListener("click", event => {
-            const button = event.target.closest("[data-filter]");
-            if (!button) return;
-            activeHistoryFilter = button.dataset.filter;
-            document.querySelectorAll("#history-filters .filter-btn").forEach(filterButton => {
-                const active = filterButton === button;
-                filterButton.classList.toggle("active", active);
-                filterButton.setAttribute("aria-pressed", String(active));
-            });
-            renderRecentScans(currentHistory, activeHistoryFilter);
+
+        let historySnapshot = 0;
+
+        let historyCursor = null;
+
+        let historyBack = [];
+
+        let historyNext = null;
+
+        let historyBusy = false;
+
+        let clearingHistory = false;
+
+        const historyModal = window.QRShieldModal?.create
+
+            ? QRShieldModal.create(document.getElementById("history-modal-overlay"))
+
+            : { confirm: async (settings) => window.confirm(settings?.message || "Delete all your scan history? This cannot be undone.") };
+
+        async function clearAllHistory() {
+
+            if (clearingHistory || historyBusy) return;
+
+            const button = document.getElementById("clear-history-btn");
+
+            const status = document.getElementById("clear-history-status");
+
+            clearingHistory = true;
+
+            button.disabled = true;
+
+            let timeout = null;
+
+            try {
+
+                const approved = await historyModal.confirm({
+
+                    title: "Delete History",
+
+                    message: "Delete all your scan history? This cannot be undone.",
+
+                    proceedLabel: "Proceed"
+
+                });
+
+                if (!approved || historyBusy) return;
+
+                status.textContent = "Deleting your scan history...";
+
+                const controller = typeof AbortController === "function" ? new AbortController() : null;
+
+                timeout = controller ? setTimeout(() => controller.abort(), 15000) : null;
+
+                const response = await fetch(API_URL + "/history", {
+
+                    method: "DELETE", headers: { Authorization: "Bearer " + getAccessToken() },
+
+                    ...(controller ? { signal: controller.signal } : {})
+
+                });
+
+                if (!response.ok) throw new Error("Deletion failed");
+
+                const data = await response.json();
+
+                if (!Number.isInteger(data.deleted_count) || data.deleted_count < 0) throw new Error("Invalid response");
+
+                status.textContent = "Your scan history was cleared.";
+
+                currentHistory = [];
+
+                historyCursor = historyNext = null;
+
+                historyBack = [];
+
+                renderRecentScans([], activeHistoryFilter);
+
+                await loadHistory();
+
+            } catch (error) {
+
+                status.textContent = "Could not confirm deletion. Reload to check your history before trying again.";
+
+            } finally {
+
+                if (timeout !== null) clearTimeout(timeout);
+
+                clearingHistory = false;
+
+                button.disabled = historyBusy;
+
+            }
+
+        }
+
+        document.getElementById("clear-history-btn").addEventListener("click", clearAllHistory);
+
+        const previousPage = document.getElementById("history-previous");
+
+        const nextPage = document.getElementById("history-next");
+
+
+
+        async function loadHistoryPage(cursor, back) {
+
+            if (historyBusy) return;
+
+            historyBusy = true;
+
+            setHistoryEmptyState(false);
+
+            if (!currentHistory.length) document.getElementById("history-body").innerHTML = '<tr><td colspan="5" class="empty">Loading scan history…</td></tr>';
+
+            document.getElementById("clear-history-btn").disabled = true;
+
+            previousPage.disabled = nextPage.disabled = true;
+
+            document.querySelectorAll('#history-filters button').forEach(button => { button.disabled = true; });
+
+            const pageStatus = document.getElementById("history-page-status");
+
+            pageStatus.textContent = "Loading history page…";
+
+            try {
+
+                const query = new URLSearchParams({ limit:"50", snapshot:String(historySnapshot), category:activeHistoryFilter });
+
+                if (cursor !== null) query.set("cursor", String(cursor));
+
+                const response = await fetch(API_URL + "/history/page?" + query, { headers:{ Authorization:"Bearer " + getAccessToken() } });
+
+                if (response.status === 401) { logout(); return; }
+
+                if (!response.ok) throw new Error("History page unavailable");
+
+                const data = await response.json();
+
+                if (!data || !Array.isArray(data.items) || typeof data.has_more !== "boolean" || data.snapshot_id !== historySnapshot) throw new Error("Invalid history page");
+
+                historyCursor = cursor;
+
+                historyBack = back;
+
+                historyNext = data.next_cursor;
+
+                currentHistory = data.items;
+
+                renderRecentScans(currentHistory, activeHistoryFilter);
+
+                pageStatus.textContent = "Page " + (historyBack.length + 1) + ": " + currentHistory.length + " records. Dates in UTC. Analytics cover the full snapshot; reload for new scans.";
+
+            } catch (_) {
+
+                pageStatus.textContent = "Could not load this history page. The displayed page has not changed. Reload to retry.";
+
+                if (!currentHistory.length) document.getElementById("history-body").innerHTML = '<tr><td colspan="5" class="empty">History page unavailable. Reload to retry.</td></tr>';
+
+            } finally {
+
+                historyBusy = false;
+
+                document.getElementById("clear-history-btn").disabled = clearingHistory;
+
+                previousPage.disabled = historyBack.length === 0;
+
+                nextPage.disabled = historyNext === null;
+
+                document.querySelectorAll('#history-filters button').forEach(button => { button.disabled = false; });
+
+            }
+
+        }
+
+        previousPage.addEventListener("click", () => {
+
+            if (historyBack.length) loadHistoryPage(historyBack[historyBack.length - 1], historyBack.slice(0,-1));
+
         });
 
+        nextPage.addEventListener("click", () => {
+
+            if (historyNext !== null) loadHistoryPage(historyNext, [...historyBack, historyCursor]);
+
+        });
+
+        document.getElementById("history-filters").addEventListener("click", event => {
+
+            const button = event.target.closest("[data-filter]");
+
+            if (!button || historyBusy || clearingHistory) return;
+
+            activeHistoryFilter = button.dataset.filter;
+
+            document.querySelectorAll("#history-filters .filter-btn").forEach(filterButton => {
+
+                const active = filterButton === button;
+
+                filterButton.classList.toggle("active", active);
+
+                filterButton.setAttribute("aria-pressed", String(active));
+
+            });
+
+            historyCursor = historyNext = null;
+
+            historyBack = [];
+
+            currentHistory = [];
+
+            renderRecentScans([], activeHistoryFilter);
+
+            loadHistoryPage(null, []);
+
+        });
+
+
+
         loadHistory();
+
     </script>
+
 </body>
+
 </html>

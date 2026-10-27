@@ -2,10 +2,20 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Text, i
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+import os
+from demo_runtime import restricted_demo
+from pathlib import Path
+from sqlalchemy.engine import make_url
 
-DATABASE_URL = "sqlite:///./scan_history.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./scan_history.db")
+if restricted_demo():
+    configured = make_url(DATABASE_URL)
+    if not os.environ.get("DATABASE_URL") or configured.drivername != "sqlite" or not Path(configured.database or "").is_absolute():
+        raise RuntimeError("Restricted demo requires an explicit absolute SQLite DATABASE_URL")
+    if DATABASE_URL.endswith("/scan_history.db"):
+        raise RuntimeError("Use a fresh demonstration database, not scan_history.db")
 
-engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False, "timeout": 10})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

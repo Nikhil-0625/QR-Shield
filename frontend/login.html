@@ -3,312 +3,182 @@
 <head>
 <meta charset="UTF-8">
 <title>QR Shield - Login</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="theme.js"></script>
 <style>
-    :root {
-        color-scheme: light;
-        font-family: 'Poppins', sans-serif;
-        color: #111A3A;
-        background: #FAF9FF;
-        font-synthesis: none;
-        text-rendering: optimizeLegibility;
-        --navy: #111A3A;
-        --muted: #64748B;
-        --blue: #3975E6;
-        --violet: #8651F7;
-        --border: #E5DFFF;
-    }
+    :root { color-scheme: light; --navy: #172039; --muted: #596579; --violet: #6443ba; --border: #e3e4ed; font-family: 'Segoe UI', ui-sans-serif, system-ui, -apple-system, sans-serif; color: var(--navy); background: #f7f8fc; font-synthesis: none; }
     * { box-sizing: border-box; }
-    body {
-        min-height: 100vh;
-        margin: 0;
-        padding: 36px 28px;
-        display: grid;
-        place-items: center;
-        overflow-x: hidden;
-        position: relative;
-        background:
-            radial-gradient(ellipse at 8% 14%, rgba(201, 188, 255, .34), transparent 25rem),
-            radial-gradient(ellipse at 92% 82%, rgba(190, 218, 255, .42), transparent 26rem),
-            #FAF9FF;
-        font-family: 'Poppins', sans-serif;
-    }
-    body::before, body::after {
-        content: "";
-        position: fixed;
-        z-index: 0;
-        pointer-events: none;
-        border-radius: 50%;
-    }
-    body::before {
-        width: 380px;
-        height: 380px;
-        top: -230px;
-        right: 20%;
-        border: 1px solid rgba(153, 132, 235, .15);
-        box-shadow: 0 0 0 36px rgba(235, 230, 255, .19), 0 0 0 74px rgba(235, 230, 255, .12);
-    }
-    body::after {
-        width: 270px;
-        height: 270px;
-        bottom: -180px;
-        left: 25%;
-        background: rgba(227, 239, 255, .48);
-        filter: blur(2px);
-    }
+    body { margin: 0; min-height: 100vh; padding: 0 40px; background: radial-gradient(ellipse at 5% 50%, #ede8fa90, transparent 50%), #f7f8fc; }
     button, input { font: inherit; }
-    .auth-layout {
-        position: relative;
-        z-index: 1;
-        display: grid;
-        width: min(100%, 1310px);
-        grid-template-columns: minmax(220px, .88fr) minmax(370px, 1.12fr) minmax(225px, .9fr);
-        align-items: center;
-        gap: clamp(28px, 4.4vw, 68px);
-    }
-    .phone-art {
-        display: grid;
-        min-height: 410px;
-        place-items: center;
-        position: relative;
-        isolation: isolate;
-    }
-    .phone-art::before, .phone-art::after {
-        content: "";
-        position: absolute;
-        z-index: -1;
-        border-radius: 50%;
-    }
-    .phone-art::before {
-        width: 250px;
-        height: 250px;
-        background: linear-gradient(145deg, rgba(238, 232, 255, .88), rgba(222, 238, 255, .72));
-    }
-    .phone-art::after {
-        width: 78px;
-        height: 78px;
-        top: 40px;
-        right: 18px;
-        border: 1px solid rgba(134, 81, 247, .2);
-        box-shadow: 0 0 0 13px rgba(240, 235, 255, .52);
-    }
-    .phone-art svg { width: min(100%, 286px); height: auto; overflow: visible; }
-    .benefits { display: grid; gap: 18px; }
-    .benefit {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-        padding: 13px 12px;
-        border: 1px solid rgba(229, 223, 255, .84);
-        border-radius: 15px;
-        background: rgba(255, 255, 255, .62);
-    }
-    .benefit-icon {
-        display: grid;
-        width: 34px;
-        height: 34px;
-        flex: 0 0 34px;
-        place-items: center;
-        border: 1px solid #E5DFFF;
-        border-radius: 11px;
-        background: linear-gradient(145deg, #F5F1FF, #EEF5FF);
-        color: #635BDA;
-    }
-    .benefit-icon svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-    .benefit strong { display: block; color: #1A2343; font-size: 12px; font-weight: 700; line-height: 1.5; }
-    .benefit p { margin: 3px 0 0; color: var(--muted); font-size: 11px; line-height: 1.55; }
-    .card {
-        width: 100%;
-        padding: clamp(30px, 4vw, 46px);
-        border: 1px solid var(--border);
-        border-radius: 24px;
-        background: rgba(255, 255, 255, .94);
-        box-shadow: 0 24px 70px rgba(66, 60, 126, .10), 0 3px 12px rgba(66, 60, 126, .04);
-        animation: card-enter .45s ease-out both;
-        backdrop-filter: blur(10px);
-    }
-    @keyframes card-enter {
-        from { opacity: 0; transform: translateY(12px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-    .brand {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 11px;
-        margin-bottom: 30px;
-    }
-    .brand-mark {
-        display: grid;
-        width: 46px;
-        height: 46px;
-        flex: 0 0 46px;
-        place-items: center;
-        border: 1px solid #E5DFFF;
-        border-radius: 15px;
-        background: linear-gradient(145deg, #F4F0FF, #EDF5FF);
-        color: #6255CF;
-    }
-    .brand-mark svg { width: 27px; height: 27px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-    .brand-copy { text-align: left; }
-    .brand-name { display: block; color: var(--navy); font-size: 18px; font-weight: 700; letter-spacing: -.04em; line-height: 1.2; }
-    .brand-subtitle { display: block; margin-top: 3px; color: #79849A; font-size: 10px; font-weight: 500; letter-spacing: .025em; }
-    h1 {
-        margin: 0;
-        color: var(--navy);
-        font-size: 26px;
-        font-weight: 700;
-        line-height: 1.3;
-        letter-spacing: -.035em;
-        text-align: center;
-    }
-    .form-description { margin: 8px 0 27px; color: var(--muted); font-size: 12px; line-height: 1.65; text-align: center; }
-    .input-group { position: relative; margin-bottom: 17px; }
-    .input-group label { display: block; margin-bottom: 7px; color: #303B56; font-size: 12px; font-weight: 600; }
-    .input-group input {
-        display: block;
-        width: 100%;
-        min-height: 49px;
-        padding: 12px 14px;
-        border: 1px solid #E2E5EF;
-        border-radius: 11px;
-        outline: none;
-        background: #FCFCFF;
-        color: var(--navy);
-        font-size: 13px;
-        transition: border-color .16s ease, box-shadow .16s ease, background .16s ease;
-    }
-    .input-group input::placeholder { color: #9AA4B5; opacity: 1; }
-    .input-group input:focus { border-color: #8D7CF0; background: #fff; box-shadow: 0 0 0 4px rgba(134, 81, 247, .12); }
-    .password-wrapper input { padding-right: 52px; }
-    .toggle-eye {
-        position: absolute;
-        top: 31px;
-        right: 8px;
-        display: grid;
-        width: 38px;
-        height: 36px;
-        place-items: center;
-        border: 0;
-        border-radius: 8px;
-        background: transparent;
-        color: #737F97;
-        cursor: pointer;
-    }
+    .site-header { max-width: 1120px; margin: auto; min-height: 108px; display: flex; justify-content: space-between; align-items: center; gap: 20px; border-bottom: 1px solid #e6e6ef; }
+    .header-brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 22px; letter-spacing: -.7px; }
+    .header-mark { display: grid; place-items: center; height: 40px; width: 40px; border: 1px solid #ddd6ee; border-radius: 12px; color: var(--violet); background: #f0eafa; }
+    .header-mark svg { height: 24px; width: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+    .header-note { color: var(--muted); font-size: 12px; letter-spacing: .02em; }
+    .auth-layout { max-width: 1120px; margin: 68px auto 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: clamp(40px, 7vw, 100px); align-items: center; }
+    .intro-area { min-width: 0; }
+    .eyebrow { display: flex; align-items: center; gap: 9px; color: #6544a7; font-size: 11px; font-weight: 700; letter-spacing: 1.6px; text-transform: uppercase; margin: 0 0 22px; }
+    .eyebrow::before { content: ''; width: 20px; height: 2px; background: #9d87c8; }
+    .hero-title { margin: 0; font-size: clamp(34px, 3.8vw, 49px); line-height: 1.14; letter-spacing: -2px; font-weight: 700; max-width: 500px; }
+    .hero-title span { color: var(--violet); }
+    .hero-description { margin: 22px 0 0; max-width: 440px; font-size: 15px; line-height: 1.8; color: var(--muted); }
+    .security-art { width: min(100%, 390px); margin: 26px 0 20px; }
+    .security-art svg { display: block; width: 100%; height: auto; }
+    .benefits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 24px; }
+    .benefit { display: flex; align-items: flex-start; gap: 10px; min-width: 0; }
+    .benefit-icon { flex: 0 0 30px; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid #e0daee; border-radius: 9px; background: #f0ebf8; color: #6a50a1; }
+    .benefit-icon svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .benefit strong { display: block; font-size: 12px; font-weight: 600; line-height: 1.5; }
+    .benefit p { margin: 3px 0 0; font-size: 12px; color: var(--muted); line-height: 1.55; }
+    .card { min-width: 0; padding: 36px; border: 1px solid var(--border); border-radius: 22px; background: #fff; box-shadow: 0 24px 65px #26314a09, 0 3px 10px #26314a04; position: relative; }
+    .card::before { content: ''; position: absolute; top: -1px; left: 36px; right: 36px; height: 2px; background: linear-gradient(90deg, transparent, #b8a4db, transparent); }
+    .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
+    .brand-mark { display: grid; place-items: center; height: 38px; width: 38px; border-radius: 11px; color: var(--violet); background: #f3effb; }
+    .brand-mark svg { height: 22px; width: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .brand-name { display: block; font-size: 14px; font-weight: 650; letter-spacing: -.2px; }
+    .brand-subtitle { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
+    h1 { font-size: 27px; line-height: 1.3; letter-spacing: -.8px; margin: 0; font-weight: 650; }
+    .form-description { margin: 9px 0 28px; color: var(--muted); font-size: 13px; line-height: 1.7; }
+    .input-group { position: relative; margin-bottom: 19px; }
+    .input-group label { display: block; margin-bottom: 8px; color: #354058; font-size: 12px; font-weight: 600; line-height: 18px; }
+    .input-group input { display: block; width: 100%; min-height: 52px; padding: 13px 15px; border: 1px solid #8992a6; border-radius: 10px; background: #fcfcfe; color: var(--navy); font-size: 14px; transition: border-color .15s, box-shadow .15s; }
+    .input-group input::placeholder { color: #697489; opacity: 1; }
+    .input-group input:hover { border-color: #79678f; }
+    .input-group input:focus { outline: 2px solid var(--violet); outline-offset: 2px; border-color: var(--violet); background: #fff; box-shadow: 0 0 0 5px #6443ba10; }
+    .password-wrapper input { padding-right: 54px; }
+    .toggle-eye { position: absolute; top: 30px; right: 4px; width: 44px; height: 44px; display: grid; place-items: center; border: 0; border-radius: 8px; background: transparent; color: #64708a; cursor: pointer; }
     .toggle-eye svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-    .toggle-eye:hover { background: #F3F0FF; color: #5949C7; }
-    .toggle-eye:focus-visible, button:focus-visible, .toggle-form:focus-visible {
-        outline: 3px solid rgba(103, 91, 224, .4);
-        outline-offset: 3px;
-    }
-    .strength-bar { height: 4px; margin-top: 8px; overflow: hidden; border-radius: 99px; background: #ECEAF3; }
-    .strength-fill { width: 0; height: 100%; transition: width .3s ease, background .3s ease; }
-    .strength-label { min-height: 15px; margin-top: 4px; color: var(--muted); font-size: 10px; font-weight: 500; }
-    #submit-btn {
-        width: 100%;
-        min-height: 49px;
-        margin-top: 6px;
-        border: 0;
-        border-radius: 11px;
-        background: linear-gradient(110deg, #3975E6, #8651F7);
-        box-shadow: 0 9px 20px rgba(95, 91, 220, .2);
-        color: #fff;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 600;
-        transition: transform .16s ease, box-shadow .16s ease, filter .16s ease;
-    }
-    #submit-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 12px 24px rgba(95, 91, 220, .27); filter: saturate(1.08); }
-    #submit-btn:active:not(:disabled) { transform: translateY(0); }
-    #submit-btn:disabled { cursor: wait; opacity: .76; }
-    .toggle-form { margin: 21px 0 0; color: var(--muted); font-size: 12px; text-align: center; }
-    .toggle-form button { padding: 0; border: 0; background: none; color: #5545C4; cursor: pointer; font-size: inherit; font-weight: 700; }
-    .toggle-form button:hover { text-decoration: underline; text-underline-offset: 3px; }
-    #message { min-height: 18px; margin: 13px 0 0; color: #64748B; font-size: 12px; font-weight: 500; line-height: 1.5; text-align: center; }
-    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
-    @media (max-width: 1080px) {
-        body { padding: 30px 22px; }
-        .auth-layout { grid-template-columns: minmax(180px, .72fr) minmax(350px, 1.28fr) minmax(190px, .8fr); gap: 24px; }
-        .phone-art { min-height: 350px; }
-        .phone-art::before { width: 210px; height: 210px; }
-        .benefits { gap: 11px; }
-        .benefit { padding: 10px; }
-    }
-    @media (max-width: 820px) {
-        body { padding: 32px 22px; }
-        .auth-layout { width: min(100%, 540px); grid-template-columns: minmax(0, 1fr); gap: 20px; }
-        .phone-art { display: none; }
-        .benefits { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-        .benefit { min-height: 76px; }
-    }
-    @media (max-width: 480px) {
-        body { padding: 20px 15px; }
-        .auth-layout { gap: 16px; }
-        .card { padding: 29px 23px; border-radius: 20px; }
-        .brand { margin-bottom: 25px; }
-        h1 { font-size: 24px; }
-        .form-description { margin-bottom: 23px; }
-        .benefits { gap: 8px; }
-        .benefit { min-height: 72px; gap: 8px; padding: 9px 8px; border-radius: 12px; }
-        .benefit-icon { width: 30px; height: 30px; flex-basis: 30px; border-radius: 9px; }
-        .benefit-icon svg { width: 16px; height: 16px; }
-        .benefit strong { font-size: 10px; }
-        .benefit p { font-size: 9px; line-height: 1.45; }
-    }
-    @media (max-width: 340px) {
-        body { padding: 15px 11px; }
-        .card { padding: 25px 18px; }
-        .benefits { grid-template-columns: minmax(0, 1fr); }
-        .benefit { min-height: 0; padding: 9px 10px; }
-        .benefit strong { font-size: 11px; }
-        .benefit p { font-size: 10px; }
-    }
-    @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
-    }
+    .toggle-eye:hover { color: var(--violet); background: #f1edf8; }
+    button:focus-visible { outline: 3px solid #6443ba; outline-offset: 4px; }
+    .strength-bar { height: 4px; margin-top: 12px; overflow: hidden; border-radius: 99px; background: #eceaf3; }
+    .strength-fill { width: 0; height: 100%; transition: width .2s, background .2s; }
+    .strength-label { min-height: 15px; margin-top: 6px; color: #49556b !important; font-size: 12px; line-height: 1.5; }
+    #submit-btn { width: 100%; min-height: 52px; padding: 14px 16px; margin-top: 3px; border: 1px solid #5d3caf; border-radius: 10px; background: linear-gradient(110deg, #6c49bc, #5e3eb0); box-shadow: 0 4px 9px #6443ba20; color: #fff; cursor: pointer; font-size: 14px; font-weight: 600; transition: background .15s, box-shadow .15s; }
+    #submit-btn:hover:not(:disabled) { background: #543499; box-shadow: 0 6px 14px #6443ba30; }
+    #submit-btn:active:not(:disabled) { box-shadow: none; }
+    #submit-btn:disabled { cursor: wait; background: #766191; border-color: #766191; box-shadow: none; }
+    #submit-btn:disabled::after { content: ''; display: inline-block; margin-left: 10px; width: 12px; height: 12px; vertical-align: -2px; border: 2px solid #ffffff65; border-top-color: white; border-radius: 50%; animation: waiting .8s linear infinite; }
+    @keyframes waiting { to { transform: rotate(360deg); } }
+    .toggle-form { border-top: 1px solid #eeeef4; padding-top: 18px; margin: 26px 0 0; color: var(--muted); font-size: 12px; line-height: 1.7; text-align: center; }
+    .toggle-form button { min-height: 44px; padding: 10px 6px; border: 0; border-radius: 5px; background: none; color: #5e3eb0; cursor: pointer; font-size: inherit; font-weight: 650; }
+    .toggle-form button:hover { text-decoration: underline; text-underline-offset: 4px; }
+    #message { min-height: 20px; margin: 8px 0 0; font-size: 12px; line-height: 1.7; font-weight: 500; overflow-wrap: anywhere; }
+    #message[style*="231"], #message[style*="#e74c3c"] { color: #a72b3f !important; }
+    #message[style*="39, 174"], #message[style*="#27ae60"] { color: #246342 !important; }
+    .page-footer { max-width: 1120px; margin: 0 auto; padding: 24px 0 30px; border-top: 1px solid #e6e6ef; display: flex; justify-content: space-between; gap: 12px; font-size: 11px; color: var(--muted); line-height: 1.6; }
+    .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+    @media (min-width: 1450px) { .auth-layout { margin-top: 100px; margin-bottom: 80px; } }
+    @media (max-width: 900px) { body { padding: 0 28px; } .site-header { min-height: 90px; } .auth-layout { gap: 32px; grid-template-columns: minmax(0, 1fr) minmax(0, 400px); margin: 48px auto; } .hero-title { font-size: 36px; letter-spacing: -1.4px; } .benefits { grid-template-columns: 1fr; gap: 14px; } .card { padding: 28px; } }
+    @media (max-width: 720px) { .auth-layout { display: flex; flex-direction: column; gap: 32px; max-width: 480px; margin: 36px auto; } .intro-area { width: 100%; } .hero-title { font-size: 32px; max-width: 440px; } .hero-description { margin-top: 15px; font-size: 14px; } .eyebrow { margin-bottom: 14px; } .security-art, .benefits { display: none; } .card { width: 100%; padding: 32px; } .header-note { font-size: 11px; } }
+    @media (max-width: 420px) { body { padding: 0 18px; } .site-header { min-height: 80px; } .header-brand { font-size: 20px; } .header-note { max-width: 85px; text-align: right; } .auth-layout { margin-top: 28px; gap: 26px; } .hero-title { font-size: 30px; } .card { padding: 26px 22px; border-radius: 18px; } h1 { font-size: 25px; } .page-footer { flex-direction: column; gap: 4px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
+    .login-brand-tagline { display:block; margin-top:5px; font-size:13px; font-weight:400; line-height:1.5; letter-spacing:0; color:var(--muted); }
 </style>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="master-design.css">
 </head>
-<body>
+<body class="auth-page">
+<div class="qs-ambient-bg" aria-hidden="true">
+  <svg viewBox="0 0 1440 900" fill="none" preserveAspectRatio="xMidYMin slice">
+    <defs>
+      <linearGradient id="qs-shield-outer" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-shield-stroke1)"/>
+        <stop offset="45%" stop-color="var(--ambient-shield-stroke2)"/>
+        <stop offset="100%" stop-color="var(--ambient-shield-stroke3)"/>
+      </linearGradient>
+      <linearGradient id="qs-facet-left" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-facet-l1)"/>
+        <stop offset="100%" stop-color="var(--ambient-facet-l2)"/>
+      </linearGradient>
+      <linearGradient id="qs-facet-right" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-facet-r1)"/>
+        <stop offset="100%" stop-color="var(--ambient-facet-r2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-top" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-t1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-t2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-left" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-l1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-l2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-right" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-r1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-r2)"/>
+      </linearGradient>
+      <linearGradient id="qs-wave-line" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="var(--ambient-wave-c1)"/>
+        <stop offset="35%" stop-color="var(--ambient-wave-c2)"/>
+        <stop offset="70%" stop-color="var(--ambient-wave-c3)"/>
+        <stop offset="100%" stop-color="var(--ambient-wave-c4)"/>
+      </linearGradient>
+      <filter id="qs-subtle-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="10" result="blur"/>
+        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+      </filter>
+    </defs>
+    <path class="qs-ambient-wave" d="M180 110 C 400 45, 720 150, 1020 75 C 1200 30, 1340 115, 1440 85" stroke="url(#qs-wave-line)" stroke-width="1.8" fill="none"/>
+    <path class="qs-ambient-wave" d="M220 170 C 480 210, 800 95, 1100 160 C 1240 200, 1360 160, 1440 200" stroke="url(#qs-wave-line)" stroke-width="1.4" fill="none" opacity="0.75"/>
+    <path class="qs-ambient-wave" d="M260 55 C 540 130, 880 35, 1160 115 C 1280 150, 1380 95, 1440 125" stroke="url(#qs-wave-line)" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <g class="qs-ambient-cube" transform="translate(740, 68) rotate(18)">
+      <polygon points="16,0 32,9 16,18 0,9" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,9 16,18 16,36 0,27" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="16,18 32,9 32,27 16,36" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-cube" transform="translate(950, 78) rotate(-14) scale(1.15)">
+      <polygon points="18,0 36,10 18,20 0,10" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,10 18,20 18,40 0,30" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="18,20 36,10 36,30 18,40" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-cube" transform="translate(1310, 145) rotate(24) scale(0.85)">
+      <polygon points="16,0 32,9 16,18 0,9" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,9 16,18 16,36 0,27" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="16,18 32,9 32,27 16,36" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-shield" transform="translate(1060, 20)" filter="url(#qs-subtle-glow)">
+      <path d="M100 15 L190 52 V155 C190 220 152 268 100 290 C48 268 10 220 10 155 V52 Z" fill="none" stroke="url(#qs-shield-outer)" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M100 22 L18 56 V153 C18 214 53 259 100 280 Z" fill="url(#qs-facet-left)"/>
+      <path d="M100 22 L182 56 V153 C182 214 147 259 100 280 Z" fill="url(#qs-facet-right)"/>
+      <line x1="100" y1="22" x2="100" y2="280" stroke="var(--ambient-shield-ridge)" stroke-width="2"/>
+      <path d="M100 55 L42 80 V150 C42 195 68 230 100 248 C132 230 158 195 158 150 V80 Z" fill="none" stroke="var(--ambient-shield-inner-stroke)" stroke-width="1.5"/>
+      <path d="M100 58 L45 82 V149 C45 192 70 226 100 243 Z" fill="var(--ambient-shield-inner-l)"/>
+      <path d="M100 58 L155 82 V149 C155 192 130 226 100 243 Z" fill="var(--ambient-shield-inner-r)"/>
+    </g>
+  </svg>
+</div>
+<div class="auth-theme-control"><button class="qs-theme-toggle" type="button" data-theme-toggle aria-label="Dark mode" aria-pressed="false" aria-describedby="theme-state" title="Switch to dark mode">
+<svg class="theme-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+<svg class="theme-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
+</button><span class="theme-state" id="theme-state" data-theme-state>Current theme: light</span></div>
+
 
 <main class="auth-layout">
-    <div class="phone-art" aria-hidden="true">
-        <svg viewBox="0 0 286 350" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="58" cy="282" r="13" fill="#D7ECFF"/>
-            <circle cx="239" cy="91" r="8" fill="#D9D0FF"/>
-            <path d="M218 270h28M232 256v28" stroke="#A79AEF" stroke-width="2" stroke-linecap="round" opacity=".65"/>
-            <rect x="76" y="19" width="134" height="286" rx="27" fill="white" stroke="#DCD7F4" stroke-width="2"/>
-            <rect x="84" y="29" width="118" height="266" rx="20" fill="url(#phone-screen)"/>
-            <rect x="120" y="37" width="46" height="5" rx="2.5" fill="#D8D4E9"/>
-            <rect x="105" y="74" width="76" height="76" rx="15" fill="white" stroke="#E9E4FA"/>
-            <g fill="#313B70">
-                <path d="M116 85h21v21h-21zM120 89v13h13V89zM124 93h5v5h-5zM150 85h21v21h-21zM154 89v13h13V89zM158 93h5v5h-5zM116 116h21v21h-21zM120 120v13h13v-13zM124 124h5v5h-5z"/>
-                <path d="M145 113h6v6h-6zM157 113h5v7h-5zM168 111h5v6h-5zM144 124h7v6h-7zM155 124h6v6h-6zM167 123h6v6h-6zM145 135h5v6h-5zM157 135h7v5h-7zM169 135h5v6h-5z"/>
-            </g>
-            <rect x="107" y="164" width="78" height="6" rx="3" fill="#E2DEEF"/>
-            <rect x="118" y="178" width="56" height="5" rx="2.5" fill="#EEEAF7"/>
-            <rect x="99" y="200" width="88" height="48" rx="14" fill="white" stroke="#E7E2F6"/>
-            <path d="M143 209 158 215v10c0 10-6.4 16.2-15 20-8.6-3.8-15-10-15-20v-10l15-6Z" fill="#F0EBFF" stroke="#AA9AEF" stroke-width="1.5" stroke-linejoin="round"/>
-            <path d="m137 225 4 4 8-9" stroke="#5E62D8" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
-            <circle cx="143" cy="280" r="7" fill="#F1EEFA"/>
-            <defs>
-                <linearGradient id="phone-screen" x1="84" y1="29" x2="202" y2="295" gradientUnits="userSpaceOnUse">
-                    <stop stop-color="#F8F5FF"/>
-                    <stop offset="1" stop-color="#F0F7FF"/>
-                </linearGradient>
-            </defs>
-        </svg>
-    </div>
-
-    <section class="card" aria-labelledby="form-title">
-        <div class="brand" aria-label="QR Shield, QR Security Platform">
-            <span class="brand-mark" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-            </span>
-            <span class="brand-copy">
-                <span class="brand-name">QR Shield</span>
-                <span class="brand-subtitle">QR Security Platform</span>
-            </span>
+    <section class="intro-area" aria-labelledby="product-title"><header class="site-header">
+    <div class="header-brand"><span class="header-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9zM13 13h2v2h-2z"/></svg></span><span>QR Shield<small class="login-brand-tagline">Scan any QR code before you trust it.</small></span></div>
+    <span class="header-note">Your QR security workspace</span>
+</header>
+        <p class="eyebrow">Clarity before you click</p>
+        <h2 class="hero-title" id="product-title">Every scan deserves<br><span>a closer look.</span></h2>
+        <p class="hero-description">Understand the links behind QR codes, review payment details, and keep your scan history in one focused workspace.</p>
+        <div class="security-art" aria-hidden="true"><span class="art-label">QR CONTENT INSPECTION</span>
+            <svg viewBox="0 0 390 196" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <defs><linearGradient id="phone-screen" x1="114" y1="36" x2="276" y2="160" gradientUnits="userSpaceOnUse"><stop stop-color="#eee8f6"/><stop offset="1" stop-color="#f2eff8"/></linearGradient></defs>
+                <path d="M18 96h352M195 12v171" stroke="#e1dbea" stroke-dasharray="3 6"/>
+                <circle cx="195" cy="98" r="81" stroke="#e6dff1"/><circle cx="195" cy="98" r="62" fill="url(#phone-screen)"/>
+                <rect x="143" y="45" width="104" height="104" rx="20" fill="white" stroke="#d9d0e9"/>
+                <g stroke="#69558e" stroke-width="4"><rect x="161" y="63" width="22" height="22" rx="3"/><rect x="207" y="63" width="22" height="22" rx="3"/><rect x="161" y="109" width="22" height="22" rx="3"/></g>
+                <path d="M191 63h5v13h-5zM192 86h8v8h-8zM208 94h7v7h-7zM222 91h7v7h-7zM193 110h6v15h-6zM208 110h7v7h-7zM221 106h8v8h-8zM207 124h8v7h-8zM222 123h7v8h-7z" fill="#8673a8"/>
+                <rect x="22" y="50" width="104" height="36" rx="10" fill="white" stroke="#e0dbea"/><circle cx="37" cy="68" r="4" fill="#a28dbf"/><path d="M49 64h58M49 72h36" stroke="#c5bdcf" stroke-width="3" stroke-linecap="round"/>
+                <path d="M126 68h17" stroke="#c7b9de"/>
+                <rect x="263" y="112" width="106" height="36" rx="10" fill="white" stroke="#e0dbea"/><path d="M278 125v10m-4-7h8" stroke="#9580b1" stroke-width="2" stroke-linecap="round"/><path d="M291 126h58M291 134h37" stroke="#c5bdcf" stroke-width="3" stroke-linecap="round"/>
+                <path d="M247 130h16" stroke="#c7b9de"/>
+                <path d="M247 26 264 33v14c0 11-7 19-17 23-10-4-17-12-17-23V33l17-7Z" fill="#f8f5fc" stroke="#b6a2d3"/><path d="m240 46 5 5 10-12" stroke="#74539d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
         </div>
+<p class="auth-caption">Inspect destinations. Review payment details. Keep a clear record.</p>
+    </section>
+    <section class="card" aria-labelledby="form-title">
+        <p class="auth-kicker">YOUR SECURITY WORKSPACE</p>
         <h1 id="form-title">Welcome Back</h1>
         <p class="form-description" id="form-subtitle">Log in to scan and secure your QR codes.</p>
 
@@ -329,34 +199,18 @@
             <div class="strength-label" id="strength-label" aria-live="polite"></div>
         </div>
 
-        <button type="button" onclick="handleSubmit()" id="submit-btn">Login</button>
+        <button type="button" onclick="handleSubmit()" id="submit-btn">Sign In</button>
         <p class="toggle-form" id="toggle-form-copy">Don't have an account? <button type="button" onclick="toggleFormMode()">Register</button></p>
         <p id="message" role="status" aria-live="polite"></p>
     </section>
-
-    <aside class="benefits" aria-label="QR Shield security features">
-        <div class="benefit">
-            <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m12.5 12.5 4 4M6.5 8.5h4M8.5 6.5v4"/></svg></span>
-            <div><strong>Scan Safe</strong><p>Check suspicious links and destinations</p></div>
-        </div>
-        <div class="benefit">
-            <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M10 2 17 5v5c0 4.4-2.8 7.4-7 9-4.2-1.6-7-4.6-7-9V5l7-3Z"/><path d="m7 10 2 2 4-4"/></svg></span>
-            <div><strong>Stay Alert</strong><p>Detect phishing threats with ML analysis</p></div>
-        </div>
-        <div class="benefit">
-            <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 7V4a1 1 0 0 1 1-1h3M13 3h3a1 1 0 0 1 1 1v3M17 13v3a1 1 0 0 1-1 1h-3M7 17H4a1 1 0 0 1-1-1v-3"/><path d="M7 7h2v2H7zM12 7h2v2h-2zM7 12h2v2H7zM12 12h2v2h-2z"/></svg></span>
-            <div><strong>Stay Secure</strong><p>Review QR integrity indicators</p></div>
-        </div>
-        <div class="benefit">
-            <span class="benefit-icon" aria-hidden="true"><svg viewBox="0 0 20 20"><rect x="2.5" y="4.5" width="15" height="11" rx="2"/><path d="M3 8h14M6 12h3M12 12h2"/></svg></span>
-            <div><strong>Know Before You Pay</strong><p>View extracted UPI payment details</p></div>
-        </div>
-    </aside>
 </main>
+<footer class="page-footer"><span>QR Shield &middot; QR code security &amp; analysis</span><span>Scan thoughtfully. Make informed decisions.</span></footer>
 
 <script>
     let isLoginMode = true;
-    const API_URL = "http://127.0.0.1:8000";
+    // Gateway and forwarded pages use same-origin API; legacy localhost servers remain supported.
+    const API_URL = window.QR_SHIELD_API_BASE || (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:"
+        ? "http://127.0.0.1:8000" : "/api");
 
     function togglePassword() {
         const passwordInput = document.getElementById("password");
@@ -402,6 +256,7 @@
     }
 
     function toggleFormMode() {
+        if (document.getElementById("submit-btn").disabled) return;
         isLoginMode = !isLoginMode;
         document.getElementById("form-title").innerText = isLoginMode ? "Welcome Back" : "Create Your Account";
         document.getElementById("form-subtitle").innerText = isLoginMode
@@ -420,6 +275,12 @@
         document.getElementById("strength-label").innerText = "";
     }
 
+    function authDisplayError(message) {
+        const error = new Error(message);
+        error.safeToDisplay = true;
+        return error;
+    }
+
     async function handleSubmit() {
         const email = document.getElementById("email").value;
         const password = document.getElementById("password").value;
@@ -434,20 +295,58 @@
 
         if (submitBtn.disabled) return;
         const endpoint = isLoginMode ? "/login" : "/register";
+        const originalLabel = submitBtn.innerText;
+        const loginRequest = isLoginMode;
+        const controller = typeof AbortController === "function" ? new AbortController() : null;
+        let timer;
+        let timedOut = false;
         submitBtn.disabled = true;
+        submitBtn.setAttribute("aria-busy", "true");
+        messageEl.innerText = "";
         submitBtn.innerText = isLoginMode ? "Logging in..." : "Creating account...";
 
         try {
-            const response = await fetch(API_URL + endpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email, password })
+            const request = (async () => {
+                const response = await fetch(API_URL + endpoint, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email, password }),
+                    ...(controller ? { signal: controller.signal } : {})
+                });
+                if (!response.ok) {
+                    const message = response.status === 429 ? "Too many attempts. Please wait before trying again."
+                        : response.status === 401 ? "Unable to sign in. Check your email and password."
+                        : response.status === 403 ? "Access is restricted or registration is unavailable for this demo."
+                        : response.status === 400 || response.status === 422 ? "Please check your details and try again."
+                        : response.status >= 500 ? "The server is temporarily unavailable. Please try again later."
+                        : "The request could not be completed. Please try again.";
+                    throw authDisplayError(message);
+                }
+                let data;
+                try { data = await response.json(); }
+                catch (_) { throw authDisplayError("The server returned an unreadable response. Please try again later."); }
+                if (!data || typeof data !== "object" || Array.isArray(data) ||
+                    !["success", "error"].includes(data.status) ||
+                    (data.status === "success" && loginRequest &&
+                        (typeof data.access_token !== "string" || !data.access_token.trim()))) {
+                    throw authDisplayError("The server returned an unexpected response. Please try again later.");
+                }
+                return data;
+            })();
+            // Bound both fetching and reading the response; no automatic retries.
+            const deadline = new Promise((_, reject) => {
+                timer = setTimeout(() => {
+                    timedOut = true;
+                    if (controller) controller.abort();
+                    reject(authDisplayError("The request timed out. Check your connection and try again."));
+                }, 15000);
             });
-            const data = await response.json();
+            const data = await Promise.race([request, deadline]);
 
             if (data.status === "success") {
-                if (isLoginMode) {
-                    localStorage.setItem("access_token", data.access_token);
+                if (loginRequest) {
+                    try { localStorage.setItem("access_token", data.access_token); }
+                    catch (_) { throw authDisplayError("Your browser could not save the sign-in session. Allow site storage and try again."); }
                     messageEl.style.color = "#27ae60";
                     messageEl.innerText = "Login successful! Redirecting...";
                     setTimeout(() => { window.location.href = "scan.html"; }, 1000);
@@ -458,14 +357,27 @@
                 }
             } else {
                 messageEl.style.color = "#e74c3c";
-                messageEl.innerText = data.message;
+                // Only known public messages are shown; never echo arbitrary server details.
+                const publicMessages = new Set([
+                    "Invalid email or password", "Email already registered",
+                    "Password must be at most 72 UTF-8 bytes",
+                    "Password must be at least 6 characters",
+                    "Weak password - try adding uppercase, numbers, and symbols"
+                ]);
+                messageEl.innerText = publicMessages.has(data.message) ? data.message
+                    : loginRequest ? "Unable to sign in. Check your email and password."
+                    : "Registration could not be completed. Check your details and try again.";
             }
         } catch (error) {
             messageEl.style.color = "#e74c3c";
-            messageEl.innerText = "Could not connect to server.";
+            messageEl.innerText = timedOut ? "The request timed out. Check your connection and try again."
+                : error && error.safeToDisplay ? error.message
+                : "Could not reach the server. Check your connection and try again.";
         } finally {
+            clearTimeout(timer);
             submitBtn.disabled = false;
-            submitBtn.innerText = isLoginMode ? "Login" : "Register";
+            submitBtn.setAttribute("aria-busy", "false");
+            submitBtn.innerText = originalLabel;
         }
     }
 </script>

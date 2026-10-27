@@ -1,0 +1,18 @@
+[
+  {"uri":"upi://pay?pa=demo@upi&pn=Tea%20Shop&am=25.00&cu=INR","state":"pay","title":"YOU ARE PAYING ₹25.00 TO Tea Shop"},
+  {"uri":"upi://pay?pa=demo@upi&pn=Tea%20Shop&cu=INR","state":"pay","title":"YOU ARE PAYING Tea Shop"},
+  {"uri":"upi://pay?pa=demo@upi&pn=Tea%20Shop","state":"pay","title":"YOU ARE PAYING Tea Shop"},
+  {"uri":"upi://pay?pa=demo@upi&pn=Tea%20Shop&am=25.00&cu=INR&mode=pay","state":"pay","title":"YOU ARE PAYING ₹25.00 TO Tea Shop"},
+  {"uri":"upi://pay?pa=demo@upi&pn=Tea%20Shop&am=25.00&cu=INR&mode=collect","state":"collect","title":"THIS WILL REQUEST MONEY FROM YOU"},
+  {"uri":"upi://pay?pa=demo@upi&pn=Tea%20Shop&mode=02","state":"pay","title":"YOU ARE PAYING Tea Shop"},
+  {"uri":"upi://pay?pa=demo@upi&pn=Tea%20Shop&mode=","state":"pay","title":"YOU ARE PAYING Tea Shop"},
+  {"uri":"upi://pay?pa=demo@upi&pa=other@upi&pn=Tea%20Shop","state":"conflict","title":"PAYMENT DETAILS CONFLICT"},
+  {"uri":"upi://pay?pa=demo@upi&mode=collect&mode=pay","state":"conflict","title":"PAYMENT DETAILS CONFLICT"},
+  {"uri":"upi://pay?pn=Tea%20Shop","state":"unknown","title":"CAN'T TELL IF THIS IS A PAYMENT OR A MONEY REQUEST"},
+  {"uri":"upi://pay?pa=bad&pn=Tea%20Shop","state":"unknown","title":"CAN'T TELL IF THIS IS A PAYMENT OR A MONEY REQUEST"},
+  {"uri":"upi://other?pa=demo@upi&pn=Tea%20Shop","state":"unknown","title":"CAN'T TELL IF THIS IS A PAYMENT OR A MONEY REQUEST"},
+  {"uri":"upi://pay?pa=demo@upi&pn=%GG","state":"unknown","title":"CAN'T TELL IF THIS IS A PAYMENT OR A MONEY REQUEST"},
+  {"uri":"upi://pay?pa=demo@upi&am=-25&cu=INR","state":"unknown","title":"CAN'T TELL IF THIS IS A PAYMENT OR A MONEY REQUEST"},
+  {"uri":"upi://pay?pa=demo@upi&am=25&cu=USD","state":"unknown","title":"CAN'T TELL IF THIS IS A PAYMENT OR A MONEY REQUEST"},
+  {"uri":"upi://pay?pa=demo@upi&pn=%3Cscript%3Ealert%281%29%3C%2Fscript%3E&cu=INR","state":"pay","title":"YOU ARE PAYING <script>alert(1)</script>"}
+]

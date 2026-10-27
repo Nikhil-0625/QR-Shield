@@ -1,0 +1,297 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+
+    <meta charset="utf-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Website Safety Checker · QR Shield</title>
+
+    <script src="theme.js"></script>
+
+    <link rel="stylesheet" href="navigation.css">
+
+    <link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="master-design.css">
+
+    <link rel="stylesheet" href="website-checker.css">
+
+    <script src="navigation.js" defer></script>
+
+    <script src="website-checker.js" defer></script>
+
+</head>
+
+<body data-page="website-checker">
+<div class="qs-ambient-bg" aria-hidden="true">
+  <svg viewBox="0 0 1440 900" fill="none" preserveAspectRatio="xMidYMin slice">
+    <defs>
+      <linearGradient id="qs-shield-outer" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-shield-stroke1)"/>
+        <stop offset="45%" stop-color="var(--ambient-shield-stroke2)"/>
+        <stop offset="100%" stop-color="var(--ambient-shield-stroke3)"/>
+      </linearGradient>
+      <linearGradient id="qs-facet-left" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-facet-l1)"/>
+        <stop offset="100%" stop-color="var(--ambient-facet-l2)"/>
+      </linearGradient>
+      <linearGradient id="qs-facet-right" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-facet-r1)"/>
+        <stop offset="100%" stop-color="var(--ambient-facet-r2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-top" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-t1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-t2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-left" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-l1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-l2)"/>
+      </linearGradient>
+      <linearGradient id="qs-cube-right" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="var(--ambient-cube-r1)"/>
+        <stop offset="100%" stop-color="var(--ambient-cube-r2)"/>
+      </linearGradient>
+      <linearGradient id="qs-wave-line" x1="0" y1="0" x2="1" y2="0">
+        <stop offset="0%" stop-color="var(--ambient-wave-c1)"/>
+        <stop offset="35%" stop-color="var(--ambient-wave-c2)"/>
+        <stop offset="70%" stop-color="var(--ambient-wave-c3)"/>
+        <stop offset="100%" stop-color="var(--ambient-wave-c4)"/>
+      </linearGradient>
+      <filter id="qs-subtle-glow" x="-20%" y="-20%" width="140%" height="140%">
+        <feGaussianBlur stdDeviation="10" result="blur"/>
+        <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+      </filter>
+    </defs>
+    <path class="qs-ambient-wave" d="M180 110 C 400 45, 720 150, 1020 75 C 1200 30, 1340 115, 1440 85" stroke="url(#qs-wave-line)" stroke-width="1.8" fill="none"/>
+    <path class="qs-ambient-wave" d="M220 170 C 480 210, 800 95, 1100 160 C 1240 200, 1360 160, 1440 200" stroke="url(#qs-wave-line)" stroke-width="1.4" fill="none" opacity="0.75"/>
+    <path class="qs-ambient-wave" d="M260 55 C 540 130, 880 35, 1160 115 C 1280 150, 1380 95, 1440 125" stroke="url(#qs-wave-line)" stroke-width="1.2" fill="none" opacity="0.5"/>
+    <g class="qs-ambient-cube" transform="translate(740, 68) rotate(18)">
+      <polygon points="16,0 32,9 16,18 0,9" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,9 16,18 16,36 0,27" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="16,18 32,9 32,27 16,36" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-cube" transform="translate(950, 78) rotate(-14) scale(1.15)">
+      <polygon points="18,0 36,10 18,20 0,10" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,10 18,20 18,40 0,30" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="18,20 36,10 36,30 18,40" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-cube" transform="translate(1310, 145) rotate(24) scale(0.85)">
+      <polygon points="16,0 32,9 16,18 0,9" fill="url(#qs-cube-top)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="0,9 16,18 16,36 0,27" fill="url(#qs-cube-left)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+      <polygon points="16,18 32,9 32,27 16,36" fill="url(#qs-cube-right)" stroke="var(--ambient-cube-border)" stroke-width="0.8"/>
+    </g>
+    <g class="qs-ambient-shield" transform="translate(1060, 20)" filter="url(#qs-subtle-glow)">
+      <path d="M100 15 L190 52 V155 C190 220 152 268 100 290 C48 268 10 220 10 155 V52 Z" fill="none" stroke="url(#qs-shield-outer)" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M100 22 L18 56 V153 C18 214 53 259 100 280 Z" fill="url(#qs-facet-left)"/>
+      <path d="M100 22 L182 56 V153 C182 214 147 259 100 280 Z" fill="url(#qs-facet-right)"/>
+      <line x1="100" y1="22" x2="100" y2="280" stroke="var(--ambient-shield-ridge)" stroke-width="2"/>
+      <path d="M100 55 L42 80 V150 C42 195 68 230 100 248 C132 230 158 195 158 150 V80 Z" fill="none" stroke="var(--ambient-shield-inner-stroke)" stroke-width="1.5"/>
+      <path d="M100 58 L45 82 V149 C45 192 70 226 100 243 Z" fill="var(--ambient-shield-inner-l)"/>
+      <path d="M100 58 L155 82 V149 C155 192 130 226 100 243 Z" fill="var(--ambient-shield-inner-r)"/>
+    </g>
+  </svg>
+</div>
+
+<header class="qs-header">
+
+    <a class="qs-brand" href="scan.html" aria-label="QR Shield home">
+
+        <span class="qs-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+
+        <span class="qs-brand-copy"><span class="qs-brand-name">QR Shield</span><span class="qs-brand-subtitle">QR Security Platform</span></span>
+
+    </a>
+
+    <button class="qs-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false"><span class="qs-menu-icon" aria-hidden="true"></span></button>
+
+    <nav class="qs-nav-links" id="primary-navigation" aria-label="Main navigation">
+
+        <a class="qs-nav-link" href="scan.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M8 8h3v3H8zm5 5h3v3h-3z"/></svg>Scan QR</a>
+        <a class="qs-nav-link" href="website-checker.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg>Website Checker</a>
+
+        <a class="qs-nav-link" href="generate.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>Generate QR</a>
+
+        <a class="qs-nav-link" href="dashboard.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9.5L12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6h-4v6H4a1 1 0 0 1-1-1V9.5z"/></svg>Dashboard</a>
+
+        <a class="qs-nav-link" href="experimental-warning.html">Experimental ML</a>
+
+        <button class="qs-nav-link" type="button" id="website-logout">Logout</button>
+
+    </nav>
+
+    <button class="qs-theme-toggle" type="button" data-theme-toggle aria-label="Color theme" aria-describedby="theme-state"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button>
+
+    <span class="theme-state" id="theme-state" data-theme-state>Current theme: Light</span>
+
+</header>
+
+
+
+<main class="app-workspace website-shell">
+
+    <div class="website-heading">
+
+        <div><p class="intro-kicker">Link security</p><h1>Website Safety Checker</h1><p class="website-subtitle">Check whether a website link shows signs of phishing, impersonation, or other security risks.</p></div>
+
+        <span class="website-offline-badge"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 6v5c0 5-4 8-8 10-4-2-8-5-8-10V6Z"/><path d="m8 12 3 3 5-6"/></svg><span id="website-analysis-mode">Optional live threat check</span></span>
+
+    </div>
+
+
+
+    <div class="website-workspace">
+
+        <section class="card website-input-card" aria-labelledby="website-input-title">
+
+            <div class="website-section-header">
+                <span class="website-section-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 .1l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7-.1l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>
+                <div><h2 id="website-input-title">Check a website link</h2><p class="website-card-copy">No QR code needed. Review a link before you trust it.</p></div>
+            </div>
+
+            <form id="website-form" novalidate>
+
+                <label for="website-url">Website URL</label>
+
+                <div class="website-input-row"><input id="website-url" name="url" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="8192" placeholder="https://www.wikipedia.org" aria-describedby="website-url-help website-input-status" required><button class="secondary-btn" id="website-paste" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="13" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>Paste URL</button></div>
+
+                <p class="website-helper" id="website-url-help">HTTP and HTTPS links only. QR Shield will not visit or fetch this address.</p>
+
+                <p class="website-example">Example: <code>https://www.wikipedia.org</code></p>
+
+                <p class="website-provider-notice">When live checks are enabled, the full URL is sent to Google Safe Browsing, which may retain or share it with third parties. Avoid private or token-bearing links. The service can miss threats or flag safe sites by mistake.</p>
+
+                <div class="website-form-actions"><button class="primary-btn" id="website-analyze" type="submit"><span class="website-spinner" aria-hidden="true" hidden></span><span id="website-analyze-label">Analyze Website</span><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"/></svg></button><button class="secondary-btn" id="website-clear" type="button">Clear</button></div>
+
+                <p class="website-input-status" id="website-input-status" role="status" aria-live="polite"></p>
+
+            </form>
+
+        </section>
+
+        <aside class="website-method" aria-labelledby="website-method-title">
+
+            <span class="website-method-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a17 17 0 0 1 0 18 17 17 0 0 1 0-18Z"/></svg></span>
+
+            <h2 id="website-method-title">What gets checked</h2>
+
+            
+
+            <div class="website-info-section">
+
+                <h3><span aria-hidden="true">01</span>URL structure</h3>
+
+                <p>Inspects link structure for brand impersonation, suspicious TLDs, IP hostnames, and deceptive character patterns without visiting the address.</p>
+
+            </div>
+
+
+
+            <div class="website-info-section">
+
+                <h3><span aria-hidden="true">02</span>Live reputation</h3>
+
+                <p>When enabled and available, Google Safe Browsing checks for known threat matches. The result below confirms whether a live check was completed.</p>
+
+            </div>
+
+
+
+            <div class="website-info-section">
+
+                <h3><span aria-hidden="true">03</span>Privacy &amp; limitations</h3>
+
+                <p>The destination website is never visited or fetched. External reputation queries transmit the URL to Google. Low calculated risk is an indicator, not a guarantee of safety. Saved checks appear in your account history.</p>
+
+            </div>
+
+        </aside>
+
+    </div>
+
+
+
+    <section class="card website-results" id="website-results" data-result-view="simple" aria-labelledby="website-verdict-title" hidden>
+
+        <div class="website-verdict" id="website-verdict" data-tone="neutral">
+
+            <span class="website-verdict-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 6v5c0 5-4 8-8 10-4-2-8-5-8-10V6Z"/><path id="website-verdict-symbol" d="M9.5 9a2.5 2.5 0 1 1 4.4 1.6c-.9.5-1.9.9-1.9 2.4m0 3h.01"/></svg></span>
+
+            <div><p class="website-verdict-label" id="website-verdict-label"></p><h2 id="website-verdict-title" tabindex="-1"></h2><p id="website-explanation"></p><p class="website-action" id="website-action"></p></div>
+
+        </div>
+
+        <div class="website-view-toggle" role="group" aria-label="Result detail level">
+
+            <button type="button" id="website-simple-view-btn" aria-controls="website-result-content" aria-pressed="true">Simple view</button>
+
+            <button type="button" id="website-technical-view-btn" aria-controls="website-result-content" aria-pressed="false">Technical view</button>
+
+        </div>
+
+        <div id="website-result-content">
+
+        <div class="website-address"><span>Analyzed website</span><p id="website-normalized-url"></p></div>
+
+        <section class="website-simple-security" aria-labelledby="website-simple-security-title">
+
+            <h3 id="website-simple-security-title">Security checks</h3>
+
+            <p id="website-simple-message" class="website-simple-message"></p>
+
+            <ul id="website-simple-checks" class="website-simple-checks"></ul>
+
+            <p id="website-simple-uncertainty" class="website-simple-uncertainty" hidden>Some checks were not available. Unavailable checks have not passed.</p>
+
+            <p class="website-simple-disclaimer">This result does not confirm that the destination is safe. Verify the address and sender before continuing.</p>
+
+        </section>
+
+        <section class="website-reputation" aria-labelledby="website-reputation-heading">
+
+            <div class="website-check-heading"><h3 id="website-reputation-heading">Known threat check</h3><span id="website-reputation-status" class="website-check-status">Not checked</span></div>
+
+            <p id="website-reputation-detail"></p>
+
+            <dl id="website-reputation-data"></dl>
+
+            <p class="website-reputation-limits">Google Safe Browsing can miss dangerous sites or flag safe sites by mistake. A match indicates a potential risk; no match does not prove safety.</p>
+
+            <div id="website-google-warning" hidden>
+
+                <a href="https://safebrowsing.google.com/" target="_blank" rel="noopener noreferrer">Advisory provided by Google</a>
+
+                <p>Learn about <a href="https://developers.google.com/search/docs/monitor-debug/security/social-engineering" target="_blank" rel="noopener noreferrer">social engineering</a>, <a href="https://developers.google.com/search/docs/monitor-debug/security/malware" target="_blank" rel="noopener noreferrer">malware and unwanted software</a>, and <a href="https://developers.google.com/android/play-protect/potentially-harmful-applications" target="_blank" rel="noopener noreferrer">harmful applications</a>.</p>
+
+            </div>
+
+        </section>
+
+        <div class="website-evidence-grid">
+
+            <section class="website-evidence website-technical-only" aria-labelledby="website-findings-title"><h3 id="website-findings-title">Warning signs</h3><p class="website-section-note">Rule-based evidence from the submitted address.</p><div id="website-findings"></div></section>
+
+            <section class="website-evidence website-technical-only" aria-labelledby="website-checks-title"><h3 id="website-checks-title">Detailed security checks</h3><p class="website-section-note">Unavailable checks are never counted as passed.</p><ul class="website-check-list" id="website-checks"></ul></section>
+
+        </div>
+
+        <div class="website-limitations"><strong>Before you continue</strong><p>The submitted website is never opened or fetched. This result does not confirm that the destination is safe. Verify the address and sender before sharing passwords or payment details.</p><p id="website-ml-note" class="website-technical-only"></p></div>
+
+        <details class="website-technical"><summary>Technical details <span>For reference only — not a probability.</span></summary><dl id="website-technical-data"></dl></details>
+
+        </div>
+
+        <div class="website-report-actions"><button class="report-btn" id="website-report" type="button" disabled>Download Report</button><a class="website-history-link" href="dashboard.html">View scan history <span aria-hidden="true">→</span></a></div>
+
+        <p class="website-report-status" id="website-report-status" role="status" aria-live="polite"></p>
+
+    </section>
+
+</main>
+
+</body>
+
+</html>
+

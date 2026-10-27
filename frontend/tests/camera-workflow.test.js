@@ -1,0 +1,46 @@
+// Synthetic video source; no webcam, payment data, or live API requests.
+(async () => {
+ const checks=[];const check=(ok,name)=>{if(!ok)throw new Error(name);checks.push(name);};
+ const wait=async fn=>{for(let i=0;i<100;i++){if(fn())return;await new Promise(r=>setTimeout(r,20));}throw new Error('Timed out waiting for camera state');};
+ const originalFetch=window.fetch;
+ const library=window.__qrcodeLibrary || await (await originalFetch('qrcode-generator.js')).text();
+ const qr=new Function(library+';return qrcode;')()(0,'M');
+ const payload='upi://pay?pa=synthetic@upi&pn=Camera%20Test';qr.addData(payload);qr.make();
+ const source=document.createElement('canvas');source.width=1280;source.height=720;
+ const ctx=source.getContext('2d');ctx.fillStyle='#fff';ctx.fillRect(0,0,1280,720);
+ ctx.fillStyle='#d02020';ctx.fillRect(0,0,50,50);ctx.fillStyle='#2040d0';ctx.fillRect(1230,670,50,50);
+ const cells=qr.getModuleCount(),cell=8,startX=380,startY=90;
+ ctx.fillStyle='#000';for(let r=0;r<cells;r++)for(let col=0;col<cells;col++)if(qr.isDark(r,col))ctx.fillRect(startX+col*cell,startY+r*cell,cell,cell);
+ const originalContext=HTMLCanvasElement.prototype.getContext;
+ HTMLCanvasElement.prototype.getContext=function(...args){const context=originalContext.apply(this,args);if(context&&!context.__cameraTest){const draw=context.drawImage.bind(context);context.drawImage=(image,...rest)=>draw(image===cameraVideo?source:image,...rest);context.__cameraTest=true;}return context;};
+ for(const [key,value] of Object.entries({videoWidth:1280,videoHeight:720,readyState:3}))Object.defineProperty(cameraVideo,key,{configurable:true,get:()=>value});
+ cameraVideo.play=async()=>{};
+ let constraints,focus=0,requests=0,release;
+ Object.defineProperty(navigator,'mediaDevices',{configurable:true,value:{getUserMedia:async options=>{constraints=options;const stream=source.captureStream(1);const track=stream.getVideoTracks()[0];track.getCapabilities=()=>({focusMode:['continuous']});track.applyConstraints=async()=>{focus++;};return stream;}}});
+ window.jsQR=()=>null;
+ window.fetch=async()=>{requests++;return new Promise(resolve=>release=resolve);};
+ switchMode('camera');await wait(()=>cameraStream&&cameraDetectStarted>0);
+ check(constraints.video.width.ideal===1920&&constraints.video.height.ideal===1080,'requests higher ideal resolution');check(focus>0,'optional continuous focus requested');
+ cameraDetectStarted=performance.now()-16000;scanCameraFrame();check(cameraLoopId===null&&cameraStream,'auto detection stops but manual camera remains');check(requests===0,'no API polling on detector miss');
+ window.jsQR=undefined;scanCameraFrame();check(cameraLoopId===null,'missing jsQR does not prevent manual capture');
+ captureCameraFrame(null,true);captureCameraFrame(null,true);await wait(()=>requests===1);
+ check(cameraCanvas.width===1280&&cameraCanvas.height===720,'native frame dimensions preserved');
+ check(capturedCameraScan.file.type==='image/jpeg','captured file format matches encoding');
+ const bitmap=await createImageBitmap(capturedCameraScan.file);check(bitmap.width===1280&&bitmap.height===720,'encoded JPEG retains full dimensions');const verifyCanvas=document.createElement('canvas');verifyCanvas.width=1280;verifyCanvas.height=720;const verify=verifyCanvas.getContext('2d');verify.drawImage(bitmap,0,0);const red=verify.getImageData(20,20,1,1).data,blue=verify.getImageData(1250,690,1,1).data;check(Math.abs(red[0]-208)<12&&Math.abs(red[1]-32)<12&&Math.abs(blue[2]-208)<12,'full-frame corner pixels retained without brightness filter');bitmap.close();
+ const bytes=new Uint8Array(await capturedCameraScan.file.arrayBuffer());window.__cameraJPEG=btoa(String.fromCharCode(...bytes));
+ check(requests===1&&isAnalyzing,'repeat capture produces only one pending request');
+ release({ok:true,status:200,json:async()=>({status:'success',scan_id:123,decoded_content:payload,tampering_score:0,tampering_reasons:[]})});await wait(()=>!isAnalyzing);
+ check(document.querySelector('#results-card').style.display==='block','manual frame follows standard result pipeline');
+ retakeCameraScan();await wait(()=>cameraStream);check(!selectedFile&&!capturedCameraScan,'retake clears selected capture');check(analysisCard.style.display==='none','retake clears previous analysis panel');
+ window.jsQR=()=>({data:payload});lastCameraDetection=0;cameraDetectStarted=performance.now();scanCameraFrame();await wait(()=>capturedCameraScan);
+ check(!confirmScanBtn.disabled&&requests===1,'auto capture waits for confirmation without API polling');
+ scanImage();await wait(()=>requests===2);release({ok:true,status:200,json:async()=>({status:'error',message:'Synthetic unreadable frame'})});await wait(()=>!isAnalyzing);check(document.querySelector('#analysis-error').style.display==='block','backend decode error presented');
+ window.jsQR=()=>null;retakeCameraScan();await wait(()=>cameraStream);
+ const oldBlob=HTMLCanvasElement.prototype.toBlob;let stale;
+ HTMLCanvasElement.prototype.toBlob=function(callback){stale=callback;};captureCameraFrame(null,true);retakeCameraScan();await wait(()=>cameraStream);stale(new Blob(['stale'],{type:'image/jpeg'}));
+ check(requests===2&&!capturedCameraScan,'retake ignores stale image conversion callback');HTMLCanvasElement.prototype.toBlob=oldBlob;
+ HTMLCanvasElement.prototype.toBlob=callback=>callback(null);captureCameraFrame(null,true);check(!selectedFile&&!capturedCameraScan&&requests===2&&cameraConfirmation.style.display==='block','conversion failure allows retake without submission');HTMLCanvasElement.prototype.toBlob=oldBlob;
+ stopCamera();check(cameraLoopId===null&&cameraVideo.srcObject===null,'stop releases camera and detection loop');
+ window.fetch=originalFetch;HTMLCanvasElement.prototype.getContext=originalContext;
+ return checks;
+})()

@@ -97,6 +97,7 @@ class HistoryAuthorizationTests(unittest.TestCase):
                 messages.append(message)
 
             headers = [] if token is None else [(b"authorization", ("Bearer " + token).encode())]
+            headers.append((b"host",b"localhost:8000"))
             await self.main.app({
                 "type": "http", "asgi": {"version": "3.0", "spec_version": "2.4"},
                 "http_version": "1.1", "method": "GET", "scheme": "http",

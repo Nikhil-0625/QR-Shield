@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src http://127.0.0.1:8766/experimental/predict; img-src 'none'; font-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>QR Shield — Experimental Warning Demo</title>
+  <script src="theme.js"></script>
+<style>
+    * { box-sizing: border-box; }
+    [hidden] { display: none !important; }
+    :root { color-scheme: light; font-family: 'Poppins', 'Segoe UI', sans-serif; color: #2d2d3a; background: #faf9ff; }
+    body { margin: 0; min-height: 100vh; padding: 40px 20px; background: radial-gradient(circle at top left, #8d7add29, transparent 26rem), radial-gradient(circle at bottom right, #609beb1f, transparent 24rem), #faf9ff; }
+    main { max-width: 1000px; margin: auto; }
+    .brand { color: #654288; font-weight: 700; letter-spacing: .06em; margin: 0 0 24px; }
+    .eyebrow { color: #654288; font-size: .8rem; font-weight: 700; letter-spacing: .04em; }
+    h1 { font-size: clamp(1.6rem, 4vw, 2.5rem); letter-spacing: -.035em; margin: 12px 0; line-height: 1.2; }
+    .intro { max-width: 720px; color: #555566; line-height: 1.7; }
+    .card { background: #fff; border: 1px solid #e5e0f0; border-radius: 20px; padding: 28px; box-shadow: 0 14px 45px #503b8010; }
+    .controls { margin: 28px 0 20px; }
+    label { display: block; font-weight: 600; margin-bottom: 10px; }
+    select { width: 100%; min-height: 48px; padding: 12px; border: 1px solid #b8accd; border-radius: 10px; color: #2d2d3a; background: #faf9ff; font: inherit; }
+    input { width: 100%; min-height: 48px; padding: 12px; border: 1px solid #b8accd; border-radius: 10px; background: #faf9ff; color: #2d2d3a; font: inherit; }
+    button { min-height: 48px; margin-top: 14px; padding: 12px 24px; border: 0; border-radius: 10px; background: #654288; color: white; font: inherit; font-weight: 600; cursor: pointer; }
+    button:disabled { opacity: .65; cursor: wait; }
+    :focus-visible { outline: 3px solid #654288; outline-offset: 4px; }
+    .hint { font-size: .875rem; line-height: 1.6; color: #555566; margin-bottom: 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid > * { min-width: 0; }
+    h2 { font-size: 1.05rem; margin: 0 0 20px; }
+    .score { font-size: 3.5rem; font-weight: 700; line-height: 1.2; margin: 0 0 14px; }
+    .score span { font-size: 1rem; color: #555566; font-weight: 500; }
+    .badge { display: inline-block; border-radius: 30px; padding: 7px 13px; font-size: .85rem; font-weight: 700; }
+    .safe { color: #17613f; background: #e6f5ed; }
+    .suspicious, .warning { color: #794300; background: #fff3d9; }
+    .unsafe { color: #96323b; background: #fcebef; }
+    .neutral { color: #574374; background: #f0ebfa; }
+    .notice { margin-top: 20px; border-left: 4px solid #ad690d; padding: 14px; border-radius: 4px 10px 10px 4px; line-height: 1.6; background: #fff8e9; }
+    .notice.quiet { border-color: #8b76af; background: #f6f2fc; }
+    .notes { margin-top: 20px; }
+    .notes h2 { margin-bottom: 12px; }
+    .notes p { line-height: 1.7; color: #555566; margin: 10px 0; }
+    code { overflow-wrap: anywhere; font-size: .9em; color: #654288; }
+    footer { font-size: .8rem; color: #555566; margin-top: 24px; line-height: 1.6; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
+    @media (max-width: 640px) { body { padding: 24px 14px; } .grid { grid-template-columns: 1fr; } .card { padding: 22px; } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; } }
+  </style>
+
+<link rel="stylesheet" href="navigation.css">
+<script src="navigation.js" defer></script>
+<link rel="stylesheet" href="theme.css">
+<link rel="stylesheet" href="master-design.css">
+</head>
+<body data-page="experimental-warning">
+<header class="qs-header">
+    <a class="qs-brand" href="scan.html" aria-label="QR Shield home">
+        <span class="qs-brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/>
+                <path d="m9 12 2 2 4-4"/>
+            </svg>
+        </span>
+        <span class="qs-brand-copy">
+            <span class="qs-brand-name">QR Shield</span>
+            <span class="qs-brand-subtitle">QR Security Platform</span>
+        </span>
+    </a>
+    <button class="qs-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false">
+        <span class="qs-menu-icon" aria-hidden="true"></span>
+    </button>
+    <nav class="qs-nav-links" id="primary-navigation" aria-label="Main navigation">
+        <a class="qs-nav-link" href="scan.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M8 8h3v3H8zm5 5h3v3h-3z"/></svg>Scan QR</a>
+        <a class="qs-nav-link" href="generate.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Generate QR</a>
+        <a class="qs-nav-link" href="dashboard.html"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10h4v10m4 0V4h4v16m4 0v-7h2v7"/></svg>Dashboard</a>
+        <a class="qs-nav-link" href="experimental-warning.html" aria-current="page"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6m-5 0v6L4 19a1 1 0 0 0 1 2h14a1 1 0 0 0 1-2L14 9V3M8 14h8"/></svg>Experimental ML</a>
+        <a class="qs-nav-link" href="login.html">Sign in</a>
+    </nav>
+<button class="qs-theme-toggle" type="button" data-theme-toggle aria-label="Dark mode" aria-pressed="false" aria-describedby="theme-state" title="Switch to dark mode">
+<svg class="theme-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+<svg class="theme-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4a8.5 8.5 0 1 0 10.5 10.5Z"/></svg>
+</button><span class="theme-state" id="theme-state" data-theme-state>Current theme: light</span>
+</header>
+<main class="experimental-main">
+  <header>
+    
+    <p class="eyebrow">Experimental Demo — Synthetic Data</p>
+    <h1>One risk score. A separate ML signal.</h1>
+    <p class="intro">Explore how an experimental phishing warning can appear alongside the existing risk classification. Every example is synthetic. This page does not scan a URL or make a payment decision.</p>
+  </header>
+  <section class="card controls" aria-labelledby="scenario-label">
+    <label id="scenario-label" for="scenario">Choose a synthetic scenario</label>
+    <select id="scenario" aria-describedby="scenario-hint">
+      <option value="0">SAFE risk score + ML warning</option>
+      <option value="1">SAFE risk score + no ML warning</option>
+      <option value="2">SUSPICIOUS risk score + ML warning</option>
+      <option value="3">UNSAFE risk score + no ML warning</option>
+    </select>
+    <p class="hint" id="scenario-hint">Use the arrow keys to explore. The warning never changes the supplied risk score or classification.</p>
+  </section>
+  <div class="grid" id="results" hidden>
+    <section class="card" aria-labelledby="risk-title">
+      <h2 id="risk-title">Existing risk assessment</h2>
+      <p class="score"><output id="score">—</output> <span>/ 100</span></p>
+      <span class="badge" id="classification">—</span>
+      <p class="hint">Existing boundaries: SAFE 0–30 · SUSPICIOUS 31–60 · UNSAFE 61–100. This synthetic score is supplied directly; no hybrid scoring formula is recalculated.</p>
+    </section>
+    <section class="card" aria-labelledby="ml-title">
+      <h2 id="ml-title">Experimental ML signal</h2>
+      <span class="badge" id="warning-label">—</span>
+      <p class="hint">Synthetic candidate phishing score: <strong id="probability">—</strong></p>
+      <p id="explanation" class="notice"></p>
+      <p class="hint">Advisory only. This signal never automatically changes the risk classification to UNSAFE or blocks an action.</p>
+    </section>
+  </div>
+  <p class="sr-only" id="announcement" role="status" aria-live="polite" aria-atomic="true"></p>
+  <section class="card notes" aria-labelledby="live-title">
+    <h2 id="live-title">Try Experimental ML Prediction</h2>
+    <p>Experimental ML Only — Not a Full QR Shield Scan</p>
+    <p>Analyze URL text with the isolated local candidate. The destination is never visited. No production risk score or classification is calculated.</p>
+    <form id="prediction-form" autocomplete="off">
+      <label for="prediction-url">URL text (HTTP or HTTPS)</label>
+      <input id="prediction-url" type="url" required maxlength="8192" autocomplete="off" spellcheck="false" autocapitalize="none" aria-describedby="prediction-hint" placeholder="https://example.invalid/synthetic">
+      <p class="hint" id="prediction-hint">Use synthetic examples for controlled testing. Up to 8,192 UTF-8 bytes. Avoid credentials or personal information. Submissions are not saved by this page or API.</p>
+      <button id="analyze-button" type="submit">Analyze</button>
+      <span id="loading" hidden>Analyzing locally…</span>
+    </form>
+    <div id="live-status" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="live-result" hidden aria-labelledby="live-result-title">
+      <h3 id="live-result-title">Experimental ML Only — Not a Full QR Shield Scan</h3>
+      <p>Candidate phishing score: <strong id="live-score"></strong></p>
+      <span id="live-warning" class="badge"></span>
+      <p id="live-explanation" class="notice"></p>
+      <p class="hint">Advisory only. A warning does not confirm phishing; no warning does not guarantee safety. Existing production risk classification has not been evaluated.</p>
+    </div>
+  </section>
+  <section class="card notes" aria-labelledby="limitations">
+    <h2 id="limitations">How to read this demo</h2>
+    <p>A warning does not confirm phishing. No warning does not guarantee safety. A SAFE risk classification is also not a guarantee of safety.</p>
+    <p>The exact experimental warning threshold is <code>0.40144790130467084</code>, inclusive. It applies to the candidate phishing score, not to the 0–100 hybrid risk score. Candidate scores are not independently calibrated probabilities of harm.</p>
+    <p>At this validation-selected threshold, measured phishing recall was about <strong>90%</strong>, with a <strong>19.40% false-positive rate</strong>: approximately one in five benign validation examples received a warning. About one in ten phishing examples was missed. These are validation results, not guarantees for future scans.</p>
+    <p>Dataset version and upstream licensing remain unverified. The optional prediction form connects only to the isolated local experimental API. The production scanner remains separate.</p>
+  </section>
+  <noscript><p>This demonstration requires JavaScript. No submissions can be sent without it.</p></noscript>
+  <footer>Local experimental testing only · No external assets or production API connected.<br><span id="checks">Synthetic checks pending.</span></footer>
+</main>
+<script>
+'use strict';
+const WARNING_THRESHOLD = 0.40144790130467084;
+function separateMLWarning(riskScore, phishingProbability) {
+  if (typeof riskScore !== 'number' || !Number.isInteger(riskScore) || riskScore < 0 || riskScore > 100) {
+    throw new Error('Risk score must be an integer from 0 to 100');
+  }
+  if (typeof phishingProbability !== 'number' || !Number.isFinite(phishingProbability) || phishingProbability < 0 || phishingProbability > 1) {
+    throw new Error('Phishing probability must be a finite number from 0 to 1');
+  }
+  const warning = phishingProbability >= WARNING_THRESHOLD;
+  return {
+    risk_score: riskScore,
+    risk_classification: riskScore >= 61 ? 'UNSAFE' : riskScore >= 31 ? 'SUSPICIOUS' : 'SAFE',
+    experimental_ml_warning: warning,
+    warning_explanation: warning
+      ? 'Experimental ML phishing warning: the candidate score meets the warning threshold. This does not confirm a malicious URL.'
+      : 'No experimental ML phishing warning: the candidate score is below the warning threshold. This does not prove the URL is safe.',
+    warning_threshold: WARNING_THRESHOLD
+  };
+}
+const scenarios = Object.freeze([
+  {score: 18, probability: 0.82}, {score: 18, probability: 0.12},
+  {score: 45, probability: 0.65}, {score: 82, probability: 0.08}
+]);
+function renderScenario(index) {
+  const scenario = scenarios[index];
+  if (!scenario) throw new Error('Unknown synthetic scenario');
+  const result = separateMLWarning(scenario.score, scenario.probability);
+  document.getElementById('score').textContent = String(result.risk_score);
+  const classification = document.getElementById('classification');
+  classification.textContent = result.risk_classification;
+  classification.className = 'badge ' + result.risk_classification.toLowerCase();
+  const warning = document.getElementById('warning-label');
+  warning.textContent = result.experimental_ml_warning ? 'Experimental warning active' : 'No experimental warning';
+  warning.className = 'badge ' + (result.experimental_ml_warning ? 'warning' : 'neutral');
+  document.getElementById('probability').textContent = scenario.probability.toFixed(2);
+  const explanation = document.getElementById('explanation');
+  explanation.textContent = result.warning_explanation;
+  explanation.className = result.experimental_ml_warning ? 'notice' : 'notice quiet';
+  document.getElementById('announcement').textContent = result.risk_classification + ', risk score ' + result.risk_score + ' out of 100. ' + result.warning_explanation;
+  document.getElementById('results').hidden = false;
+}
+function runSyntheticChecks() {
+  let count = 0;
+  function check(condition) { if (!condition) throw new Error('Synthetic check failed'); count++; }
+  for (const [score, label] of [[0,'SAFE'],[30,'SAFE'],[31,'SUSPICIOUS'],[60,'SUSPICIOUS'],[61,'UNSAFE'],[100,'UNSAFE']]) {
+    for (const probability of [0, 1]) check(separateMLWarning(score, probability).risk_classification === label);
+  }
+  check(!separateMLWarning(0, WARNING_THRESHOLD - Number.EPSILON).experimental_ml_warning);
+  check(separateMLWarning(0, WARNING_THRESHOLD).experimental_ml_warning);
+  check(separateMLWarning(0, WARNING_THRESHOLD + Number.EPSILON).experimental_ml_warning);
+  for (const [score, probability] of [[-1,.5],[101,.5],[30.5,.5],[true,.5],['30',.5],[null,.5],[NaN,.5],[Infinity,.5],[0,-.1],[0,1.1],[0,NaN],[0,Infinity],[0,true],[0,'0.5'],[0,null]]) {
+    let rejected = false;
+    try { separateMLWarning(score, probability); } catch (_) { rejected = true; }
+    check(rejected);
+  }
+  const labels = ['SAFE','SAFE','SUSPICIOUS','UNSAFE'];
+  const warnings = [true,false,true,false];
+  scenarios.forEach((scenario,index) => {
+    renderScenario(index);
+    check(document.getElementById('classification').textContent === labels[index]);
+    check(document.getElementById('warning-label').textContent === (warnings[index] ? 'Experimental warning active' : 'No experimental warning'));
+    check(document.getElementById('explanation').textContent === separateMLWarning(scenario.score,scenario.probability).warning_explanation);
+  });
+  check(document.querySelector('label[for="scenario"]') !== null);
+  check(document.getElementById('announcement').getAttribute('aria-live') === 'polite');
+  check(document.documentElement.scrollWidth <= window.innerWidth);
+  return count;
+}
+document.getElementById('scenario').addEventListener('change', event => renderScenario(Number(event.target.value)));
+const PREDICTION_ENDPOINT = 'http://127.0.0.1:8766/experimental/predict';
+let predictionBusy = false;
+function validatePrediction(data) {
+  if (!data || data.experimental !== true || data.production_risk_evaluated !== false ||
+      data.risk_score !== null || data.risk_classification !== null ||
+      data.warning_threshold !== WARNING_THRESHOLD ||
+      typeof data.candidate_phishing_probability !== 'number' ||
+      !Number.isFinite(data.candidate_phishing_probability) ||
+      data.candidate_phishing_probability < 0 || data.candidate_phishing_probability > 1 ||
+      data.experimental_ml_warning !== (data.candidate_phishing_probability >= WARNING_THRESHOLD) ||
+      typeof data.warning_explanation !== 'string' || data.warning_explanation.length > 1000) {
+    throw new Error('Invalid experimental response');
+  }
+  return data;
+}
+async function analyzePrediction(event) {
+  event.preventDefault();
+  if (predictionBusy) return;
+  const input = document.getElementById('prediction-url');
+  const status = document.getElementById('live-status');
+  const result = document.getElementById('live-result');
+  result.hidden = true;
+  if (!input.checkValidity() || new TextEncoder().encode(input.value).length > 8192) {
+    status.textContent = 'Enter a valid HTTP or HTTPS URL of at most 8,192 UTF-8 bytes.';
+    input.focus(); return;
+  }
+  let parsed;
+  try { parsed = new URL(input.value); } catch (_) { status.textContent = 'Enter a complete HTTP or HTTPS URL.'; return; }
+  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) {
+    status.textContent = 'Use HTTP or HTTPS without embedded credentials.'; input.focus(); return;
+  }
+  predictionBusy = true;
+  document.getElementById('analyze-button').disabled = true;
+  document.getElementById('loading').hidden = false;
+  document.getElementById('prediction-form').setAttribute('aria-busy', 'true');
+  status.textContent = 'Analyzing URL text with the local experimental API…';
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15000);
+  try {
+    const response = await fetch(PREDICTION_ENDPOINT, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url: input.value}), credentials: 'omit',
+      cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer', signal: controller.signal
+    });
+    if (!response.ok) {
+      const messages = {
+        403: 'Local access was rejected. Open this page from localhost:5500 or 127.0.0.1:5500.',
+        413: 'The URL submission is too large.',
+        422: 'The API rejected this URL. Check its hostname, scheme, port, and formatting.',
+        503: 'The experimental model is unavailable. Check the local API startup and integrity checks.'
+      };
+      status.textContent = messages[response.status] || 'The experimental API could not complete this request. Try again later.';
+      return;
+    }
+    let data;
+    try { data = validatePrediction(await response.json()); }
+    catch (_) { status.textContent = 'The API returned an unexpected response. No result is shown.'; return; }
+    document.getElementById('live-score').textContent = (data.candidate_phishing_probability * 100).toFixed(2) + '% (candidate score)';
+    const warning = document.getElementById('live-warning');
+    warning.textContent = data.experimental_ml_warning ? 'Experimental warning active' : 'No experimental warning';
+    warning.className = 'badge ' + (data.experimental_ml_warning ? 'warning' : 'neutral');
+    document.getElementById('live-explanation').textContent = data.warning_explanation;
+    result.hidden = false;
+    status.textContent = 'Experimental ML prediction complete. ' + warning.textContent + '. No full scan was performed.';
+  } catch (error) {
+    status.textContent = error.name === 'AbortError'
+      ? 'The local API took too long to respond. Check that it is running, then try again.'
+      : 'Cannot reach the experimental API. Start it on 127.0.0.1:8766 and serve this page on localhost:5500 or 127.0.0.1:5500.';
+  } finally {
+    clearTimeout(timeout);
+    predictionBusy = false;
+    document.getElementById('analyze-button').disabled = false;
+    document.getElementById('loading').hidden = true;
+    document.getElementById('prediction-form').setAttribute('aria-busy', 'false');
+  }
+}
+document.getElementById('prediction-form').addEventListener('submit', analyzePrediction);
+try {
+  const count = runSyntheticChecks();
+  renderScenario(0);
+  document.getElementById('checks').textContent = count + ' synthetic UI and logic checks passed.';
+  document.documentElement.dataset.checks = String(count);
+} catch (_) {
+  document.getElementById('results').hidden = true;
+  document.getElementById('checks').textContent = 'Demo checks failed. Results are unavailable.';
+  document.documentElement.dataset.checks = 'failed';
+}
+</script>
+</body>
+</html>

@@ -10,6 +10,7 @@ __pycache__/
 .env
 .env.*
 !.env.example
+!.env.demo.example
 *.key
 *.pem
 
@@ -28,3 +29,50 @@ __pycache__/
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Private offline preprocessing outputs (including quarantine)
+/backend/ml/processed_data/
+/backend/ml/candidate_artifacts/
+
+# Private source datasets (provenance and redistribution not yet verified)
+/backend/ml/*.csv
+
+# Additional model formats and SQLite sidecar files
+*.joblib
+*.db-wal
+*.db-shm
+*.db-journal
+*.sqlite-wal
+*.sqlite-shm
+*.sqlite-journal
+*.sqlite3-wal
+*.sqlite3-shm
+*.sqlite3-journal
+
+# Test/tool caches and temporary logs
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.tmp
+*.log
+
+# Generated visual-review artifacts; keep scripts, baselines and reports visible.
+/.design-review/*-profile/
+/.design-review/profile-*/
+/.design-review/*.png
+/.design-review/*.jpg
+# Synthetic camera image is a reusable decoder-test fixture, not a screenshot.
+!/.design-review/camera-captured-synthetic.jpg
+/.design-review/*.dom
+/.design-review/*-results.json
+/.design-review/camera-backend-regressions.txt
+
+# Generated/local files
+.design-review/
+output/
+tmp/
+
+# Generated/local files
+.design-review/
+output/
+tmp/

@@ -1,0 +1,20 @@
+# Deny-by-default release context. Never package personal databases, .env, backups or datasets.
+**
+!Dockerfile
+!backend/
+!backend/*.py
+!backend/requirements-demo.lock
+!backend/fonts/
+!backend/fonts/Carlito-Bold.ttf
+!backend/fonts/OFL-Carlito.txt
+!backend/phishing_model_v2.pkl
+!frontend/
+!frontend/login.html
+!frontend/scan.html
+!frontend/dashboard.html
+!frontend/generate.html
+!frontend/*.css
+!frontend/*.js
+!frontend/LICENSE-jsQR.txt
+!tools/
+!tools/demo-entrypoint.sh
