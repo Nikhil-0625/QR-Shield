@@ -59,24 +59,24 @@ class RdapIntegrationTests(unittest.TestCase):
             checked_at=now.isoformat(),verdict_expires_at=(now+timedelta(minutes=5)).isoformat(),
             threat_types=["SOCIAL_ENGINEERING"] if status=="threat" else [])
 
-    def scan(self,url=URL,private=False,headers=(),ml=False):
+    def scan(self,url=URL,private=False,headers=(),ml=False,probe=None,tls=None,tampering=None):
         image=io.BytesIO();Image.new("RGB",(8,8),"white").save(image,format="PNG")
         body=b'--local\r\nContent-Disposition: form-data; name="file"; filename="test.png"\r\nContent-Type: image/png\r\n\r\n'+image.getvalue()+b'\r\n'
         if private:body+=b'--local\r\nContent-Disposition: form-data; name="private_scan"\r\n\r\ntrue\r\n'
         body+=b'--local--\r\n'
         with patch.dict(os.environ,{"QR_SCANNER_ML_ENABLED":"true" if ml else "false"}), \
              patch.object(self.main,"decode_qr",return_value=url), \
-             patch.object(self.main,"analyze_tampering",return_value={"tampering_score":0,"tampering_reasons":[]}), \
-             patch.object(self.main,"trace_redirects",side_effect=self._probe_fixtures), \
-             patch.object(self.main,"check_https_valid",side_effect=self._tls_fixture):
+             patch.object(self.main,"analyze_tampering",return_value=tampering or {"tampering_score":0,"tampering_reasons":[]}), \
+             patch.object(self.main,"trace_redirects",side_effect=probe or self._probe_fixtures), \
+             patch.object(self.main,"check_https_valid",side_effect=tls or self._tls_fixture):
             code,raw,_=self.api("/scan","POST",self.token("a@example.test"),body,
                 [(b"content-type",b"multipart/form-data; boundary=local"),*headers])
         self.assertEqual(code,200,raw)
         return json.loads(raw)
 
-    def website(self,url=URL,headers=()):
-        with patch.object(self.main,"trace_redirects",side_effect=self._probe_fixtures), \
-             patch.object(self.main,"check_https_valid",side_effect=self._tls_fixture):
+    def website(self,url=URL,headers=(),probe=None,tls=None):
+        with patch.object(self.main,"trace_redirects",side_effect=probe or self._probe_fixtures), \
+             patch.object(self.main,"check_https_valid",side_effect=tls or self._tls_fixture):
             code,raw,_=self.api("/website/check","POST",self.token("a@example.test"),
                 json.dumps({"url":url}).encode(),[(b"content-type",b"application/json"),*headers])
         self.assertEqual(code,200,raw)
@@ -98,7 +98,45 @@ class RdapIntegrationTests(unittest.TestCase):
             self.assertIsNone(data["risk_score"])
             self.assertEqual(data["risk_score_status"],"unavailable")
             self.assertEqual(data["website_verdict"]["code"],"suspicious")
+            self.assertEqual(data["overall_risk"]["code"],"suspicious")
+        self.assertEqual(qr["overall_risk"],website["overall_risk"])
         self.assertEqual(qr["risk_breakdown"],website["risk_breakdown"])
+
+    def test_completed_deterministic_checks_give_low_overall_risk_without_ml(self):
+        def complete_probe(url,allow_network=True):
+            details={"status":"completed","original_url":url,"final_url":url,"redirect_count":0,
+                "observed_redirects":0,"chain":[url],"hops":[],"final_response_status":200,"reason":"Synthetic completed check."}
+            return [url],details
+        def verified_tls(url,allow_network=True,include_details=False):
+            details={"status":"verified","valid":True,"reason":"Synthetic verified certificate.","hostname":"www.wikipedia.org"}
+            return details if include_details else details["valid"]
+        with patch.object(self.main.registration_client,"lookup",return_value=self.registration()), \
+             patch.object(self.main.reputation_client,"lookup",return_value=self.reputation("clear")):
+            qr=self.scan(probe=complete_probe,tls=verified_tls)
+            website=self.website(probe=complete_probe,tls=verified_tls)
+        for result in (qr,website):
+            self.assertEqual(result["overall_risk"]["code"],"low")
+            self.assertEqual(result["overall_risk"]["level"],"LOW")
+            self.assertIn("does not guarantee safety",result["overall_risk"]["explanation"])
+            self.assertIsNone(result["risk_score"])
+            self.assertIsNone(result["ml_phishing_probability"])
+        self.assertEqual(qr["overall_risk"],website["overall_risk"])
+
+    def test_qr_integrity_warning_takes_precedence_over_clean_url_evidence(self):
+        def complete_probe(url,allow_network=True):
+            details={"status":"completed","original_url":url,"final_url":url,"redirect_count":0,
+                "observed_redirects":0,"chain":[url],"hops":[],"final_response_status":200,"reason":"Synthetic completed check."}
+            return [url],details
+        def verified_tls(url,allow_network=True,include_details=False):
+            details={"status":"verified","valid":True,"reason":"Synthetic verified certificate.","hostname":"www.wikipedia.org"}
+            return details if include_details else details["valid"]
+        with patch.object(self.main.registration_client,"lookup",return_value=self.registration()), \
+             patch.object(self.main.reputation_client,"lookup",return_value=self.reputation("clear")):
+            result=self.scan(probe=complete_probe,tls=verified_tls,
+                tampering={"tampering_score":35,"tampering_reasons":["Synthetic integrity warning."]})
+        self.assertEqual(result["overall_risk"]["code"],"integrity_review")
+        self.assertEqual(result["overall_risk"]["level"],"REVIEW REQUIRED")
+        self.assertEqual(result["risk_score"],None)
 
     def test_missing_registration_does_not_invent_score_or_pass_network_checks(self):
         missing=rdap._result("unavailable","wikipedia.org","No reliable registration date.")
@@ -113,6 +151,7 @@ class RdapIntegrationTests(unittest.TestCase):
         self.assertIsNone(data["https_valid"])
         self.assertEqual(data["redirect_check_status"],"unavailable")
         self.assertEqual(data["website_verdict"]["code"],"no_known_threats")
+        self.assertEqual(data["overall_risk"]["code"],"inconclusive")
         self.assertIn("does not",data["website_verdict"]["explanation"])
 
     def test_known_threat_wins_with_old_domain_and_low_legacy_score(self):
@@ -124,6 +163,7 @@ class RdapIntegrationTests(unittest.TestCase):
         self.assertEqual(qr["risk_score"],0) # round(0.7*0 + 0.3*1), existing formula.
         self.assertEqual(qr["risk_score_status"],"available")
         for data in (qr,website):self.assertEqual(data["website_verdict"]["code"],"known_dangerous")
+        for data in (qr,website):self.assertEqual(data["overall_risk"]["code"],"known_dangerous")
         self.assertIsNone(website["risk_score"])
 
     def test_private_scan_retains_observation_without_saving_row(self):
@@ -171,6 +211,7 @@ class RdapIntegrationTests(unittest.TestCase):
             metadata=json.loads(record.score_explanation)
             self.assertEqual(metadata["domain_registration"]["status"],"available")
             self.assertEqual(metadata["risk_score_status"],"unavailable")
+            self.assertEqual(metadata["overall_risk"],data["overall_risk"])
             self.assertEqual(record.user_id,1)
         with patch.object(self.main.registration_client,"lookup",side_effect=AssertionError("No report lookup")), \
              patch.object(self.main.reputation_client,"lookup",side_effect=AssertionError("No report lookup")):
@@ -178,6 +219,19 @@ class RdapIntegrationTests(unittest.TestCase):
             self.assertEqual(code,200);self.assertTrue(body.startswith(b"%PDF"))
             code,_,_=self.api("/report/"+str(data["scan_id"]),token=self.token("b@example.test"))
             self.assertEqual(code,404)
+
+    def test_qr_pdf_metadata_records_that_experimental_ml_was_excluded(self):
+        with patch.object(self.main.registration_client,"lookup",return_value=self.registration()), \
+             patch.object(self.main.reputation_client,"lookup",return_value=self.reputation("clear")):
+            data=self.scan()
+        self.assertEqual(data["ml_status"],"excluded")
+        self.assertIsNone(data["ml_phishing_probability"])
+        self.assertIsNone(data["risk_score"])
+        with self.database.SessionLocal() as db:
+            record=db.query(self.database.ScanRecord).filter_by(id=data["scan_id"]).one()
+            metadata=json.loads(record.score_explanation)
+        self.assertEqual(metadata["ml_status"],"excluded")
+        self.assertIn("experimental",metadata["ml_note"].lower())
 
     def test_pdf_registration_and_scoring_values_are_xml_escaped(self):
         injection="<script>alert(1)</script> & <tag>"

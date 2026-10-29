@@ -97,8 +97,8 @@ check(result.simple.includes('Unavailable checks have not passed'));
 check(!/Experimental ML|70\/30|Scoring status|Overall Risk|Unavailable:/.test(result.simple));
 
 const reputationObservation = { status: 'clear', reason: 'No known match.', checked_at: new Date().toISOString(), verdict_expires_at: new Date(Date.now() + 60000).toISOString() };
-const completedDeterministic = { ...base, final_url: 'https://en.wikipedia.org/wiki/QR_code',
-    decoded_content: 'https://en.wikipedia.org/wiki/QR_code', domain: 'en.wikipedia.org', registered_domain: 'wikipedia.org',
+const completedDeterministic = { ...base, final_url: 'https://www.wikipedia.org/',
+    decoded_content: 'https://www.wikipedia.org/', domain: 'www.wikipedia.org', registered_domain: 'iwikipedia.org',
     risk_label: 'unverified', risk_score: null, risk_score_status: 'unavailable', risk_score_reason: 'ML excluded; no score calculated.',
     ml_phishing_probability: null, ml_status: 'excluded', ml_note: 'Experimental ML was not used.',
     https_valid: true, https_check_status: 'completed', redirect_check_status: 'completed', redirect_count: 0,
@@ -108,15 +108,22 @@ const completedDeterministic = { ...base, final_url: 'https://en.wikipedia.org/w
 result = render(completedDeterministic);
 const urlAnalysis = findSection(document.getElementById('result-rows'), 'URL Analysis');
 const registeredDomainRow = urlAnalysis?.sectionRows.find(row => row.label === 'Registered domain');
-check(registeredDomainRow?.value === 'wikipedia.org', 'URL Analysis uses the canonical backend registered_domain value exactly');
+check(registeredDomainRow?.value === 'wikipedia.org', 'URL Analysis prefers the canonical RDAP registered domain when available');
 check(!registeredDomainRow.textContent.includes('iwikipedia.org'), 'Info glyph is separated from the registered-domain text');
 const domainInformation = findSection(document.getElementById('result-rows'), 'Domain Information');
-check(domainInformation?.sectionRows.find(row => row.label === 'Registered domain')?.value === 'wikipedia.org', 'Domain Information uses the same canonical field');
+check(domainInformation?.sectionRows.find(row => row.label === 'Registered domain')?.value === 'wikipedia.org', 'Domain Information uses the same canonical display value');
 check(result.banner.includes('No Known Threats Detected') && result.body.includes('No Known Threats Detected'), 'Completed Safe Browsing no-match keeps its existing verdict');
 check(!result.body.includes('Analysis Incomplete'), 'Excluded ML does not mark completed deterministic analysis incomplete');
 check(result.body.includes('combined risk score is unavailable because experimental ML was not used'), 'Score unavailability is attributed specifically to excluded ML');
 check(result.body.includes('Not used; experimental ML is disabled.'), 'Technical details state that experimental ML was not used');
 check(result.body.includes('does not verify legitimacy or guarantee safety'), 'No-match safety limitation remains visible');
+
+result = render({ ...completedDeterministic, registered_domain: 'wikipedia.org',
+    domain_registration: { status: 'unavailable', registered_domain: null } });
+const fallbackUrlAnalysis = findSection(document.getElementById('result-rows'), 'URL Analysis');
+const fallbackDomainInformation = findSection(document.getElementById('result-rows'), 'Domain Information');
+check(fallbackUrlAnalysis?.sectionRows.find(row => row.label === 'Registered domain')?.value === 'wikipedia.org', 'Unavailable RDAP falls back to the backend canonical domain');
+check(fallbackDomainInformation?.sectionRows.find(row => row.label === 'Registered domain')?.value === 'wikipedia.org', 'Both sections retain the same fallback domain');
 
 result = render({ ...completedDeterministic, https_valid: null, https_check_status: 'unavailable',
     redirect_check_status: 'unavailable', redirect_count: null, domain_age_days: null,
@@ -255,6 +262,41 @@ const reputation = (status, expiry = 300000) => ({
     checked_at:new Date().toISOString(), verdict_expires_at:new Date(Date.now() + expiry).toISOString()
 });
 result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
+    live_reputation:reputation('clear'), offline_verdict:{ code:'unverified' },
+    overall_risk:{ code:'low', level:'LOW', label:'NO KNOWN THREATS', tone:'safe',
+        explanation:'Based on completed deterministic checks. No known threat was reported and no rule-based indicators were detected. This does not guarantee safety.',
+        action:'You can open this.' } });
+check(result.banner.includes('Likely safe'), 'Deterministic LOW verdict is available without ML');
+check(result.body.includes('LOW') && result.body.includes('NO KNOWN THREATS'));
+check(result.body.includes('Combined risk score') && result.body.includes('Unavailable'),
+    'Unavailable combined score remains separate from deterministic classification');
+result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
+    live_reputation:reputation('clear', -1000), offline_verdict:{ code:'unverified' },
+    overall_risk:{ code:'low', level:'LOW', label:'NO KNOWN THREATS', tone:'safe',
+        explanation:'Previously completed deterministic checks.', action:'Previously safe action.' } });
+check(result.banner.includes("Can't tell"), 'Expired no-match evidence cannot leave a stale safe banner');
+check(result.body.includes('EVIDENCE UNAVAILABLE'), 'Expired no-match evidence is marked unavailable in the risk panel');
+result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
+    live_reputation:reputation('threat', -1000), offline_verdict:{ code:'unverified' },
+    overall_risk:{ code:'known_dangerous', level:'HIGH', label:'DANGEROUS', tone:'danger',
+        explanation:'Previously reported threat.', action:'Previously dangerous action.' } });
+check(result.banner.includes("Can't tell") && !result.banner.includes('Known Dangerous'),
+    'Expired threat evidence is not presented as a current confirmed threat');
+result = render({ risk_label:'suspicious', risk_score:null, ml_phishing_probability:null,
+    live_reputation:reputation('threat', -1000), offline_verdict:{ code:'suspicious' },
+    risk_breakdown:[{ name:'Lookalike brand', category:'domain' }],
+    overall_risk:{ code:'known_dangerous', level:'HIGH', label:'DANGEROUS', tone:'danger',
+        explanation:'Previously reported threat.', action:'Previously dangerous action.' } });
+check(result.banner.includes('Be careful') && !result.banner.includes('Known Dangerous'),
+    'Independent offline warning remains visible after threat evidence expires');
+result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
+    live_reputation:{ status:'disabled', reason:'Not checked.' },
+    overall_risk:{ code:'inconclusive', level:'INCONCLUSIVE', label:'EVIDENCE UNAVAILABLE', tone:'neutral',
+        explanation:'Important deterministic security evidence could not be completed. Unavailable checks have not passed.',
+        action:'Don\'t pay or log in. Verify the sender first.' } });
+check(result.banner.includes("Can't tell"), 'Incomplete deterministic evidence is not presented as LOW');
+check(result.body.includes('INCONCLUSIVE') && result.body.includes('EVIDENCE UNAVAILABLE'));
+result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
     live_reputation:reputation('clear'), offline_verdict:{ code:'unable_to_verify' } });
 check(result.banner.includes('No Known Threats Detected'));
 check(!result.banner.includes("Can't tell"));
@@ -264,6 +306,19 @@ check(result.body.includes('No known threat match'));
 check(result.body.includes('does not verify legitimacy or guarantee safety'));
 check(result.body.includes('Google Safe Browsing'));
 check(!result.body.includes('Likely safe'));
+result = render({ risk_label:'safe', live_reputation:reputation('clear'), tampering_score:35,
+    tampering_reasons:['Finder pattern proportions need review.'] });
+const integrityNotice = findClass(document.getElementById('result-rows'), 'simple-tampering-warning');
+check(integrityNotice.textContent.includes('destination has no known threat match'),
+    'Clear URL reputation is distinguished from QR image integrity');
+check(integrityNotice.textContent.includes('QR image itself'));
+check(integrityNotice.textContent.includes('Finder pattern proportions need review.'),
+    'Original QR integrity reason remains visible');
+result = render({ risk_label:'unverified', live_reputation:{ status:'unavailable', reason:'Provider timeout.' },
+    tampering_score:35, tampering_reasons:['Synthetic integrity indicator.'] });
+const unavailableIntegrityNotice = findClass(document.getElementById('result-rows'), 'simple-tampering-warning');
+check(unavailableIntegrityNotice.textContent.includes('URL reputation is assessed separately'),
+    'Unavailable URL reputation is not described as a no-threat result');
 result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
     live_reputation:reputation('threat'), offline_verdict:{ code:'unable_to_verify' } });
 check(result.banner.includes('Known Dangerous'));

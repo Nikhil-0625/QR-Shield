@@ -32,7 +32,8 @@ MAX_RESPONSE_BYTES = 64 * 1024
 MAX_CACHE_ENTRIES = 256
 PRIVACY_NOTICE = ("When enabled, the full website URL is sent to Google Safe Browsing. "
                   "Google may use, retain and share submitted URLs and associated data with third parties. "
-                  "Do not submit private or token-bearing links. The submitted website is never visited.")
+                  "Do not submit private or token-bearing links. This reputation query does not open the page; "
+                  "QR Shield may separately run bounded DNS, TLS, and response-header checks when enabled.")
 ACCURACY_NOTICE = ("Google Safe Browsing can miss dangerous sites or flag safe sites by mistake. "
                    "A threat-list match indicates a potential risk; no match does not prove a website is safe.")
 
@@ -274,6 +275,67 @@ def website_verdict(offline_label, reputation):
     return {"code": "unable_to_verify", "title": "Unable to Verify", "tone": "neutral",
             "explanation": "No major warning signs were found by the available offline rules. Website legitimacy could not be verified; unavailable checks have not passed.",
             "action": "Verify the address and sender before logging in, paying, or sharing information."}
+
+
+def deterministic_overall_risk(offline_label, reputation, unavailable_checks=None,
+                               risk_breakdown=None, tampering_warning=False):
+    """Classify current deterministic evidence without producing a numeric score."""
+    reputation = current_reputation(reputation)
+    unavailable_checks = unavailable_checks if isinstance(unavailable_checks, (list, tuple)) else []
+    findings_available = isinstance(risk_breakdown, list)
+    findings = [item for item in risk_breakdown if isinstance(item, dict)] if findings_available else []
+    transport_names = {"HTTP Connection", "HTTPS Downgrade Redirect", "HTTPS Validation Failed"}
+    phishing_findings = [item for item in findings if item.get("category") != "transport"
+                         and item.get("name") not in transport_names]
+    transport_findings = [item for item in findings if item.get("category") == "transport"
+                          or item.get("name") in transport_names]
+
+    if reputation.get("status") == "threat":
+        return {
+            "code": "known_dangerous", "level": "HIGH", "label": "DANGEROUS", "tone": "danger",
+            "explanation": "A known dangerous threat was reported by Google Safe Browsing. The provider can make mistakes.",
+            "action": "Do not visit, download files, log in, or make payments. Verify the address independently.",
+        }
+
+    if offline_label == "suspicious" or phishing_findings:
+        return {
+            "code": "suspicious", "level": "MEDIUM", "label": "SUSPICIOUS", "tone": "warning",
+            "explanation": "Rule-based security indicators require review. These indicators are not proof of phishing.",
+            "action": "Don't enter passwords or payment details. Verify the website independently.",
+        }
+
+    if tampering_warning:
+        return {
+            "code": "integrity_review", "level": "REVIEW REQUIRED", "label": "SUSPICIOUS", "tone": "warning",
+            "explanation": "The QR integrity detector reported an image warning. This concerns the QR image and does not establish that its destination is dangerous.",
+            "action": "Review the QR image and verify its destination with the sender before proceeding.",
+        }
+
+    missing = [str(item) for item in unavailable_checks
+               if not re.search(r"\bml\b|machine learning", str(item), re.IGNORECASE)]
+    if not findings_available:
+        missing.append("Rule-based analysis")
+    if reputation.get("status") not in {"clear", "threat"} and not any("reputation" in item.lower() for item in missing):
+        missing.append("Live reputation")
+    if missing:
+        return {
+            "code": "inconclusive", "level": "INCONCLUSIVE", "label": "EVIDENCE UNAVAILABLE", "tone": "neutral",
+            "explanation": "Important deterministic security evidence could not be completed. Unavailable checks have not passed.",
+            "action": "Verify the address and sender independently before logging in, paying, or sharing information.",
+        }
+
+    if transport_findings:
+        return {
+            "code": "transport_warning", "level": "CAUTION", "label": "CONNECTION WARNING", "tone": "warning",
+            "explanation": "A connection security warning was detected. It is a transport risk, not proof of phishing.",
+            "action": "Avoid entering passwords or payment details over this connection. Verify the address independently.",
+        }
+
+    return {
+        "code": "low", "level": "LOW", "label": "NO KNOWN THREATS", "tone": "safe",
+        "explanation": "Based on completed deterministic checks. No known threat was reported and no rule-based indicators were detected. This does not guarantee safety.",
+        "action": "Check the address and sender before sharing sensitive information. A new or unlisted threat may be missed.",
+    }
 
 
 class SafeBrowsingClient:

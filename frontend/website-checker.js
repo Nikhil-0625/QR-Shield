@@ -64,6 +64,21 @@
     function addDetail(list, label, value) {
         list.append(node('dt', label), node('dd', value === null || value === undefined || value === '' ? 'Not available' : value));
     }
+    function expiredOverallRisk(data) {
+        const existing = data.overall_risk;
+        if (existing && ['suspicious', 'integrity_review', 'inconclusive'].includes(existing.code)) return existing;
+        const hasRuleWarning = data.offline_verdict?.code === 'suspicious' ||
+            ['suspicious', 'unsafe'].includes(String(data.risk_label || '').toLowerCase()) ||
+            (Array.isArray(data.risk_breakdown) && data.risk_breakdown.some(item => item && item.category !== 'transport' &&
+                !['HTTP Connection', 'HTTPS Downgrade Redirect', 'HTTPS Validation Failed'].includes(item.name)));
+        return hasRuleWarning
+            ? { code: 'suspicious', level: 'MEDIUM', label: 'SUSPICIOUS', tone: 'warning',
+                explanation: 'Rule-based security indicators require review. These indicators are not proof of phishing.',
+                action: "Don't enter passwords or payment details. Verify the website independently." }
+            : { code: 'inconclusive', level: 'INCONCLUSIVE', label: 'EVIDENCE UNAVAILABLE', tone: 'neutral',
+                explanation: 'The live reputation result has expired. Unavailable checks have not passed.',
+                action: 'Verify the address and sender independently before logging in, paying, or sharing information.' };
+    }
     function setWebsiteResultView(view) {
         const technical = view === 'technical';
         results.dataset.resultView = technical ? 'technical' : 'simple';
@@ -155,7 +170,10 @@
         if (['threat', 'clear'].includes(reputation.status) && (!Number.isFinite(expires) || expires <= Date.now())) {
             reputation = { status: 'unavailable', reason: 'The reputation observation has expired. Analyze the website again for a current result.' };
             const offline = data.offline_verdict || { code: data.risk_label === 'suspicious' ? 'suspicious' : 'unable_to_verify' };
-            data = { ...data, website_verdict: offline, explanation: offline?.explanation || 'Reputation evidence has expired. The available offline rules do not verify website legitimacy.', recommended_action: offline?.action || "Verify the address and sender before logging in or paying." };
+            const unavailable = Array.isArray(data.unavailable_checks) ? data.unavailable_checks : [];
+            data = { ...data, overall_risk: expiredOverallRisk(data), unavailable_checks: [...new Set([...unavailable, 'Live reputation'])],
+                website_verdict: offline, explanation: offline?.explanation || 'Reputation evidence has expired. The available offline rules do not verify website legitimacy.',
+                recommended_action: offline?.action || "Verify the address and sender before logging in or paying." };
         }
         const state = ['threat', 'clear', 'unavailable', 'disabled'].includes(reputation.status) ? reputation.status : 'unavailable';
         const fallbackCode = data.risk_label === 'safe' && state !== 'clear' ? 'unable_to_verify' : data.risk_label;
@@ -166,12 +184,22 @@
             suspicious: { ...verdicts.suspicious, title: 'Suspicious — Proceed with Caution' },
             unable_to_verify: verdicts.unverified
         };
-        const verdict = liveVerdicts[resultCode] || verdicts[data.risk_label] || verdicts.unverified;
+        const overallRisk = data.overall_risk && typeof data.overall_risk === 'object'
+            && ['known_dangerous', 'suspicious', 'integrity_review', 'transport_warning', 'inconclusive', 'low'].includes(data.overall_risk.code)
+            ? data.overall_risk : null;
+        const overallSymbols = {
+            safe: 'm8 12 3 3 5-6', warning: 'M12 8v5m0 3h.01',
+            danger: 'M12 8v5m0 3h.01', neutral: 'M9.5 9a2.5 2.5 0 1 1 4.4 1.6c-.9.5-1.9.9-1.9 2.4m0 3h.01'
+        };
+        const verdict = overallRisk
+            ? { label: 'Overall Risk · ' + overallRisk.label, title: overallRisk.level,
+                tone: overallRisk.tone, symbol: overallSymbols[overallRisk.tone] || overallSymbols.neutral }
+            : liveVerdicts[resultCode] || verdicts[data.risk_label] || verdicts.unverified;
         byId('website-verdict').dataset.tone = verdict.tone;
         byId('website-verdict-label').textContent = verdict.label;
         byId('website-verdict-title').textContent = verdict.title;
         byId('website-verdict-symbol').setAttribute('d', verdict.symbol);
-        byId('website-action').textContent = data.recommended_action;
+        byId('website-action').textContent = overallRisk?.action || data.recommended_action;
         byId('website-normalized-url').textContent = data.normalized_url;
         byId('website-ml-note').textContent = data.ml_note || 'ML output is unavailable and is not used in this verdict.';
 
@@ -195,7 +223,7 @@
         byId('website-google-warning').hidden = state !== 'threat';
 
         const findingsForSimple = renderSimpleChecks(data, reputation, state);
-        byId('website-explanation').textContent = simpleExplanation(resultCode, findingsForSimple, state);
+        byId('website-explanation').textContent = overallRisk?.explanation || simpleExplanation(resultCode, findingsForSimple, state);
 
         const findings = byId('website-findings');
         findings.replaceChildren();
@@ -244,6 +272,8 @@
         addDetail(technical, 'Source', 'Website Link');
         addDetail(technical, 'Analysis explanation', data.explanation);
         addDetail(technical, 'Recommended action', data.recommended_action);
+        addDetail(technical, 'Deterministic overall risk', overallRisk ? overallRisk.level + ' — ' + overallRisk.label : 'Unavailable');
+        addDetail(technical, 'Overall risk explanation', overallRisk?.explanation || 'No deterministic overall-risk classification was returned.');
         addDetail(technical, 'Live reputation response', reputation.reason);
         const validScore = typeof data.risk_score === 'number' && Number.isFinite(data.risk_score) && data.risk_score >= 0 && data.risk_score <= 100;
         addDetail(technical, 'Combined risk score', validScore ? data.risk_score + ' / 100' : 'Not calculated — unavailable.');
@@ -273,6 +303,11 @@
     }
     function validResponse(data) {
         return data && data.status === 'success' && typeof data.normalized_url === 'string' && typeof data.explanation === 'string' && typeof data.recommended_action === 'string' &&
+            (!data.overall_risk || (data.overall_risk && typeof data.overall_risk === 'object' &&
+                ['known_dangerous', 'suspicious', 'integrity_review', 'transport_warning', 'inconclusive', 'low'].includes(data.overall_risk.code) &&
+                ['HIGH', 'MEDIUM', 'REVIEW REQUIRED', 'CAUTION', 'INCONCLUSIVE', 'LOW'].includes(data.overall_risk.level) &&
+                typeof data.overall_risk.label === 'string' && typeof data.overall_risk.explanation === 'string' &&
+                typeof data.overall_risk.action === 'string' && ['danger', 'warning', 'neutral', 'safe'].includes(data.overall_risk.tone))) &&
             (!data.website_verdict || (['known_dangerous', 'no_known_threats', 'suspicious', 'unable_to_verify'].includes(data.website_verdict.code) &&
                 (data.website_verdict.code !== 'known_dangerous' || data.live_reputation?.status === 'threat') &&
                 (data.website_verdict.code !== 'no_known_threats' || (data.live_reputation?.status === 'clear' && data.risk_label !== 'suspicious')))) &&

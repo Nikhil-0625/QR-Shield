@@ -157,7 +157,7 @@
 
                 <div class="website-input-row"><input id="website-url" name="url" type="text" inputmode="url" autocomplete="off" autocapitalize="none" spellcheck="false" maxlength="8192" placeholder="https://www.wikipedia.org" aria-describedby="website-url-help website-input-status" required><button class="secondary-btn" id="website-paste" type="button"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="13" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h2"/></svg>Paste URL</button></div>
 
-                <p class="website-helper" id="website-url-help">HTTP and HTTPS links only. QR Shield will not visit or fetch this address.</p>
+                <p class="website-helper" id="website-url-help">HTTP and HTTPS links only. QR Shield does not open the page or download its body. When enabled, it may check TLS and bounded redirect response headers.</p>
 
                 <p class="website-example">Example: <code>https://www.wikipedia.org</code></p>
 
@@ -203,7 +203,7 @@
 
                 <h3><span aria-hidden="true">03</span>Privacy &amp; limitations</h3>
 
-                <p>The destination website is never visited or fetched. External reputation queries transmit the URL to Google. Low calculated risk is an indicator, not a guarantee of safety. Saved checks appear in your account history.</p>
+                <p>The webpage body, scripts, and subresources are not downloaded. When enabled, QR Shield may resolve the hostname, verify TLS, and inspect bounded redirect response headers. Google Safe Browsing receives the full URL; RDAP receives only the registered domain. A low calculated risk is not a guarantee of safety. Saved checks appear in your account history.</p>
 
             </div>
 
@@ -277,7 +277,7 @@
 
         </div>
 
-        <div class="website-limitations"><strong>Before you continue</strong><p>The submitted website is never opened or fetched. This result does not confirm that the destination is safe. Verify the address and sender before sharing passwords or payment details.</p><p id="website-ml-note" class="website-technical-only"></p></div>
+        <div class="website-limitations"><strong>Before you continue</strong><p>The page is not opened in a browser and its body is not downloaded. Enabled checks may resolve the hostname, verify TLS, inspect bounded redirect response headers, send the URL to Google Safe Browsing, and send the registered domain to RDAP. Review which checks completed. This result does not confirm that the destination is safe. Verify the address and sender before sharing passwords or payment details.</p><p id="website-ml-note" class="website-technical-only"></p></div>
 
         <details class="website-technical"><summary>Technical details <span>For reference only — not a probability.</span></summary><dl id="website-technical-data"></dl></details>
 

@@ -760,7 +760,7 @@ class SafeBrowsingWebsiteIntegrationTests(unittest.TestCase):
             with patch.object(self.main.SimpleDocTemplate, "build") as build:
                 self.main._build_report(record)
             story = build.call_args.args[0]
-            self.assertEqual(story[0].getPlainText(), "No Known Threats Detected")
+            self.assertEqual(story[0].getPlainText(), "Can't tell")
             report_text = "\n".join(paragraph_xml(story))
             self.assertIn("does not prove a website is safe", report_text)
             self.assertIn("Google Safe Browsing", report_text)
@@ -769,7 +769,7 @@ class SafeBrowsingWebsiteIntegrationTests(unittest.TestCase):
             record.score_explanation = json.dumps(metadata)
             with patch.object(self.main.SimpleDocTemplate, "build") as build:
                 self.main._build_report(record)
-            self.assertEqual(build.call_args.args[0][0].getPlainText(), "Unable to Verify")
+            self.assertEqual(build.call_args.args[0][0].getPlainText(), "Can't tell")
         self.assert_offline()
 
     def test_known_threat_and_offline_warnings_are_never_downgraded(self):
@@ -890,7 +890,7 @@ class SafeBrowsingWebsiteIntegrationTests(unittest.TestCase):
                 record.score_explanation = json.dumps(metadata)
                 with patch.object(self.main.SimpleDocTemplate, "build") as build:
                     self.main._build_report(record)
-                self.assertEqual(build.call_args.args[0][0].getPlainText(), "Unable to Verify")
+                self.assertEqual(build.call_args.args[0][0].getPlainText(), "Can't tell")
         lookup.assert_not_called()
         self.assert_offline()
 
@@ -916,10 +916,10 @@ class SafeBrowsingWebsiteIntegrationTests(unittest.TestCase):
 
     def test_pdf_attribution_only_applies_to_a_current_google_threat_warning(self):
         fixtures = [
-            ("http://paypal-login.example.com/verify", self.reputation("clear"), "Suspicious", False),
-            (URL, self.reputation("clear"), "No Known Threats Detected", False),
-            (URL, self.reputation("disabled"), "Unable to Verify", False),
-            (URL, self.reputation("threat", age=1801, ttl=3600), "Unable to Verify", False),
+            ("http://paypal-login.example.com/verify", self.reputation("clear"), "Be careful", False),
+            (URL, self.reputation("clear"), "Can't tell", False),
+            (URL, self.reputation("disabled"), "Can't tell", False),
+            (URL, self.reputation("threat", age=1801, ttl=3600), "Can't tell", False),
             (URL, self.reputation("threat"), "Known Dangerous", True),
         ]
         for url, reply, title, attributed in fixtures:

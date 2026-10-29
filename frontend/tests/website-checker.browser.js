@@ -5,6 +5,7 @@ window.runWebsiteCheckerChecks = async function () {
     const id = value => document.getElementById(value);
     const wait = async predicate => { for (let n = 0; n < 100; n++) { if (predicate()) return; await new Promise(resolve => setTimeout(resolve, 10)); } throw new Error('Synthetic browser state did not settle'); };
     const fixture = (changes = {}) => ({ status: 'success', submitted_url: 'https://example.test/', normalized_url: 'https://example.test/', domain: 'example.test', registered_domain: 'example.test', decoded_content: 'https://example.test/', final_url: 'https://example.test/', risk_score: null, risk_label: 'unverified', rule_score: 0, risk_breakdown: [], ml_status: 'excluded', ml_note: 'Experimental ML excluded: training and inference features are not fully compatible.', network_analysis: 'offline', security_checks: [{ name: 'URL structure', status: 'checked', detail: 'Inspected the address offline.' }, { name: 'TLS certificate', status: 'unavailable', detail: 'Not checked. No network requests were made.' }], unavailable_checks: ['TLS certificate', 'Domain age', 'Redirect journey'], explanation: 'No major rule-based indicators were found, but this website could not be verified.', recommended_action: 'Verify the sender before paying or logging in.', scan_id: 17, ...changes });
+    const overallRisk = (code, level, label, tone, explanation, action) => ({ code, level, label, tone, explanation, action });
     window.__websiteFixture = fixture;
     const jsonResponse = data => ({ ok: true, status: 200, json: async () => data });
     let requests = [], downloads = [], navigations = 0;
@@ -144,6 +145,27 @@ window.runWebsiteCheckerChecks = async function () {
         check(id('website-reputation-data').textContent.includes('Google Safe Browsing') && id('website-reputation-data').textContent.includes('2026-10-25T12:00:00Z'), 'Provider and analysis timestamp rendered');
         check(id('website-google-warning').hidden, 'No-match does not attribute an offline warning to Google');
         check(document.querySelector('.website-reputation-limits').textContent.includes('does not prove safety'), 'Live no-match retains false-negative disclaimer');
+        await show(fixture({ risk_label: 'unverified', risk_score: null, ml_phishing_probability: null,
+            overall_risk: overallRisk('low', 'LOW', 'NO KNOWN THREATS', 'safe',
+                'Based on completed deterministic checks. No known threat was reported and no rule-based indicators were detected. This does not guarantee safety.',
+                'Check the address and sender before sharing sensitive information.'),
+            live_reputation: observation('clear'), website_verdict: { code: 'no_known_threats' }, unavailable_checks: ['ML verdict'] }));
+        check(id('website-verdict-label').textContent.includes('Overall Risk') && id('website-verdict-title').textContent === 'LOW',
+            'Deterministic low result is primary when ML is excluded');
+        check(id('website-explanation').textContent.includes('does not guarantee safety'),
+            'Low result retains its no-guarantee explanation');
+        check(id('website-technical-data').textContent.includes('Combined risk score') && id('website-technical-data').textContent.includes('Not calculated'),
+            'Combined score stays unavailable separately from deterministic risk');
+        await show(fixture({ risk_label: 'unverified', overall_risk: overallRisk('known_dangerous', 'HIGH', 'DANGEROUS', 'danger',
+            'A known dangerous threat was reported by Google Safe Browsing.', 'Do not visit this address.'),
+            live_reputation: observation('threat'), website_verdict: { code: 'known_dangerous' } }));
+        check(id('website-verdict-title').textContent === 'HIGH' && id('website-verdict').dataset.tone === 'danger',
+            'Deterministic high result uses danger presentation');
+        await show(fixture({ risk_label: 'unverified', live_reputation: { status: 'disabled', reason: 'Not checked.' },
+            overall_risk: overallRisk('inconclusive', 'INCONCLUSIVE', 'EVIDENCE UNAVAILABLE', 'neutral',
+                'Important deterministic security evidence could not be completed. Unavailable checks have not passed.', 'Verify independently.') }));
+        check(id('website-verdict-title').textContent === 'INCONCLUSIVE' && id('website-verdict').dataset.tone === 'neutral',
+            'Unavailable evidence never falls through to LOW');
         const maliciousType = '<script>window.__websiteInjection=3</script>';
         await show(fixture({ live_reputation: { ...observation('threat'), threat_types: ['SOCIAL_ENGINEERING', maliciousType] }, website_verdict: { code: 'known_dangerous' }, offline_verdict: offlineVerdict }));
         check(id('website-verdict-label').textContent === 'Known Dangerous' && id('website-verdict').dataset.tone === 'danger', 'Known threat is prominent and qualified');
@@ -156,6 +178,24 @@ window.runWebsiteCheckerChecks = async function () {
         check(id('website-verdict-title').textContent === 'Unable to Verify' && id('website-reputation-detail').textContent === 'The live threat check could not be completed.', 'Provider failures preserve honest unknown state without exposing raw error detail');
         await show(fixture({ live_reputation: observation('threat', -1000), website_verdict: { code: 'known_dangerous' }, offline_verdict: offlineVerdict }));
         check(id('website-verdict-title').textContent === 'Unable to Verify' && id('website-google-warning').hidden, 'Expired provider match is never shown as a current Google warning');
+        await show(fixture({ risk_label: 'unverified', overall_risk: overallRisk('low', 'LOW', 'NO KNOWN THREATS', 'safe',
+            'Previously completed deterministic checks.', 'Previously safe action.'),
+            live_reputation: observation('clear', -1000), website_verdict: { code: 'no_known_threats' } }));
+        check(id('website-verdict-title').textContent === 'INCONCLUSIVE' && id('website-verdict').dataset.tone === 'neutral',
+            'Expired no-match evidence cannot leave a stale LOW result');
+        check(id('website-technical-data').textContent.includes('Live reputation'),
+            'Expired reputation is listed as unavailable in technical details');
+        await show(fixture({ risk_label: 'unverified', overall_risk: overallRisk('known_dangerous', 'HIGH', 'DANGEROUS', 'danger',
+            'Previously reported threat.', 'Previously dangerous action.'),
+            live_reputation: observation('threat', -1000), website_verdict: { code: 'known_dangerous' }, offline_verdict: offlineVerdict }));
+        check(id('website-verdict-title').textContent === 'INCONCLUSIVE' && id('website-google-warning').hidden,
+            'Expired threat evidence is no longer shown as current or dangerous');
+        await show(fixture({ risk_label: 'suspicious', overall_risk: overallRisk('known_dangerous', 'HIGH', 'DANGEROUS', 'danger',
+            'Previously reported threat.', 'Previously dangerous action.'), risk_breakdown: [{ name: 'Lookalike brand', category: 'domain' }],
+            live_reputation: observation('threat', -1000), website_verdict: { code: 'known_dangerous' },
+            offline_verdict: { code: 'suspicious' } }));
+        check(id('website-verdict-title').textContent === 'MEDIUM' && id('website-verdict').dataset.tone === 'warning',
+            'Rule-based warning remains after provider threat evidence expires');
         await show(fixture({ live_reputation: observation('threat', 150), website_verdict: { code: 'known_dangerous' }, offline_verdict: offlineVerdict }));
         const beforeExpiry = requests.length;
         await wait(() => id('website-google-warning').hidden);

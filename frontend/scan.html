@@ -5055,6 +5055,49 @@
     }
 
 
+    function getCurrentOverallRisk(data) {
+
+        const overallRisk = data.overall_risk;
+
+        if (!overallRisk || !["known_dangerous", "suspicious", "integrity_review", "transport_warning", "inconclusive", "low"].includes(overallRisk.code)) return null;
+
+        const originalStatus = data.live_reputation?.status;
+
+        const reputationExpired = ["threat", "clear"].includes(originalStatus) && getCurrentReputationStatus(data) === "unavailable";
+
+        if (!reputationExpired || !["known_dangerous", "low", "transport_warning"].includes(overallRisk.code)) return overallRisk;
+
+        const offlineWarning = data.offline_verdict?.code === "suspicious" ||
+
+            ["suspicious", "unsafe"].includes(String(data.risk_label || "").toLowerCase()) ||
+
+            (Array.isArray(data.risk_breakdown) && data.risk_breakdown.some(item => item && item.category !== "transport" &&
+
+                !["HTTP Connection", "HTTPS Downgrade Redirect", "HTTPS Validation Failed"].includes(item.name)));
+
+        if (offlineWarning) return {
+
+            code: "suspicious", level: "MEDIUM", label: "SUSPICIOUS", tone: "warning",
+
+            explanation: "Rule-based security indicators require review. These indicators are not proof of phishing.",
+
+            action: "Don't enter passwords or payment details. Verify the website independently."
+
+        };
+
+        return {
+
+            code: "inconclusive", level: "INCONCLUSIVE", label: "EVIDENCE UNAVAILABLE", tone: "neutral",
+
+            explanation: "The live reputation result has expired. Unavailable checks have not passed.",
+
+            action: "Verify the address and sender independently before logging in, paying, or sharing information."
+
+        };
+
+    }
+
+
 
     function getUrlReputationVerdict(data) {
 
@@ -5882,6 +5925,23 @@
 
         if (!isUrlContent || typeof data.decoded_content !== "string" || !data.decoded_content.trim()) return null;
 
+        const overallRisk = getCurrentOverallRisk(data);
+
+        const deterministicVerdicts = {
+            low: { title: "Likely safe", className: "verdict-safe", icon: "shield" },
+            known_dangerous: { title: "Known Dangerous", className: "verdict-dangerous", icon: "warning" },
+            suspicious: { title: "Be careful", className: "verdict-suspicious", icon: "warning" },
+            integrity_review: { title: "Be careful", className: "verdict-suspicious", icon: "warning" },
+            transport_warning: { title: "Be careful", className: "verdict-suspicious", icon: "warning" },
+            inconclusive: { title: "Can't tell", className: "verdict-unknown", icon: "question" }
+        };
+
+        if (overallRisk && deterministicVerdicts[overallRisk.code]) {
+
+            return { ...deterministicVerdicts[overallRisk.code], action: overallRisk.action };
+
+        }
+
         const reputationVerdict = getUrlReputationVerdict(data);
 
         if (reputationVerdict) return reputationVerdict;
@@ -6218,11 +6278,17 @@
 
         const resultRows = document.getElementById("result-rows");
 
-        // This is the canonical registered-domain field from the backend. Do not
-        // infer it from the hostname or path in the browser.
-        const canonicalRegisteredDomain = typeof data.registered_domain === "string" && data.registered_domain
-
-            ? data.registered_domain : null;
+        // Prefer the canonical RDAP domain when that lookup completed; otherwise
+        // use the backend's offline public-suffix result. Never derive this in the UI.
+        const registration = data.domain_registration && typeof data.domain_registration === "object"
+            ? data.domain_registration : {};
+        const rdapRegisteredDomain = registration.status === "available"
+            && typeof registration.registered_domain === "string"
+            && registration.registered_domain.trim()
+            ? registration.registered_domain.trim() : null;
+        const backendRegisteredDomain = typeof data.registered_domain === "string" && data.registered_domain.trim()
+            ? data.registered_domain.trim() : null;
+        const canonicalRegisteredDomain = rdapRegisteredDomain || backendRegisteredDomain;
 
         const technicalDetails = document.getElementById("result-technical-details");
 
@@ -6260,13 +6326,29 @@
 
             riskHeading.className = "risk-heading";
 
-            riskHeading.appendChild(createInfoLabel("Overall Risk", "The backend's existing 70/30 heuristic score, when available. It is not a phishing probability; missing checks have not passed."));
+            const overallRisk = getCurrentOverallRisk(data);
+
+            riskHeading.appendChild(createInfoLabel("Overall Risk", overallRisk
+
+                ? "A deterministic classification from security evidence. It is not a numerical probability; missing checks have not passed."
+
+                : "The backend's existing combined heuristic score, when available. It is not a phishing probability; missing checks have not passed."));
 
             const riskBadge = document.createElement("span");
 
-            riskBadge.className = "risk-badge " + (label === "safe" || label === "suspicious" || label === "unsafe" ? label : "neutral");
+            const overallTones = { safe: "safe", warning: "suspicious", danger: "unsafe", neutral: "neutral" };
 
-            riskBadge.textContent = label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Suspicious" : "Unavailable";
+            riskBadge.className = "risk-badge " + (overallRisk
+
+                ? (overallTones[overallRisk.tone] || "neutral")
+
+                : (label === "safe" || label === "suspicious" || label === "unsafe" ? label : "neutral"));
+
+            riskBadge.textContent = overallRisk
+
+                ? String(overallRisk.label || "")
+
+                : label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Suspicious" : "Unavailable";
 
             riskHeading.appendChild(riskBadge);
 
@@ -6278,15 +6360,19 @@
 
             scoreEl.className = "risk-score";
 
-            scoreEl.textContent = hasScore ? score : "Unavailable";
+            scoreEl.textContent = overallRisk
 
-            scoreEl.setAttribute("data-unavailable", String(!hasScore));
+                ? String(overallRisk.level || "INCONCLUSIVE")
+
+                : hasScore ? score : "Unavailable";
+
+            scoreEl.setAttribute("data-unavailable", String(overallRisk ? true : !hasScore));
 
             const outOf = document.createElement("span");
 
             outOf.className = "risk-out-of";
 
-            outOf.textContent = hasScore ? "/100" : "";
+            outOf.textContent = overallRisk ? "" : hasScore ? "/100" : "";
 
             scoreWrap.append(scoreEl, outOf);
 
@@ -6306,7 +6392,7 @@
 
             track.appendChild(fill);
 
-            track.hidden = !hasScore;
+            track.hidden = overallRisk ? true : !hasScore;
 
             const riskMeta = document.createElement("div");
 
@@ -6314,9 +6400,11 @@
 
             const classificationLabel = document.createElement("span");
 
-            classificationLabel.textContent = "Calculated classification";
+            classificationLabel.textContent = overallRisk ? "Assessment basis" : "Calculated classification";
 
-            const classification = label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Suspicious" : "Unavailable";
+            const classification = overallRisk ? "Deterministic security evidence"
+
+                : label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Suspicious" : "Unavailable";
 
             const classificationValue = document.createElement("span");
 
@@ -6332,7 +6420,9 @@
 
             const originalVerdict = document.createElement("p");
 
-            originalVerdict.textContent = technicalVerdict.title + ": " + technicalVerdict.explanation;
+            originalVerdict.textContent = overallRisk ? overallRisk.explanation
+
+                : technicalVerdict.title + ": " + technicalVerdict.explanation;
 
             riskPanel.append(originalVerdict, plainVerdict, riskHeading, track, riskMeta, evidence);
 
@@ -6431,7 +6521,6 @@
 
             }
 
-            const registration = data.domain_registration && typeof data.domain_registration === "object" ? data.domain_registration : {};
             const domainAge = data.domain_age_days;
             resultRows.appendChild(createSection("Domain Information", "link", [
                 ["Registered domain", canonicalRegisteredDomain],
@@ -6896,13 +6985,21 @@
 
             const heading = document.createElement("strong");
 
-            heading.textContent = "This QR code may have been altered — handle with caution.";
+            heading.textContent = "QR image integrity needs review.";
+
+            const context = document.createElement("p");
+
+            context.textContent = getCurrentReputationStatus(data) === "clear"
+
+                ? "The destination has no known threat match; this separate warning concerns the QR image itself."
+
+                : "This warning concerns the QR image itself; URL reputation is assessed separately.";
 
             const reasons = document.createElement("p");
 
             reasons.textContent = tamperingReasons.length ? tamperingReasons.join("; ") : "Review the QR source before using it; no additional explanation was provided.";
 
-            warning.append(heading, reasons);
+            warning.append(heading, context, reasons);
 
             simpleCopy.appendChild(warning);
 

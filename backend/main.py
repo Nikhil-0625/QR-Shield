@@ -33,7 +33,7 @@ from demo_runtime import restricted_demo, load_production_model, scan_jobs, repo
 from api_security import ApiBoundary
 from url_policy import MAX_QR_BYTES, MAX_URL_LENGTH, network_notice, url_input_error
 from website_input import normalize_website_url, WEBSITE_NETWORK_NOTICE
-from safe_browsing import client as reputation_client, current_reputation, website_verdict, PRIVACY_NOTICE, ACCURACY_NOTICE, ADVISORY_URL
+from safe_browsing import client as reputation_client, current_reputation, website_verdict, deterministic_overall_risk, PRIVACY_NOTICE, ACCURACY_NOTICE, ADVISORY_URL
 from rdap import client as registration_client
 from upi_security import analyze_upi, upi_intent_banner
 import history_views
@@ -901,29 +901,40 @@ def _analyze_scan(contents, current_user, expected_vpa, private_scan=False, allo
         )
         url_verdict = website_verdict(offline_label, reputation)
         unavailable = _url_unavailable_checks(result, include_ml, reputation)
+        integrity_warning = (
+            tampering_result.get("tampering_score", 0) > 0
+            or bool(tampering_result.get("tampering_reasons"))
+        )
+        overall_risk = deterministic_overall_risk(
+            offline_label, reputation, unavailable, result.get("risk_breakdown"), integrity_warning
+        )
         result.update({
             "analysis_source": "qr",
             "live_reputation": reputation,
             "website_verdict": url_verdict,
+            "overall_risk": overall_risk,
             "offline_verdict": website_verdict(offline_label, None),
             "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
             "unavailable_checks": unavailable,
             "reputation_privacy_notice": PRIVACY_NOTICE,
             "reputation_accuracy_notice": ACCURACY_NOTICE,
         })
-        score_explanation = result.get("score_explanation")
-        result["score_explanation"] = {
-            **(score_explanation if isinstance(score_explanation, dict) else {}),
-            "analysis_source": "qr",
-            "offline_risk_label": offline_label,
-            "live_reputation": reputation,
-        }
         if not include_ml:
             result["ml_status"] = "excluded"
             result["ml_note"] = (
                 "ML is excluded from QR risk scoring: the production model is experimental, "
                 "uncalibrated, and exhibits false-positive bias on HTTPS URLs. No artificial score is added."
             )
+        score_explanation = result.get("score_explanation")
+        result["score_explanation"] = {
+            **(score_explanation if isinstance(score_explanation, dict) else {}),
+            "analysis_source": "qr",
+            "offline_risk_label": offline_label,
+            "live_reputation": reputation,
+            "overall_risk": overall_risk,
+            "ml_status": result.get("ml_status", "used"),
+            "ml_note": result.get("ml_note"),
+        }
     else:
         upi_details = parse_upi_payment_uri(qr_content)
         if upi_details is not None:
@@ -988,6 +999,9 @@ def _analyze_website(raw_url, current_user, allow_live=True):
     )
     verdict = website_verdict(offline_label, reputation)
     unavailable = _url_unavailable_checks(result, False, reputation)
+    overall_risk = deterministic_overall_risk(
+        offline_label, reputation, unavailable, result.get("risk_breakdown"), False
+    )
     checks = [
         {"name": "URL structure", "status": "checked", "detail": "Offline syntax and URL-structure rules were applied."},
         {"name": "Hostname and registered domain", "status": "checked", "detail": "Parsed using the bundled public-suffix data; this does not establish site ownership."},
@@ -1008,12 +1022,14 @@ def _analyze_website(raw_url, current_user, allow_live=True):
         "analysis_timestamp": datetime.now(timezone.utc).isoformat(),
         "security_checks": checks, "unavailable_checks": unavailable,
         "live_reputation": reputation, "website_verdict": verdict,
+        "overall_risk": overall_risk,
         "offline_verdict": website_verdict(offline_label, None),
         "explanation": verdict["explanation"], "recommended_action": verdict["action"],
         "score_explanation": {**result["score_explanation"], "analysis_source": "website", "ml_status": "excluded", "ml_note": ml_note,
                               "submitted_url": raw_url, "explanation": explanation,
                               "recommended_action": action, "security_checks": checks,
-                              "live_reputation": reputation, "offline_risk_label": offline_label},
+                              "live_reputation": reputation, "offline_risk_label": offline_label,
+                              "overall_risk": overall_risk},
     })
     return _save_analysis(result, current_user)
 
@@ -1100,9 +1116,56 @@ def _load_stored_json(value, expected_type):
     return parsed if isinstance(parsed, expected_type) else None
 
 
+def _report_overall_risk(metadata):
+    """Validate persisted deterministic verdict metadata for PDF presentation."""
+    if not isinstance(metadata, dict):
+        return None
+    stored = metadata.get("overall_risk")
+    if not isinstance(stored, dict):
+        return None
+    presentation = {
+        "known_dangerous": ("HIGH", "DANGEROUS", "danger", "#B4233E"),
+        "suspicious": ("MEDIUM", "SUSPICIOUS", "warning", "#92400e"),
+        "integrity_review": ("REVIEW REQUIRED", "SUSPICIOUS", "warning", "#92400e"),
+        "inconclusive": ("INCONCLUSIVE", "EVIDENCE UNAVAILABLE", "neutral", "#475569"),
+        "transport_warning": ("CAUTION", "CONNECTION WARNING", "warning", "#92400e"),
+        "low": ("LOW", "NO KNOWN THREATS", "safe", "#166534"),
+    }
+    code = stored.get("code")
+    if code not in presentation:
+        return None
+    reputation = current_reputation(metadata.get("live_reputation"))
+    if code == "known_dangerous" and reputation.get("status") != "threat":
+        code = "inconclusive"
+    elif code in {"low", "transport_warning"} and reputation.get("status") != "clear":
+        code = "inconclusive"
+    if code != stored.get("code"):
+        explanation = "Important live reputation evidence is no longer current. Unavailable checks have not passed."
+        action = "Verify the address and sender independently before logging in, paying, or sharing information."
+    else:
+        explanation, action = stored.get("explanation"), stored.get("action")
+    if not isinstance(explanation, str) or not isinstance(action, str):
+        return None
+    if len(explanation) > 4000 or len(action) > 2000:
+        return None
+    level, label, tone, color = presentation[code]
+    return {
+        "code": code, "level": level, "label": label, "tone": tone,
+        "color": color, "explanation": explanation, "action": action,
+    }
+
+
 def _report_summary(record, redirect_chain, tampering_reasons):
     metadata = _load_stored_json(getattr(record, "score_explanation", None), dict) or {}
     if metadata.get("analysis_source") in {"website", "qr"}:
+        overall_risk = _report_overall_risk(metadata)
+        if overall_risk:
+            summary = overall_risk["level"] + ": " + overall_risk["explanation"]
+            summary += " Recommended action: " + overall_risk["action"]
+            if metadata.get("analysis_source") == "qr" and tampering_reasons:
+                integrity_label = "QR integrity warning: " if overall_risk["code"] == "integrity_review" else "The QR image also has a separate integrity warning: "
+                summary += " " + integrity_label + "; ".join(tampering_reasons) + "."
+            return summary
         summary = website_verdict(
             metadata.get("offline_risk_label", record.risk_label),
             metadata.get("live_reputation"),
@@ -1152,6 +1215,7 @@ def _build_report(record):
     website = analysis_source == "website"
     qr_url = analysis_source == "qr"
     has_reputation_assessment = website or qr_url
+    deterministic_risk = _report_overall_risk(metadata)
     # Presentation only: match the UI's existing human verdict and conflict rules.
     def numeric(value):
         if value is None or isinstance(value, bool) or not str(value).strip():
@@ -1181,9 +1245,22 @@ def _build_report(record):
         verdict_color = "#92400e"
     if has_reputation_assessment:
         reputation = current_reputation(metadata.get("live_reputation"))
-        website_display = website_verdict(metadata.get("offline_risk_label", record.risk_label), reputation)
-        human_verdict, action = website_display["title"], website_display["action"]
-        verdict_color = {"danger": "#B4233E", "warning": "#92400e", "safe": "#166534", "neutral": "#475569"}[website_display["tone"]]
+        if deterministic_risk:
+            human_verdicts = {
+                "known_dangerous": "Known Dangerous",
+                "suspicious": "Be careful",
+                "integrity_review": "Be careful",
+                "transport_warning": "Be careful",
+                "inconclusive": "Can't tell",
+                "low": "Likely safe",
+            }
+            human_verdict = human_verdicts[deterministic_risk["code"]]
+            action = deterministic_risk["action"]
+            verdict_color = deterministic_risk["color"]
+        else:
+            website_display = website_verdict(metadata.get("offline_risk_label", record.risk_label), reputation)
+            human_verdict, action = website_display["title"], website_display["action"]
+            verdict_color = {"danger": "#B4233E", "warning": "#92400e", "safe": "#166534", "neutral": "#475569"}[website_display["tone"]]
     upi_analysis = analyze_upi(record.decoded_content) if not record.final_url else None
     upi_banner = upi_intent_banner(parse_upi_payment_uri(record.decoded_content), upi_analysis) if upi_analysis is not None else None
     if upi_banner:
@@ -1214,6 +1291,20 @@ def _build_report(record):
     else:
         timestamp = "Timestamp unavailable"
     qr_type = "Website Link" if website else "URL" if record.final_url else "UPI" if upi_analysis is not None else "Text / other"
+    ml_status = metadata.get("ml_status")
+    valid_ml_value = ml is not None and 0 <= ml <= 100
+    if ml_status == "excluded":
+        ml_status_text = "Not used — experimental ML was excluded."
+    elif valid_ml_value:
+        ml_status_text = "Estimate recorded — experimental and uncalibrated."
+    elif not record.final_url:
+        ml_status_text = "Not applicable to non-URL content."
+    else:
+        ml_status_text = "Unavailable — no ML estimate was stored."
+    ml_limitation = "ML check is experimental. "
+    if ml_status == "excluded":
+        ml_limitation += "It was not used for this assessment. "
+    ml_limitation += "Heuristic result — not a guarantee."
     has_upi_font = "QRShieldUpiHeader" in pdfmetrics.getRegisteredFontNames()
     styles.add(ParagraphStyle(
         name="human_verdict", parent=styles["Heading1"],
@@ -1267,11 +1358,11 @@ def _build_report(record):
         _report_paragraph(timestamp + " · " + qr_type, styles["body"]),
         Spacer(1, 6),
         Paragraph("<b>Limitations</b><br/>" + escape(
-            ("The website was not opened or fetched. Live reputation is reported separately. " if website else
-             "The QR destination was not opened or fetched. When enabled, its URL is sent to Google Safe Browsing; non-URL QR content is never sent. " if qr_url else
+            ("The page was not opened in a browser and its body was not downloaded. When enabled, bounded DNS, TLS, and HTTP response-header checks may run; Google Safe Browsing receives the full URL and RDAP receives only the registered domain. " if website else
+             "The QR destination page was not opened in a browser and its body was not downloaded. When enabled, bounded DNS, TLS, and HTTP response-header checks may run; Google Safe Browsing receives the URL and RDAP receives only the registered domain. Non-URL QR content is not sent to these website checks. " if qr_url else
              "Offline analysis only. No links were opened or fetched. ") +
             ("Optional RDAP registration status is reported separately; only the registered domain is shared. " if isinstance(metadata.get("domain_registration"), dict) else "") +
-            "ML check is experimental. Heuristic result — not a guarantee."
+            ml_limitation
         ), styles["body"]),
         Spacer(1, 16),
         Paragraph("QR Shield", styles["report_title"]),
@@ -1293,7 +1384,7 @@ def _build_report(record):
         ("Report ID / Scan ID", record.id),
         ("Scan date and time", record.scanned_at.strftime("%Y-%m-%d %H:%M:%S UTC") if record.scanned_at else "Unavailable"),
         ("Overall verdict", verdict),
-        ("Overall risk score", "Not calculated (ML excluded)" if website else f"{record.risk_score}/100" if record.risk_score is not None else "Unavailable"),
+        ("Overall risk score", "Not calculated (ML excluded)" if ml_status == "excluded" else f"{record.risk_score}/100" if record.risk_score is not None else "Unavailable"),
     ], styles))
 
     stored_chain = _load_stored_json(record.redirect_chain, list) or []
@@ -1343,7 +1434,8 @@ def _build_report(record):
             ("Transport protection", "HTTP detected - This URL does not use HTTPS." if urlparse(record.final_url).scheme.lower() == "http" else "HTTPS verified" if record.https_valid == 1 else "TLS verification failed" if record.https_valid == 0 else "Verification unavailable (historical check details not stored)"),
             ("Domain Age", f"{record.domain_age_days} days" if record.domain_age_days is not None else "Unavailable"),
             ("Lookalike Brand", stored_lookalike),
-            ("Experimental ML Risk Estimate (Uncalibrated)", f"{record.ml_phishing_probability}%" if record.ml_phishing_probability is not None else "Unavailable"),
+            ("Experimental ML status", ml_status_text),
+            ("Experimental ML Risk Estimate (Uncalibrated)", f"{ml:g}%" if valid_ml_value else "Unavailable"),
         ], styles))
         if has_reputation_assessment:
             story.append(_report_table("Live reputation", [
@@ -1476,7 +1568,7 @@ def _build_report(record):
     story.append(Paragraph(escape(_report_summary(record, redirect_chain, tampering_reasons)), styles["body"]))
     story.append(Spacer(1, 12))
     notice = Table([[
-        Paragraph("<b>Security Notice</b><br/>QR Shield performs automated URL, domain, machine-learning, and QR-integrity analysis. The results indicate detected risk signals and do not guarantee that a QR code or destination is completely safe. Users should verify unexpected or sensitive requests before proceeding.", styles["notice"])
+        Paragraph("<b>Security Notice</b><br/>QR Shield applies offline URL rules and QR-image integrity checks; optional reputation, TLS, and bounded redirect-header checks run only when enabled and permitted. Experimental ML is not used unless explicitly enabled. Results are indicators, not guarantees. Verify unexpected or sensitive requests before proceeding.", styles["notice"])
     ]], colWidths=[170 * mm])
     notice.setStyle(TableStyle([
         ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),

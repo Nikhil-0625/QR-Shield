@@ -70,13 +70,18 @@ class UrlDetectionTests(unittest.TestCase):
         self.assertIsNone(https['https_valid'])
         self.assertEqual(https['registered_domain'], 'paypal.example')
 
-    def test_wikipedia_subdomain_uses_canonical_registered_domain(self):
-        url = 'https://en.wikipedia.org/wiki/QR_code'
-        result = self.scan(url, headers=((b'x-qr-shield-offline', b'1'),))
-        self.assertEqual(self.main.parse_hostname(url), 'en.wikipedia.org')
-        self.assertEqual(self.main.registered_domain('en.wikipedia.org'), 'wikipedia.org')
-        self.assertEqual(result['domain'], 'en.wikipedia.org')
-        self.assertEqual(result['registered_domain'], 'wikipedia.org')
+    def test_wikipedia_subdomains_use_canonical_registered_domain(self):
+        cases = (
+            ('https://www.wikipedia.org/', 'www.wikipedia.org'),
+            ('https://en.wikipedia.org/wiki/QR_code', 'en.wikipedia.org'),
+        )
+        for url, hostname in cases:
+            with self.subTest(url=url):
+                result = self.scan(url, headers=((b'x-qr-shield-offline', b'1'),))
+                self.assertEqual(self.main.parse_hostname(url), hostname)
+                self.assertEqual(self.main.registered_domain(hostname), 'wikipedia.org')
+                self.assertEqual(result['domain'], hostname)
+                self.assertEqual(result['registered_domain'], 'wikipedia.org')
 
     def test_misleading_subdomains_and_lookalike_domains(self):
         for url in ['http://paypal-login.example.com/verify','https://paypal.com.example.com/login','http://paypal.example/verify','https://paypa1.example/verify']:

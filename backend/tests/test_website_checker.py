@@ -6,6 +6,7 @@ before main.py is imported. Submitted destinations are never contacted.
 from contextlib import ExitStack
 import json
 import os
+from pathlib import Path
 import sys
 from types import SimpleNamespace
 import unittest
@@ -97,6 +98,15 @@ class WebsiteCheckerTests(unittest.TestCase):
         self.whois.assert_not_called()
         self.model.predict_proba.assert_not_called()
 
+    def test_checker_copy_describes_bounded_checks_without_claiming_no_visit(self):
+        page = Path(__file__).resolve().parents[2] / "frontend" / "website-checker.html"
+        source = page.read_text(encoding="utf-8")
+        self.assertIn("does not open the page or download its body", source)
+        self.assertIn("bounded redirect response headers", source)
+        self.assertIn("Google Safe Browsing receives the full URL", source)
+        self.assertIn("RDAP receives only the registered domain", source)
+        self.assertNotIn("website is never visited or fetched", source)
+
     def test_ordinary_https_remains_unverified_without_fabricated_hybrid_score(self):
         code, result, headers = self.check()
         self.assertEqual(code, 200, result)
@@ -104,6 +114,7 @@ class WebsiteCheckerTests(unittest.TestCase):
         self.assertEqual(result["analysis_source"], "website")
         self.assertEqual(result["normalized_url"], "https://www.wikipedia.org/")
         self.assertEqual(result["risk_label"], "unverified")
+        self.assertEqual(result["overall_risk"]["code"], "inconclusive")
         self.assertEqual(result["rule_score"], 0)
         self.assertEqual(result["risk_breakdown"], [])
         self.assertIsNone(result["risk_score"])
@@ -122,6 +133,8 @@ class WebsiteCheckerTests(unittest.TestCase):
         code, result, _ = self.check(url)
         self.assertEqual(code, 200, result)
         self.assertEqual(result["risk_label"], "suspicious")
+        self.assertEqual(result["overall_risk"]["code"], "suspicious")
+        self.assertEqual(result["overall_risk"]["level"], "MEDIUM")
         self.assertEqual(result["lookalike_brand"], "PayPal")
         self.assertEqual(result["registered_domain"], "example.com")
         findings = {item["name"]: item for item in result["risk_breakdown"]}
@@ -153,6 +166,7 @@ class WebsiteCheckerTests(unittest.TestCase):
                 self.assertEqual(qr["score_explanation"]["ml_weight"], .3)
                 self.assertEqual(qr["score_explanation"]["rule_weight"], .7)
                 self.assertIsNone(website["risk_score"])
+                self.assertEqual(qr["overall_risk"], website["overall_risk"])
         self.assert_offline()
 
     def test_missing_scheme_and_surrounding_space_normalize_without_visiting(self):

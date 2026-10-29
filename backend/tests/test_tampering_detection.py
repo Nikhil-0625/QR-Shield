@@ -11,6 +11,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 class TamperingDetectionTests(unittest.TestCase):
     CONTENT = "https://example.com/qr-shield-controlled-test"
+    WIKIPEDIA_CONTENT = "https://www.wikipedia.org/"
     PAYMENT_CONTENT = "upi://pay?pa=merchant@upi&pn=Shop&am=10&cu=INR"
 
     @classmethod
@@ -162,6 +163,19 @@ class TamperingDetectionTests(unittest.TestCase):
             detector_logger.setLevel(previous_level)
 
         self.assertIn("outer=True", output.getvalue())
+
+    def test_normal_wikipedia_qr_has_no_false_finder_pattern_warning(self):
+        image = self.as_bgr(self.make_qr(self.WIKIPEDIA_CONTENT))
+
+        self.assertEqual(main.decode_qr(image), self.WIKIPEDIA_CONTENT)
+        self.assertFalse(main.check_finder_pattern_consistency(image))
+
+        result = main.analyze_tampering(image)
+        self.assertEqual(result["tampering_score"], 0)
+        self.assertNotIn(
+            "QR finder pattern proportions look inconsistent",
+            result["tampering_reasons"],
+        )
 
 
 if __name__ == "__main__":
