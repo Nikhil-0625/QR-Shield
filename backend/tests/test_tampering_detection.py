@@ -177,6 +177,49 @@ class TamperingDetectionTests(unittest.TestCase):
             result["tampering_reasons"],
         )
 
+    def test_wikipedia_qr_autofit_has_no_false_finder_pattern_warning(self):
+        # QR Shield frontend generates QR codes using standard auto-fit (Version 4 for Wikipedia)
+        qr = qrcode.QRCode(
+            error_correction=qrcode.constants.ERROR_CORRECT_H,
+            box_size=12,
+            border=4,
+        )
+        qr.add_data(self.WIKIPEDIA_CONTENT)
+        qr.make(fit=True)
+        pil_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+        image = self.as_bgr(pil_img)
+
+        self.assertEqual(main.decode_qr(image), self.WIKIPEDIA_CONTENT)
+        self.assertFalse(main.check_finder_pattern_consistency(image))
+
+        result = main.analyze_tampering(image)
+        self.assertEqual(result["tampering_score"], 0)
+        self.assertNotIn(
+            "QR finder pattern proportions look inconsistent",
+            result["tampering_reasons"],
+        )
+
+    def test_inconsistent_finder_pattern_tampering_is_detected(self):
+        # Genuinely tampered QR where the top-left finder pattern was enlarged
+        image = self.original.copy()
+        draw = ImageDraw.Draw(image)
+        # Erase existing top-left finder pattern
+        draw.rectangle((36, 36, 144, 144), fill="white")
+        # Draw oversized nested concentric finder pattern (160x160 vs normal 84x84)
+        draw.rectangle((20, 20, 180, 180), fill="black")
+        draw.rectangle((44, 44, 156, 156), fill="white")
+        draw.rectangle((68, 68, 132, 132), fill="black")
+
+        bgr = self.as_bgr(image)
+        self.assertTrue(main.check_finder_pattern_consistency(bgr))
+
+        result = main.analyze_tampering(bgr)
+        self.assertGreaterEqual(result["tampering_score"], 35)
+        self.assertIn(
+            "QR finder pattern proportions look inconsistent",
+            result["tampering_reasons"],
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

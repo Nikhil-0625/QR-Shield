@@ -112,8 +112,38 @@ else:
     # Validate hosts and resource limits even for CORS preflight requests.
     app.add_middleware(ApiBoundary)
 
-# Load the trained ML model once when the server starts
-ml_model = load_production_model(joblib.load)
+def is_ml_enabled() -> bool:
+    """Return True if experimental ML scoring is explicitly enabled via environment."""
+    return os.environ.get("QR_SCANNER_ML_ENABLED", "false").strip().lower() in ("true", "1")
+
+
+# The experimental ML model is loaded ONLY when QR_SCANNER_ML_ENABLED is true.
+# When disabled (the production default), startup does not touch the model file.
+ml_model = None
+
+
+def get_ml_model(loader=None):
+    """Lazily load and return the experimental ML model only when QR_SCANNER_ML_ENABLED is true.
+
+    When QR_SCANNER_ML_ENABLED is false (the default), returns None without touching the model file
+    or invoking joblib.load.
+    """
+    global ml_model
+    if not is_ml_enabled():
+        return None
+    if ml_model is None:
+        if loader is None:
+            loader = joblib.load
+        ml_model = load_production_model(loader)
+    return ml_model
+
+
+if is_ml_enabled():
+    try:
+        ml_model = load_production_model(joblib.load)
+    except Exception as exc:
+        logger.warning("Experimental ML model enabled but could not be loaded at startup: %s", exc)
+        ml_model = None
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -465,26 +495,14 @@ def check_finder_pattern_consistency(img):
 
         contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
 
-        if hierarchy is None:
+        if hierarchy is None or len(hierarchy) == 0:
             return False
 
         img_h, img_w = img.shape[:2]
-        zone_margin = 0.35  # real finder patterns only ever sit in the outer 35% of
-                             # each dimension, in one of three corners (top-left,
-                             # top-right, bottom-left -- never bottom-right, never
-                             # the middle). Dense QR data in the center can otherwise
-                             # be mistaken for a 4th "finder pattern" candidate purely
-                             # by shape, which throws off the size-consistency check.
-
-        def in_finder_corner_zone(x, y, w, h):
-            near_left = x < img_w * zone_margin
-            near_right = x > img_w * (1 - zone_margin)
-            near_top = y < img_h * zone_margin
-            near_bottom = y > img_h * (1 - zone_margin)
-            return (near_left and near_top) or (near_right and near_top) or (near_left and near_bottom)
+        zone_margin = 0.38  # Finder patterns sit in outer corners of the QR region
 
         hierarchy = hierarchy[0]
-        finder_candidates = []
+        corners = {}
 
         for i, contour in enumerate(contours):
             child = hierarchy[i][2]
@@ -498,13 +516,52 @@ def check_finder_pattern_consistency(img):
             x, y, w, h = cv2.boundingRect(contour)
             if h == 0 or area < 200:
                 continue
-            aspect_ratio = w / float(h)
-            if 0.7 < aspect_ratio < 1.3 and in_finder_corner_zone(x, y, w, h):
-                finder_candidates.append(w)
 
-        if len(finder_candidates) >= 3:
-            sizes = sorted(finder_candidates, reverse=True)[:3]
-            mean_size = sum(sizes) / 3
+            aspect_ratio = w / float(h)
+            if not (0.75 < aspect_ratio < 1.33):
+                continue
+
+            # Finder pattern cannot be larger than the corner zone dimension
+            if w > img_w * zone_margin or h > img_h * zone_margin:
+                continue
+
+            cx = x + w / 2.0
+            cy = y + h / 2.0
+
+            # Determine which corner the candidate center sits in, ensuring bounding box does not span across the image
+            in_tl = (cx < img_w * zone_margin) and (cy < img_h * zone_margin) and (x + w <= img_w * (1 - zone_margin)) and (y + h <= img_h * (1 - zone_margin))
+            in_tr = (cx > img_w * (1 - zone_margin)) and (cy < img_h * zone_margin) and (x >= img_w * zone_margin) and (y + h <= img_h * (1 - zone_margin))
+            in_bl = (cx < img_w * zone_margin) and (cy > img_h * (1 - zone_margin)) and (x + w <= img_w * (1 - zone_margin)) and (y >= img_h * zone_margin)
+
+            corner = None
+            if in_tl:
+                corner = "TL"
+            elif in_tr:
+                corner = "TR"
+            elif in_bl:
+                corner = "BL"
+            else:
+                continue
+
+            # Concentricity check with grandchild (the inner nested pattern)
+            gc_x, gc_y, gc_w, gc_h = cv2.boundingRect(contours[grandchild])
+            gc_cx = gc_x + gc_w / 2.0
+            gc_cy = gc_y + gc_h / 2.0
+            if abs(cx - gc_cx) > w * 0.25 or abs(cy - gc_cy) > h * 0.25:
+                continue
+
+            # Nested ratio check: inner core width should be between 15% and 85% of outer box width
+            ratio = gc_w / float(w)
+            if not (0.15 < ratio < 0.85):
+                continue
+
+            # In each corner, retain the outermost candidate (largest width)
+            if corner not in corners or w > corners[corner]["w"]:
+                corners[corner] = {"w": w, "h": h, "x": x, "y": y, "area": area}
+
+        if len(corners) >= 3:
+            sizes = [corners[c]["w"] for c in ["TL", "TR", "BL"]]
+            mean_size = sum(sizes) / 3.0
             size_variance = np.std(sizes)
             variance_ratio = size_variance / mean_size if mean_size > 0 else 0
             if mean_size > 0 and variance_ratio > 0.3:
@@ -701,8 +758,10 @@ def _normalize_qr_url_for_analysis(value):
         raise
 
 
-def _analyze_url(qr_content, include_ml=True, allow_registration=True, allow_network=False):
+def _analyze_url(qr_content, include_ml=None, allow_registration=True, allow_network=False):
     """Shared offline rules plus explicitly gated, pinned public-destination checks."""
+    if include_ml is None:
+        include_ml = is_ml_enabled()
     result = {}
     chain, redirect_details = trace_redirects(qr_content, allow_network=allow_network)
     final_url = redirect_details["final_url"]
@@ -739,13 +798,16 @@ def _analyze_url(qr_content, include_ml=True, allow_registration=True, allow_net
                           'has_ip', 'num_digits', 'num_subdomains']
         feature_vector = [[ml_features[f] for f in feature_order]]
         try:
-            classes = list(ml_model.classes_)
+            active_model = ml_model if ml_model is not None else get_ml_model()
+            if active_model is None:
+                raise ValueError("Experimental ML model is not available")
+            classes = list(active_model.classes_)
             if (len(classes) != 2 or any(isinstance(label, (bool, np.bool_)) for label in classes)
                     or set(classes) != {-1, 1}):
                 raise ValueError("Unexpected production model labels")
             probabilities = select_phishing_probability(
                 # Verified training targets: -1 = phishing, 1 = benign.
-                classes, ml_model.predict_proba(feature_vector), phishing_label=-1
+                classes, active_model.predict_proba(feature_vector), phishing_label=-1
             )
             if len(probabilities) != 1:
                 raise ValueError("Unexpected production prediction row count")
@@ -892,7 +954,7 @@ def _analyze_scan(contents, current_user, expected_vpa, private_scan=False, allo
 
     if qr_content.lower().startswith(("http://", "https://")):
         analysis_url = _normalize_qr_url_for_analysis(qr_content)
-        include_ml = os.environ.get("QR_SCANNER_ML_ENABLED", "false").strip().lower() == "true"
+        include_ml = is_ml_enabled()
         result.update(_analyze_url(analysis_url, include_ml=include_ml,
                                    allow_registration=allow_live, allow_network=allow_live))
         offline_label = _offline_url_label(result["risk_breakdown"])
