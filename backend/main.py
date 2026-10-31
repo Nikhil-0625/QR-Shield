@@ -489,84 +489,166 @@ def check_finder_pattern_consistency(img):
         gray = cv2.GaussianBlur(gray, (5, 5), 0)
 
         thresh = cv2.adaptiveThreshold(
-            gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-            cv2.THRESH_BINARY_INV, 11, 2
+            gray,
+            255,
+            cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+            cv2.THRESH_BINARY_INV,
+            11,
+            2,
         )
 
-        contours, hierarchy = cv2.findContours(thresh, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(
+            thresh,
+            cv2.RETR_TREE,
+            cv2.CHAIN_APPROX_SIMPLE,
+        )
 
         if hierarchy is None or len(hierarchy) == 0:
             return False
 
         img_h, img_w = img.shape[:2]
-        zone_margin = 0.38  # Finder patterns sit in outer corners of the QR region
+
+        # Finder patterns are located in the three QR corners:
+        # top-left, top-right and bottom-left.
+        zone_margin = 0.38
+
+        def in_finder_corner_zone(x, y, w, h):
+            near_left = x < img_w * zone_margin
+            near_right = x + w > img_w * (1 - zone_margin)
+            near_top = y < img_h * zone_margin
+            near_bottom = y + h > img_h * (1 - zone_margin)
+
+            return (
+                (near_left and near_top)
+                or (near_right and near_top)
+                or (near_left and near_bottom)
+            )
 
         hierarchy = hierarchy[0]
+        finder_candidates = []
         corners = {}
 
         for i, contour in enumerate(contours):
             child = hierarchy[i][2]
             if child == -1:
                 continue
+
             grandchild = hierarchy[child][2]
             if grandchild == -1:
                 continue
 
             area = cv2.contourArea(contour)
             x, y, w, h = cv2.boundingRect(contour)
-            if h == 0 or area < 200:
+
+            if h == 0 or w == 0 or area < 200:
                 continue
 
             aspect_ratio = w / float(h)
-            if not (0.75 < aspect_ratio < 1.33):
+
+            if not (0.70 < aspect_ratio < 1.30):
                 continue
 
-            # Finder pattern cannot be larger than the corner zone dimension
-            if w > img_w * zone_margin or h > img_h * zone_margin:
+            if not in_finder_corner_zone(x, y, w, h):
                 continue
+
+            # Keep the complete candidate information.
+            # Do NOT reject large candidates here: an unusually large
+            # finder pattern is exactly what the tampering detector needs
+            # to identify.
+            finder_candidates.append(
+                (x, y, w, h, contour, grandchild, area)
+            )
+
+        if len(finder_candidates) < 3:
+            return False
+
+        for candidate in finder_candidates:
+            x, y, w, h, contour, grandchild, area = candidate
 
             cx = x + w / 2.0
             cy = y + h / 2.0
 
-            # Determine which corner the candidate center sits in, ensuring bounding box does not span across the image
-            in_tl = (cx < img_w * zone_margin) and (cy < img_h * zone_margin) and (x + w <= img_w * (1 - zone_margin)) and (y + h <= img_h * (1 - zone_margin))
-            in_tr = (cx > img_w * (1 - zone_margin)) and (cy < img_h * zone_margin) and (x >= img_w * zone_margin) and (y + h <= img_h * (1 - zone_margin))
-            in_bl = (cx < img_w * zone_margin) and (cy > img_h * (1 - zone_margin)) and (x + w <= img_w * (1 - zone_margin)) and (y >= img_h * zone_margin)
-
-            corner = None
-            if in_tl:
+            # Identify the corner using the candidate center.
+            if (
+                cx < img_w * zone_margin
+                and cy < img_h * zone_margin
+            ):
                 corner = "TL"
-            elif in_tr:
+
+            elif (
+                cx > img_w * (1 - zone_margin)
+                and cy < img_h * zone_margin
+            ):
                 corner = "TR"
-            elif in_bl:
+
+            elif (
+                cx < img_w * zone_margin
+                and cy > img_h * (1 - zone_margin)
+            ):
                 corner = "BL"
+
             else:
+                # Ignore center/bottom-right QR data.
                 continue
 
-            # Concentricity check with grandchild (the inner nested pattern)
-            gc_x, gc_y, gc_w, gc_h = cv2.boundingRect(contours[grandchild])
+            # The nested contour should be reasonably concentric
+            # with the outer finder pattern.
+            gc_x, gc_y, gc_w, gc_h = cv2.boundingRect(
+                contours[grandchild]
+            )
+
+            if gc_w == 0 or gc_h == 0:
+                continue
+
             gc_cx = gc_x + gc_w / 2.0
             gc_cy = gc_y + gc_h / 2.0
-            if abs(cx - gc_cx) > w * 0.25 or abs(cy - gc_cy) > h * 0.25:
+
+            if (
+                abs(cx - gc_cx) > w * 0.25
+                or abs(cy - gc_cy) > h * 0.25
+            ):
                 continue
 
-            # Nested ratio check: inner core width should be between 15% and 85% of outer box width
+            # The inner nested region should have a reasonable
+            # proportion relative to the outer finder pattern.
             ratio = gc_w / float(w)
+
             if not (0.15 < ratio < 0.85):
                 continue
 
-            # In each corner, retain the outermost candidate (largest width)
+            # Multiple nested contours can describe the same finder
+            # pattern. Keep the largest valid candidate in each corner.
             if corner not in corners or w > corners[corner]["w"]:
-                corners[corner] = {"w": w, "h": h, "x": x, "y": y, "area": area}
+                corners[corner] = {
+                    "w": w,
+                    "h": h,
+                    "x": x,
+                    "y": y,
+                    "area": area,
+                }
 
-        if len(corners) >= 3:
-            sizes = [corners[c]["w"] for c in ["TL", "TR", "BL"]]
-            mean_size = sum(sizes) / 3.0
-            size_variance = np.std(sizes)
-            variance_ratio = size_variance / mean_size if mean_size > 0 else 0
-            if mean_size > 0 and variance_ratio > 0.3:
-                return True
-        return False
+        # A valid QR should contain all three finder corners.
+        if not all(corner in corners for corner in ("TL", "TR", "BL")):
+            return False
+
+        sizes = [
+            corners["TL"]["w"],
+            corners["TR"]["w"],
+            corners["BL"]["w"],
+        ]
+
+        mean_size = sum(sizes) / 3.0
+
+        if mean_size <= 0:
+            return False
+
+        size_variance = np.std(sizes)
+        variance_ratio = size_variance / mean_size
+
+        # Large size inconsistency between the three finder patterns
+        # indicates possible QR tampering.
+        return variance_ratio > 0.30
+
     except Exception:
         return False
 
