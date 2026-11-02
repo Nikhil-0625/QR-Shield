@@ -266,6 +266,7 @@ class SafeBrowsingTests(unittest.TestCase):
 
     def test_invalid_protobuf_and_malformed_bytes_fail_without_replacement_or_fallback(self):
         for index, body in enumerate((
+            b"",
             b"\xff\xff",
             b"\xac",  # truncated varint
             b"\x12\x05\x08\xac",  # length exceeds buffer
@@ -278,6 +279,23 @@ class SafeBrowsingTests(unittest.TestCase):
                 self.assert_unavailable(client.lookup(f"https://ordinary.example/bad-proto/{index}"))
                 self.assertEqual(client.cache, {})
                 self.assertTrue(response.closed)
+
+    def test_non_utf8_threat_url_in_protobuf_is_unavailable_not_clear(self):
+        malformed_entry = b"\x0a\x01\xff\x12\x01\x02"
+        body = (
+            b"\x0a" + safe_browsing.encode_varint(len(malformed_entry))
+            + malformed_entry + b"\x12\x03\x08\xac\x02"
+        )
+        response = Response(chunks=[body])
+        self.session.get.return_value = response
+        client = safe_browsing.SafeBrowsingClient()
+
+        result = client.lookup(URL)
+
+        self.assert_unavailable(result)
+        self.assertIn("Threat check unavailable", result["reason"])
+        self.assertEqual(client.cache, {})
+        self.assertTrue(response.closed)
 
     def test_oversized_compressed_wire_body_is_rejected_without_reading_or_inflating(self):
         compressed = gzip.compress(os.urandom(safe_browsing.MAX_RESPONSE_BYTES + 1))
@@ -697,8 +715,8 @@ class SafeBrowsingWebsiteIntegrationTests(unittest.TestCase):
         code, raw, _ = self.api("/history/summary", token=self.token("a@example.test"))
         self.assertEqual(code, 200, raw)
         summary = json.loads(raw)
-        self.assertEqual(summary["counts"]["unclassified"], 1)
-        self.assertEqual(summary["counts"]["unsafe"], 0)
+        self.assertEqual(summary["counts"]["unclassified"], 0)
+        self.assertEqual(summary["counts"]["unsafe"], 1)
         self.assert_offline()
 
     def test_clear_provider_result_cannot_override_existing_impersonation_findings(self):

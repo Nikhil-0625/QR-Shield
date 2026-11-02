@@ -824,6 +824,33 @@ def _disabled_reputation(reason):
     }
 
 
+def _lookup_reputation(url):
+    try:
+        return reputation_client.lookup(url)
+    except Exception as error:
+        logger.error("Safe Browsing lookup failed unexpectedly (%s)", type(error).__name__)
+        return {
+            "provider": "Google Safe Browsing", "status": "unavailable",
+            "reason": "Threat check unavailable. Other security checks continued; no safe result was reported.",
+            "threat_types": [], "checked_at": None, "cached": False,
+            "cache_expires_at": None, "verdict_expires_at": None,
+        }
+
+
+def _lookup_registration(url):
+    try:
+        return registration_client.lookup(url)
+    except Exception as error:
+        logger.error("RDAP lookup failed unexpectedly (%s)", type(error).__name__)
+        return {
+            "status": "unavailable", "provider": "RDAP", "registered_domain": None,
+            "registration_date": None, "expiration_date": None, "domain_status": None,
+            "registrar": None, "registration_provider": None, "domain_age_days": None,
+            "checked_at": None, "cached": False,
+            "reason": "Domain registration / RDAP check unavailable. Other security checks continued.",
+        }
+
+
 def _normalize_qr_url_for_analysis(value):
     try:
         return normalize_website_url(value)
@@ -859,7 +886,7 @@ def _analyze_url(qr_content, include_ml=None, allow_registration=True, allow_net
     )
     # This opt-in registration service never connects to the scanned website.
     # Public-test requests can disable it, but cannot enable it through a header.
-    registration = registration_client.lookup(final_url) if allow_registration else {
+    registration = _lookup_registration(final_url) if allow_registration else {
         "status": "disabled", "provider": "RDAP", "registered_domain": root_domain,
         "registration_date": None, "expiration_date": None, "domain_status": None,
         "registrar": None, "registration_provider": None, "domain_age_days": None,
@@ -1040,7 +1067,7 @@ def _analyze_scan(contents, current_user, expected_vpa, private_scan=False, allo
         result.update(_analyze_url(analysis_url, include_ml=include_ml,
                                    allow_registration=allow_live, allow_network=allow_live))
         offline_label = _offline_url_label(result["risk_breakdown"])
-        reputation = reputation_client.lookup(analysis_url) if allow_live else _disabled_reputation(
+        reputation = _lookup_reputation(analysis_url) if allow_live else _disabled_reputation(
             "Public-test gateway: live reputation is disabled."
         )
         url_verdict = website_verdict(offline_label, reputation)
@@ -1138,7 +1165,7 @@ def _analyze_website(raw_url, current_user, allow_live=True):
             "Website legitimacy could not be verified; unavailable checks have not passed."
         )
         action = "Verify the address and sender before logging in, paying, or sharing information."
-    reputation = reputation_client.lookup(url) if allow_live else _disabled_reputation(
+    reputation = _lookup_reputation(url) if allow_live else _disabled_reputation(
         "Public-test gateway: live reputation is disabled."
     )
     verdict = website_verdict(offline_label, reputation)
@@ -1791,7 +1818,7 @@ async def get_history_summary(current_user: str = Depends(get_current_user)):
 async def get_history_page(limit: int = Query(50, ge=1, le=100),
                            cursor: int = Query(None, ge=1, le=9223372036854775807),
                            snapshot: int = Query(None, ge=0, le=9223372036854775807),
-                           category: str = Query("all", pattern="^(all|safe|suspicious|unsafe|non_url|unclassified)$"),
+                           category: str = Query("all", pattern="^(all|safe|suspicious|unsafe|unverified|non_url|unclassified)$"),
                            current_user: str = Depends(get_current_user)):
     return await history_jobs.run(_history_view, current_user, (limit, cursor, snapshot, category))
 

@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Security Demo Lab · QR Shield</title>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="navigation.css">
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="master-design.css">
+    <link rel="stylesheet" href="security-lab.css">
+    <link rel="stylesheet" href="product-ux.css">
+    <script src="navigation.js" defer></script>
+    <script src="security-lab.js" defer></script>
+</head>
+<body data-page="security-lab">
+    <header class="qs-header">
+        <a class="qs-brand" href="index.html" aria-label="QR Shield home">
+            <span class="qs-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <span class="qs-brand-copy"><span class="qs-brand-name">QR Shield</span><span class="qs-brand-subtitle">QR Security Platform</span></span>
+        </a>
+        <button class="qs-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false"><span class="qs-menu-icon" aria-hidden="true"></span></button>
+        <nav class="qs-nav-links" id="primary-navigation" aria-label="Main navigation">
+            <a class="qs-nav-link" href="dashboard.html">Dashboard</a>
+            <a class="qs-nav-link" href="scan.html">Scan QR</a>
+            <a class="qs-nav-link" href="website-checker.html">Website Checker</a>
+            <a class="qs-nav-link" href="security-lab.html" aria-current="page">Security Lab</a>
+            <a class="qs-nav-link" href="generate.html">Generate QR</a>
+            <button class="qs-nav-link" id="lab-logout" type="button">Logout</button>
+        </nav>
+        <button class="qs-theme-toggle" type="button" data-theme-toggle aria-label="Color theme" aria-describedby="theme-state"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button>
+        <span class="theme-state" id="theme-state" data-theme-state>Current theme: light</span>
+    </header>
+
+    <main class="app-workspace security-lab" id="main-content">
+        <header class="lab-intro">
+            <p class="intro-kicker">QR SHIELD · CONTROLLED EXAMPLES</p>
+            <h1>Security Demo Lab</h1>
+            <p class="section-subtitle">Explore how QR Shield evaluates different QR security scenarios.</p>
+            <p class="lab-disclaimer"><strong>Demonstration only.</strong> The cards describe controlled examples, not live scan results. No real malicious websites are used.</p>
+        </header>
+
+        <section class="scenario-grid" aria-label="Security demonstration scenarios">
+            <article class="scenario-card" data-scenario="safe">
+                <div class="scenario-card-top">
+                    <span class="scenario-icon" aria-hidden="true">●</span>
+                    <span class="scenario-label">SAFE · DEMO</span>
+                </div>
+                <h2>Trusted HTTPS Website</h2>
+                <p>A controlled example representing a normal HTTPS destination with no known threat indicators.</p>
+                <ul class="scenario-indicators">
+                    <li>✓ HTTPS</li>
+                    <li>✓ Established domain</li>
+                    <li>✓ No known threat indicators in this scenario</li>
+                </ul>
+                <button class="primary-btn scenario-action" type="button" data-select-scenario="safe">Try Safe Example</button>
+            </article>
+
+            <article class="scenario-card" data-scenario="suspicious">
+                <div class="scenario-card-top">
+                    <span class="scenario-icon" aria-hidden="true">▲</span>
+                    <span class="scenario-label">SUSPICIOUS · DEMO</span>
+                </div>
+                <h2>HTTP Login Example</h2>
+                <p>A controlled example demonstrating how QR Shield reacts to an unencrypted HTTP destination.</p>
+                <ul class="scenario-indicators">
+                    <li>⚠ HTTP connection</li>
+                    <li>⚠ Destination requires verification</li>
+                </ul>
+                <p class="scenario-url"><code>http://example.com/login</code></p>
+                <button class="primary-btn scenario-action" type="button" data-select-scenario="suspicious">Try Suspicious Example</button>
+            </article>
+
+            <article class="scenario-card" data-scenario="unsafe">
+                <div class="scenario-card-top">
+                    <span class="scenario-icon" aria-hidden="true">!</span>
+                    <span class="scenario-label">UNSAFE SIMULATION · LOCAL</span>
+                </div>
+                <h2>Controlled Phishing Simulation</h2>
+                <p>A local-only demonstration state representing a suspicious login destination. No destination is opened or checked.</p>
+                <ul class="scenario-indicators">
+                    <li>⚠ Suspicious login context</li>
+                    <li>⚠ Potential impersonation</li>
+                    <li>⚠ User verification required</li>
+                </ul>
+                <button class="primary-btn scenario-action" type="button" data-select-scenario="unsafe">Try Unsafe Example</button>
+            </article>
+        </section>
+
+        <section class="card selected-scenario" id="selected-scenario" aria-labelledby="selected-title" hidden>
+            <p class="demo-badge">Demo Scenario</p>
+            <h2 id="selected-title"></h2>
+            <p id="scenario-transition" class="scenario-transition" role="status" aria-live="polite"></p>
+            <div class="selected-explanation">
+                <h3>Why would QR Shield flag this?</h3>
+                <ul id="scenario-explanations"></ul>
+            </div>
+            <p class="scenario-live-note" id="scenario-live-note"></p>
+            <a class="primary-btn continue-link" id="continue-to-checker" hidden>Continue to URL Checker</a>
+        </section>
+
+        <section class="card demo-guide" aria-labelledby="demo-guide-title">
+            <div class="demo-guide-heading">
+                <div>
+                    <p class="intro-kicker">PRESENTATION MODE</p>
+                    <h2 id="demo-guide-title">Walk through the three scenarios</h2>
+                    <p class="section-subtitle">A guided, repeatable sequence for your presentation.</p>
+                </div>
+                <button class="primary-btn" id="start-demo" type="button">Start Demo</button>
+            </div>
+            <div class="demo-progress" id="demo-progress" hidden>
+                <div class="demo-progress-meta"><span id="demo-step-label">Step 1 of 3</span><span id="demo-complete" hidden>Demo complete</span></div>
+                <div class="progress-track" role="progressbar" aria-label="Demo progress" aria-valuemin="1" aria-valuemax="3" aria-valuenow="1"><span id="progress-fill"></span></div>
+                <ol class="demo-steps" aria-label="Demo steps">
+                    <li><span>1</span>Safe</li><li><span>2</span>Suspicious</li><li><span>3</span>Unsafe</li>
+                </ol>
+                <p class="demo-complete-copy" id="demo-complete-copy" hidden>QR Shield evaluates multiple security signals instead of trusting a QR code blindly.</p>
+                <div class="demo-controls">
+                    <button class="secondary-btn" id="previous-step" type="button" disabled>← Previous</button>
+                    <button class="primary-btn" id="next-step" type="button">Next →</button>
+                </div>
+            </div>
+        </section>
+
+        <section class="card comparison" aria-labelledby="comparison-title">
+            <h2 id="comparison-title">QR Shield Demo</h2>
+            <p class="comparison-note">Illustrative scenario characteristics only — not live results from security checks.</p>
+            <div class="comparison-table-wrap">
+                <table>
+                    <thead><tr><th scope="col">Signal</th><th scope="col">Safe</th><th scope="col">Suspicious</th><th scope="col">Unsafe simulation</th></tr></thead>
+                    <tbody>
+                        <tr><th scope="row">HTTPS</th><td aria-label="Yes">✓</td><td aria-label="No">—</td><td aria-label="No">—</td></tr>
+                        <tr><th scope="row">Threat check</th><td aria-label="Available in live analysis">✓</td><td aria-label="Available in live analysis">✓</td><td aria-label="Simulation only">⚠</td></tr>
+                        <tr><th scope="row">Warning</th><td aria-label="Not indicated by this demo">—</td><td aria-label="Demonstration warning">✓</td><td aria-label="Demonstration warning">✓</td></tr>
+                        <tr><th scope="row">User verification</th><td aria-label="Not indicated by this demo">—</td><td aria-label="Recommended">✓</td><td aria-label="Required in this simulation">✓</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

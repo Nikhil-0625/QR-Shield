@@ -174,8 +174,12 @@ window.runWebsiteCheckerChecks = async function () {
         check(id('website-google-warning').querySelector('a').href === 'https://safebrowsing.google.com/', 'Attribution uses fixed trusted advisory URL');
         await show(fixture({ risk_label: 'suspicious', live_reputation: observation('clear'), website_verdict: { code: 'suspicious' }, offline_verdict: { code: 'suspicious' } }));
         check(id('website-verdict-title').textContent.includes('Suspicious') && id('website-google-warning').hidden, 'No-match never overrides existing offline warning');
-        await show(fixture({ live_reputation: { status: 'unavailable', reason: 'Provider timed out.' }, website_verdict: offlineVerdict, offline_verdict: offlineVerdict }));
-        check(id('website-verdict-title').textContent === 'Unable to Verify' && id('website-reputation-detail').textContent === 'The live threat check could not be completed.', 'Provider failures preserve honest unknown state without exposing raw error detail');
+        await show(fixture({ live_reputation: { status: 'unavailable', reason: 'Threat check unavailable. Timeout.' }, website_verdict: offlineVerdict, offline_verdict: offlineVerdict }));
+        check(id('website-verdict-title').textContent === 'Unable to Verify' && id('website-reputation-detail').textContent === 'Threat check unavailable. No safe result was reported.', 'Provider failures preserve honest unknown state without exposing raw error detail');
+        check(id('website-simple-checks').textContent.includes('Threat check unavailable'), 'Simple view identifies the unavailable threat check');
+        id('website-technical-view-btn').click();
+        check(id('website-technical-data').textContent.includes('Threat check unavailable. Timeout.'), 'Technical view retains the sanitized provider reason');
+        id('website-simple-view-btn').click();
         await show(fixture({ live_reputation: observation('threat', -1000), website_verdict: { code: 'known_dangerous' }, offline_verdict: offlineVerdict }));
         check(id('website-verdict-title').textContent === 'Unable to Verify' && id('website-google-warning').hidden, 'Expired provider match is never shown as a current Google warning');
         await show(fixture({ risk_label: 'unverified', overall_risk: overallRisk('low', 'LOW', 'NO KNOWN THREATS', 'safe',

@@ -124,7 +124,7 @@
         }
         if (options.logo) {
             // Conservative center mark; H correction does not guarantee that every logo will decode.
-            const backing = Math.max(3, Math.floor(count * cell * 0.12));
+            const backing = Math.max(3, Math.floor(count * cell * 0.18));
             const padding = Math.max(1, Math.floor(cell * 0.5));
             const x = originX + Math.floor((count * cell - backing) / 2);
             const y = originY + Math.floor((count * cell - backing) / 2);

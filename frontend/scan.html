@@ -2839,6 +2839,7 @@
 
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="master-design.css">
+<link rel="stylesheet" href="product-ux.css">
 
 </head>
 
@@ -2922,7 +2923,7 @@
 
 <header class="qs-header">
 
-    <a class="qs-brand" href="scan.html" aria-label="QR Shield home">
+    <a class="qs-brand" href="index.html" aria-label="QR Shield home">
 
         <span class="qs-brand-mark" aria-hidden="true">
 
@@ -2985,13 +2986,11 @@
 
             <p class="intro-kicker">QR Shield Security</p>
 
-            <h1 id="scanner-intro-heading">QR Security Scanner</h1>
+            <h1 id="scanner-intro-heading">Scan a QR Code</h1>
 
             <p class="intro-copy">
 
-                Check where a QR code leads before you trust it. Review suspicious destinations,
-
-                phishing signals, QR integrity indicators, and declared UPI payment details.
+                Upload an image or use your camera to analyze a QR code before opening its destination.
 
             </p>
 
@@ -3017,6 +3016,7 @@
 
             </div>
 
+                <a class="scanner-check-link" href="website-checker.html">Checking a link instead? Check a website</a>
         </section>
 
     <div class="scanner-layout">
@@ -3281,7 +3281,7 @@
 
 <div class="results-card" id="results-card" data-result-view="simple">
 
-    <div class="verdict-banner" id="verdict-banner">Result</div>
+    <div class="verdict-banner" id="verdict-banner" role="status" aria-live="polite" aria-atomic="true">Result</div>
 
     <div class="result-view-toggle" role="group" aria-label="Result detail level">
 
@@ -3295,7 +3295,7 @@
 
     <details id="result-technical-details" class="result-technical-details" ontoggle="setResultView(this.open ? 'technical' : 'simple')">
 
-        <summary>Technical details</summary>
+        <summary id="result-technical-summary" aria-controls="result-technical-body" aria-expanded="false">Technical details</summary>
 
         <p>For reference only — not a probability.</p>
 
@@ -3307,15 +3307,15 @@
 
     <div class="results-actions">
 
-        <button type="button" class="report-btn" id="copy-content-btn" disabled onclick="copyQrContent()" aria-describedby="copy-content-status">Copy QR Content</button>
+        <button type="button" class="report-btn action-primary" id="open-link-btn" disabled onclick="QRShieldLinkWarning.open()">Open Link</button>
 
-        <button type="button" class="report-btn" id="open-link-btn" disabled onclick="QRShieldLinkWarning.open()">Open Link</button>
+        <button type="button" class="scan-again-btn" id="scan-again-btn" onclick="resetScan()">Scan Another QR</button>
+
+        <button type="button" class="report-btn" id="copy-content-btn" disabled onclick="copyQrContent()" aria-describedby="copy-content-status">Copy QR Content</button>
 
         <button class="report-btn" id="report-btn" disabled onclick="downloadReport()">Download PDF Report</button>
 
         <button type="button" class="report-btn" id="copy-summary-btn" disabled onclick="copySummary()" aria-describedby="copy-summary-status">Copy Summary</button>
-
-        <button class="scan-again-btn" onclick="resetScan()">Scan Another QR</button>
 
     </div>
 
@@ -3357,11 +3357,11 @@
 
     <dl class="link-warning-destination">
 
-        <dt>Hostname</dt><dd id="link-warning-host"></dd>
+        <dt>Destination</dt><dd id="link-warning-host"></dd>
 
         <dt>Registered domain</dt><dd id="link-warning-domain"></dd>
 
-        <dt>Full URL to open</dt><dd id="link-warning-url"></dd>
+        <dt>URL</dt><dd id="link-warning-url"></dd>
 
     </dl>
 
@@ -4685,6 +4685,14 @@
         const section = document.createElement("section");
 
         section.className = "result-section" + (title === "URL Analysis" ? " url-analysis" : "");
+        section.technicalGroup = ({
+            "Heuristic Risk Assessment": "heuristic",
+            "URL Analysis": "url",
+            "Live URL Reputation": "reputation",
+            "Domain Information": "domain",
+            "Rule-based Security Checks": "rules",
+            "QR Integrity": "integrity"
+        })[title] || "technical";
 
         const headingWrap = document.createElement("div");
 
@@ -4723,6 +4731,7 @@
         details.className = "result-disclosure";
 
         details.open = open;
+        details.technicalGroup = title === "QR integrity details" ? "integrity" : "technical";
 
         const summary = document.createElement("summary");
 
@@ -4741,6 +4750,7 @@
         const section = document.createElement("section");
 
         section.className = "risk-explanation";
+        section.technicalGroup = "findings";
 
         const heading = document.createElement("div");
 
@@ -5378,6 +5388,7 @@
         const technical = view === "technical";
 
         document.getElementById("result-technical-details").open = technical;
+        document.getElementById("result-technical-summary").setAttribute("aria-expanded", String(technical));
 
         document.getElementById("results-card").setAttribute("data-result-view", technical ? "technical" : "simple");
 
@@ -5392,16 +5403,19 @@
     let copyableQrContent = null;
 
     let copyContentGeneration = 0;
+    let copyContentFeedbackTimer = null;
 
 
 
     function resetCopyContent(content = null) {
 
         copyContentGeneration++;
-
+        if (copyContentFeedbackTimer !== null) clearTimeout(copyContentFeedbackTimer);
+        copyContentFeedbackTimer = null;
         copyableQrContent = typeof content === "string" ? content : null;
 
         document.getElementById("copy-content-btn").disabled = !copyableQrContent;
+        document.getElementById("copy-content-btn").textContent = "Copy QR Content";
 
         document.getElementById("copy-content-status").textContent = "";
 
@@ -5426,6 +5440,7 @@
         if (content === null || content === "" || button.disabled) return;
 
         const status = document.getElementById("copy-content-status");
+        const buttonLabel = "Copy QR Content";
 
         button.disabled = true;
 
@@ -5440,6 +5455,12 @@
             if (copyContentGeneration === generation) {
 
                 status.textContent = "QR content copied.";
+                if (copyContentFeedbackTimer !== null) clearTimeout(copyContentFeedbackTimer);
+                button.textContent = "✓ Copied";
+                copyContentFeedbackTimer = setTimeout(() => {
+                    if (copyContentGeneration === generation) button.textContent = buttonLabel;
+                    copyContentFeedbackTimer = null;
+                }, 2200);
 
                 document.getElementById("copy-content-fallback").hidden = true;
 
@@ -5462,6 +5483,7 @@
             document.getElementById("copy-content-fallback-label").hidden = false;
 
             status.textContent = "Automatic copying is unavailable. Select the content below and use Copy, or press Ctrl+C / Command+C.";
+            button.textContent = buttonLabel;
 
             fallback.focus();
 
@@ -5619,13 +5641,14 @@
 
                 threat: ["Threat detected", "threat"], clear: ["No known threat reported", "neutral"],
 
-                disabled: ["Not checked", "unavailable"], unavailable: ["Not available", "unavailable"]
+                disabled: ["Not checked", "unavailable"], unavailable: ["Threat check unavailable", "unavailable"]
 
             };
 
             const [value, tone] = states[reputationStatus] || ["Not available", "unavailable"];
 
-            add("Known threat check", value, tone);
+            add("Known threat check", value, tone,
+                reputationStatus === "unavailable" ? "Threat check unavailable. No safe result was reported." : "");
 
         }
 
@@ -5668,9 +5691,11 @@
 
             const notApplicable = state === "not_applicable";
 
-            add("Domain information", available ? "Available" : notApplicable ? "Not applicable" : "Not available",
+            add("Domain information", available ? "Available" : notApplicable ? "Not applicable"
+                : state === "unavailable" ? "RDAP check unavailable" : "Not available",
 
-                available ? "neutral" : notApplicable ? "neutral" : "unavailable");
+                available ? "neutral" : notApplicable ? "neutral" : "unavailable",
+                available || notApplicable ? "" : registration.reason);
 
         }
 
@@ -5714,25 +5739,17 @@
 
         section.append(heading, list);
 
-        if (unavailable.length) {
-
-            const note = document.createElement("p");
-
-            note.className = "simple-security-note";
-
-            note.textContent = "Some checks were not available. Unavailable checks have not passed.";
-
-            section.appendChild(note);
-
-        }
-
-        const disclaimer = document.createElement("p");
-
-        disclaimer.className = "simple-security-note";
-
-        disclaimer.textContent = "This result does not confirm that the destination is safe. Verify the address and sender before continuing.";
-
-        section.appendChild(disclaimer);
+        const note = document.createElement("aside");
+        note.className = "simple-security-note";
+        note.setAttribute("role", "note");
+        const noteTitle = document.createElement("strong");
+        noteTitle.textContent = "Important";
+        const noteText = document.createElement("span");
+        noteText.textContent = unavailable.length
+            ? "Some checks were unavailable and have not passed. Verify the address and sender before sharing sensitive information."
+            : "Automated checks can miss threats. Verify the address and sender before sharing sensitive information.";
+        note.append(noteTitle, noteText);
+        section.appendChild(note);
 
         return section;
 
@@ -6067,6 +6084,7 @@
         document.getElementById("copy-summary-status").textContent = "";
 
         document.getElementById("copy-summary-btn").disabled = !summary;
+        document.getElementById("copy-summary-btn").textContent = "Copy Summary";
 
         document.getElementById("copy-summary-btn").setAttribute("aria-busy", "false");
 
@@ -6085,6 +6103,7 @@
         if (!summary || button.disabled) return;
 
         const status = document.getElementById("copy-summary-status");
+        const buttonLabel = "Copy Summary";
 
         if (summaryToastTimer !== null) clearTimeout(summaryToastTimer);
 
@@ -6107,6 +6126,7 @@
             copied = true;
 
             status.textContent = "Copied to clipboard!";
+            button.textContent = "✓ Copied";
 
         } catch (_) {
 
@@ -6125,6 +6145,8 @@
                 summaryToastTimer = setTimeout(() => {
 
                     if (generation === summaryGeneration) status.textContent = "";
+
+                    if (generation === summaryGeneration) button.textContent = buttonLabel;
 
                     summaryToastTimer = null;
 
@@ -6177,10 +6199,23 @@
         const reputationVerdict = isUrlContent ? getUrlReputationVerdict(data) : null;
 
         const verdict = humanVerdict || technicalVerdict;
+        const displayRiskLabel = String(data.risk_label || "").toLowerCase();
+        const overallRisk = getCurrentOverallRisk(data);
+        const unsafeResult = isUrlContent && (displayRiskLabel === "unsafe" || verdict.className === "verdict-dangerous"
+            || overallRisk?.code === "known_dangerous");
+        const suspiciousResult = isUrlContent && !unsafeResult && (displayRiskLabel === "suspicious"
+            || ["verdict-suspicious", "verdict-review"].includes(verdict.className)
+            || ["suspicious", "integrity_review", "transport_warning"].includes(overallRisk?.code));
+        const safeResult = isUrlContent && !unsafeResult && !suspiciousResult
+            && ["Likely safe", "No Known Threats Detected"].includes(verdict.title);
+        const statusTone = unsafeResult ? "unsafe" : safeResult ? "safe" : isUrlContent ? "caution" : "neutral";
+        const statusTitle = unsafeResult ? "Unsafe" : safeResult ? "Likely safe" : isUrlContent ? "Can't tell" : verdict.title;
+        const statusIcon = unsafeResult ? "warning" : safeResult ? "shield" : isUrlContent ? "question" : verdict.icon || "shield";
 
         const banner = document.getElementById("verdict-banner");
 
         banner.className = "verdict-banner " + verdict.className;
+        banner.dataset.status = statusTone;
 
         banner.replaceChildren();
 
@@ -6188,7 +6223,7 @@
 
         verdictIcon.className = "verdict-icon";
 
-        verdictIcon.appendChild(createIcon(verdict.icon || "shield"));
+        verdictIcon.appendChild(createIcon(statusIcon));
 
         banner.appendChild(verdictIcon);
 
@@ -6200,21 +6235,30 @@
 
         title.className = "verdict-title";
 
-        title.textContent = verdict.title;
+        title.textContent = statusTitle;
 
         const explanation = document.createElement("span");
 
         explanation.className = "verdict-explanation";
 
-        explanation.textContent = humanVerdict ? humanVerdict.action : verdict.explanation;
+        explanation.textContent = "Recommended action: " + (isUrlContent
+            ? humanVerdict?.action || verdict.explanation
+            : humanVerdict ? humanVerdict.action : verdict.explanation);
 
         verdictCopy.append(title, explanation);
+
+        const openLinkButton = document.getElementById("open-link-btn");
+        const scanAnotherButton = document.getElementById("scan-again-btn");
+        openLinkButton.classList.toggle("action-primary", safeResult);
+        openLinkButton.classList.toggle("action-caution", isUrlContent && !safeResult && !unsafeResult);
+        openLinkButton.classList.toggle("action-danger", unsafeResult);
+        scanAnotherButton.classList.toggle("action-primary", !safeResult && !unsafeResult);
 
         const plainVerdict = document.createElement("span");
 
         plainVerdict.className = "result-plain-verdict";
 
-        const plainLabel = String(data.risk_label || "").toLowerCase();
+        const plainLabel = displayRiskLabel;
 
         plainVerdict.textContent = reputationVerdict ? reputationVerdict.summary
 
@@ -6228,13 +6272,13 @@
 
         if (!humanVerdict) verdictCopy.appendChild(plainVerdict);
 
-        if (!humanVerdict && isUrlContent && String(data.risk_label || "").toLowerCase() === "safe") {
+        if (safeResult) {
 
             const disclaimer = document.createElement("span");
 
             disclaimer.className = "verdict-disclaimer";
 
-            disclaimer.textContent = "Automated analysis reduces risk but cannot guarantee that a destination is completely safe.";
+            disclaimer.textContent = "No check can guarantee that a destination is safe.";
 
             verdictCopy.appendChild(disclaimer);
 
@@ -6321,6 +6365,7 @@
             const riskPanel = document.createElement("div");
 
             riskPanel.className = "risk-panel";
+            riskPanel.technicalGroup = "heuristic";
 
             const riskHeading = document.createElement("div");
 
@@ -6361,10 +6406,8 @@
             scoreEl.className = "risk-score";
 
             scoreEl.textContent = overallRisk
-
                 ? String(overallRisk.level || "INCONCLUSIVE")
-
-                : hasScore ? score : "Unavailable";
+                : hasScore ? score : "Score unavailable";
 
             scoreEl.setAttribute("data-unavailable", String(overallRisk ? true : !hasScore));
 
@@ -6441,7 +6484,7 @@
             resultRows.appendChild(riskPanel);
 
             resultRows.appendChild(createSection("Heuristic Risk Assessment", "gauge", [
-                ["Combined risk score", hasScore ? score + " / 100" : "Unavailable"],
+                ["Combined risk score", hasScore ? score + " / 100" : "Score unavailable"],
                 ["Scoring status", hasScore ? "Available — heuristic, not a probability" : "Unavailable — no replacement score invented"],
                 ["Why", typeof data.risk_score_reason === "string" ? data.risk_score_reason : hasScore
                     ? "This is the stored backend score. Available indicators do not guarantee safety; unavailable checks have not passed."
@@ -6493,7 +6536,7 @@
 
                     disabled: { text: "Not checked", tone: "warn" },
 
-                    unavailable: { text: "Unable to verify", tone: "warn" }
+                    unavailable: { text: "Threat check unavailable", tone: "warn" }
 
                 };
 
@@ -6887,6 +6930,7 @@
         const summary = document.createElement("div");
 
         summary.className = "summary-panel";
+        summary.technicalGroup = "findings";
 
         const summaryTitle = document.createElement("strong");
 
@@ -7020,6 +7064,46 @@
             }
 
         }
+
+        const technicalGroupDefinitions = [
+            ["technical", "Technical Details", "info", "Additional scan evidence and QR-declared details."],
+            ["heuristic", "Heuristic Risk Assessment", "gauge", "How the available deterministic and heuristic signals were assessed."],
+            ["findings", "Security Findings", "shield", "Reported indicators and their explanations."],
+            ["url", "URL Analysis", "link", "Destination, scheme, and redirect observations."],
+            ["reputation", "Live URL Reputation", "shield", "Threat reputation lookup and provider limitations."],
+            ["domain", "Domain Information", "link", "Domain registration and lookup information."],
+            ["rules", "Rule-Based Security Checks", "shield", "Transport, domain, and rule-based checks."],
+            ["integrity", "QR Integrity", "qr", "Image integrity signals and tampering evidence."]
+        ];
+        const technicalGroups = new Map(technicalGroupDefinitions.map(([key, title, icon, description]) => {
+            const details = document.createElement("details");
+            details.className = "result-technical-group";
+            const summary = document.createElement("summary");
+            summary.setAttribute("aria-expanded", "false");
+            summary.appendChild(createIcon(icon));
+            const heading = document.createElement("span");
+            heading.className = "result-technical-group-title";
+            heading.textContent = title;
+            const help = document.createElement("span");
+            help.className = "result-technical-group-description";
+            help.textContent = description;
+            summary.append(heading, help);
+            const content = document.createElement("div");
+            content.className = "result-technical-group-content";
+            details.append(summary, content);
+            details.ontoggle = () => summary.setAttribute("aria-expanded", String(details.open));
+            return [key, { details, content }];
+        }));
+        const technicalChildren = Array.from(technicalBody.children);
+        technicalBody.replaceChildren();
+        technicalChildren.forEach(child => {
+            const key = technicalGroups.has(child.technicalGroup) ? child.technicalGroup : "technical";
+            technicalGroups.get(key).content.appendChild(child);
+        });
+        technicalGroupDefinitions.forEach(([key]) => {
+            const group = technicalGroups.get(key);
+            if (group.content.children.length) technicalBody.appendChild(group.details);
+        });
 
         resultRows.appendChild(technicalDetails);
 

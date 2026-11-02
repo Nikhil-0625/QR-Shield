@@ -100,6 +100,52 @@
         document.getElementById('remove-logo').click(); clearTimeout(livePreviewTimer); generatePreview();
         check(!logo && document.getElementById('logo-preview').hidden && !currentRendered.svg.includes('<image'), type + ' logo removal failed');
     }
+    const logoCases = [
+        { name: 'small-rectangular-logo', width: 16, height: 10, payload: 'QR Shield' },
+        { name: 'normal-rectangular-logo', width: 256, height: 128, payload: 'https://example.test/brand?source=normal-logo' },
+        { name: 'transparent-png-logo', width: 96, height: 96, payload: 'Transparent logo payload 12345' },
+        { name: 'square-logo', width: 64, height: 64, payload: 'https://example.test/square-logo' }
+    ];
+    for (const [index, fixture] of logoCases.entries()) {
+        const imageCanvas = document.createElement('canvas');
+        imageCanvas.width = fixture.width; imageCanvas.height = fixture.height;
+        const imageContext = imageCanvas.getContext('2d');
+        if (fixture.name === 'transparent-png-logo') {
+            imageContext.fillStyle = '#4338ca';
+            imageContext.beginPath();
+            imageContext.arc(fixture.width / 2, fixture.height / 2, fixture.width / 3, 0, Math.PI * 2);
+            imageContext.fill();
+        } else {
+            imageContext.fillStyle = '#172033';
+            imageContext.fillRect(0, 0, fixture.width, fixture.height);
+            imageContext.fillStyle = '#ffffff';
+            imageContext.fillRect(fixture.width * 0.3, fixture.height * 0.3, fixture.width * 0.4, fixture.height * 0.4);
+        }
+        const file = await toFile(imageCanvas, 'image/png');
+        await loadLogo(file); clearTimeout(livePreviewTimer); generatePreview();
+        check(logo && !logoLoading && !logoError && !qrResult.hidden, fixture.name + ' failed: ' + formMessage.textContent);
+        const rendered = await record(fixture.name, fixture.payload, { logo, size: index % 2 ? 1024 : 512 });
+        const image = rendered.svg.match(/<image x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)"/);
+        check(Boolean(image), fixture.name + ' was not embedded in the SVG');
+        const [, x, y, width, height] = image.map(Number);
+        check(Math.abs(width / height - fixture.width / fixture.height) < 0.02, fixture.name + ' aspect ratio changed');
+        const moduleWidths = [...rendered.svg.matchAll(/<rect x="[^"]+" y="[^"]+" width="([^"]+)" height="([^"]+)"/g)]
+            .map(match => Number(match[1])).filter(value => value > 0 && value < rendered.width);
+        const moduleSize = Math.min(...moduleWidths);
+        const coreWidth = rendered.moduleCount * moduleSize;
+        const centerTolerance = 1.1;
+        check(Math.abs((x + width / 2) - rendered.width / 2) < centerTolerance &&
+            Math.abs((y + height / 2) - rendered.height / 2) < centerTolerance, fixture.name + ' was not centered');
+        const backing = [...rendered.svg.matchAll(/<rect x="([^"]+)" y="([^"]+)" width="([^"]+)" height="([^"]+)" fill="#ffffff"/g)]
+            .find(match => Math.abs(Number(match[1]) + Number(match[3]) / 2 - rendered.width / 2) < centerTolerance &&
+                Math.abs(Number(match[2]) + Number(match[4]) / 2 - rendered.height / 2) < centerTolerance &&
+                Math.abs(Number(match[3]) - Number(match[4])) < 0.01 &&
+                Number(match[3]) < coreWidth * 0.25);
+        check(Boolean(backing), fixture.name + ' lost its white quiet backing');
+        check(Number(backing[3]) / coreWidth <= 0.181, fixture.name + ' logo backing exceeded the 18% QR limit');
+        document.getElementById('remove-logo').click(); clearTimeout(livePreviewTimer); generatePreview();
+        check(!logo && !currentRendered.svg.includes('<image'), fixture.name + ' logo removal failed');
+    }
     const tooWide = document.createElement('canvas'); tooWide.width = 2049; tooWide.height = 1;
     for (const badFile of [
         new File(['<svg xmlns="http://www.w3.org/2000/svg"/>'], 'unsafe.svg', { type: 'image/svg+xml' }),

@@ -7,11 +7,21 @@
         checks++;
     };
     const node = () => ({ value: '', innerText: '', textContent: '', disabled: false, hidden: true,
-        style: {}, attributes: {}, setAttribute(k, v) { this.attributes[k] = v; },
+        style: {}, attributes: {}, dataset: {}, validity: { typeMismatch: false },
+        setAttribute(k, v) { this.attributes[k] = String(v); if (k.startsWith('data-')) this.dataset[k.slice(5).replace(/-([a-z])/g,(_,c)=>c.toUpperCase())] = String(v); },
+        getAttribute(k) { return this.attributes[k] ?? null; },
+        removeAttribute(k) { delete this.attributes[k]; },
+        listeners: {}, addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); },
+        dispatch(type, event = {}) { (this.listeners[type] || []).forEach(fn => fn(event)); },
         focus() { this.focused = true; }, select() { this.selected = true; } });
     function dom() {
         const nodes = new Map();
-        return { getElementById(id) { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); } };
+        const card = node();
+        return {
+            getElementById(id) { if (!nodes.has(id)) nodes.set(id, node()); return nodes.get(id); },
+            querySelector(selector) { return selector === '.auth-page .card' ? card : null; },
+            card
+        };
     }
     const loginScript = [...LOGIN_SOURCE.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)].at(-1)[1];
     function login(fetcher, supportsAbort = true, storageFails = false) {
@@ -19,11 +29,13 @@
         document.getElementById('email').value = 'synthetic@example.test';
         document.getElementById('password').value = 'Synthetic!Only123';
         document.getElementById('submit-btn').innerText = 'Sign In';
+        document.getElementById('security-ready-status').dataset.state = 'inspection';
+        document.getElementById('security-ready-text').textContent = 'Security inspection ready';
         const location = { hostname: 'localhost', protocol: 'http:' };
         let nextTimer = 0;
         class Controller { constructor() { this.signal = { aborted: false }; } abort() { this.signal.aborted = true; } }
         const api = new Function('document', 'window', 'location', 'fetch', 'localStorage', 'setTimeout', 'clearTimeout', 'AbortController',
-            loginScript + ';return {handleSubmit,toggleFormMode};')(
+            loginScript + ';return {handleSubmit,toggleFormMode,updateEmailState,checkStrength,togglePassword};')(
             document, {location}, location, (...args) => { calls.push(args); return fetcher(...args); },
             { setItem(k,v) { if (storageFails) throw new Error('storage denied'); stored[k]=v; } },
             (fn, ms) => { const id=++nextTimer; timers.set(id,{fn,ms}); return id; },
@@ -46,10 +58,36 @@
     check(payload.email==='synthetic@example.test'&&payload.password==='Synthetic!Only123','unchanged request shape');
     env.fire(1000);check(env.location.href==='scan.html','existing redirect');restored(env);
     check(env.document.getElementById('submit-btn').innerText==='Sign In','original label restored');
+    env.document.card.dispatch('focusin');
+    check(env.document.getElementById('security-ready-status').dataset.state==='workspace'&&env.document.getElementById('security-ready-text').textContent==='Secure workspace ready','form interaction updates the security status');
+    env=login(async()=>response({status:'success',access_token:'unused'}));
+    env.document.getElementById('password').type='password';
+    env.togglePassword();
+    check(env.document.getElementById('password').type==='text'&&env.document.getElementById('password-toggle').attributes['aria-pressed']==='true','password visibility can be enabled');
+    env.togglePassword();
+    check(env.document.getElementById('password').type==='password'&&env.document.getElementById('password-toggle').attributes['aria-pressed']==='false','password visibility can be restored');
+    env.document.getElementById('email').value='not-an-email';
+    env.document.getElementById('email').validity.typeMismatch=true;
+    check(!env.updateEmailState(),'invalid email is detected');
+    check(env.document.getElementById('email').attributes['data-validation']==='invalid','invalid email field state');
+    check(!env.document.getElementById('email-feedback').hidden&&env.document.getElementById('email-feedback').dataset.state==='invalid','accessible invalid email feedback');
+    await env.handleSubmit();
+    check(env.calls.length===0&&env.message().includes('valid email')&&env.document.getElementById('message').dataset.state==='error','invalid email blocks submission and receives error state');
+    env.document.getElementById('email').value='synthetic@example.test';
+    env.document.getElementById('email').validity.typeMismatch=false;
+    check(env.updateEmailState()&&env.document.getElementById('email-feedback').dataset.state==='valid','valid email state');
+    env.toggleFormMode();
+    env.document.getElementById('password').value='Aabc123!';env.checkStrength();
+    check(env.document.getElementById('password-req-length').dataset.met==='true'&&env.document.getElementById('password-req-groups').dataset.met==='true','registration policy requirements reflect valid medium password');
+    check(env.document.getElementById('strength-label').innerText==='Medium strength','medium registration strength');
+    env.document.getElementById('password').value='A'.repeat(70)+'a1!';env.checkStrength();
+    check(env.document.getElementById('password-req-bytes').dataset.met==='false','UTF-8 byte maximum is reflected');
+    env.document.getElementById('password').value='Aabc123!xy';env.checkStrength();
+    check(env.document.getElementById('strength-label').innerText==='Strong password','strong registration strength');
     env=login(async()=>response({status:'success'}));env.toggleFormMode();await env.handleSubmit();
     check(env.calls[0][0].endsWith('/register'),'existing registration endpoint');
-    check(env.message().includes('Registered successfully'),'registration success');restored(env);
-    env.fire(1200);check(env.document.getElementById('submit-btn').innerText==='Login','registration returns to login');
+    check(env.message().includes('Registered successfully')&&env.document.getElementById('message').dataset.state==='success','registration success state');restored(env);
+    env.fire(1200);check(env.document.getElementById('submit-btn').innerText==='Sign In \u2192','registration returns to login');
     for (const data of [null,[],{},'text',{status:'other'},{status:'success'},{status:'success',access_token:''},{status:'success',access_token:5}]) {
         env=login(async()=>response(data));await env.handleSubmit();
         check(env.message().includes('unexpected response'),'unexpected payload rejected');

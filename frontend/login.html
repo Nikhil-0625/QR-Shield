@@ -76,6 +76,8 @@
 </style>
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="master-design.css">
+<link rel="stylesheet" href="product-ux.css">
+<link rel="stylesheet" href="login.css">
 </head>
 <body class="auth-page">
 <div class="qs-ambient-bg" aria-hidden="true">
@@ -175,6 +177,20 @@
                 <path d="M247 26 264 33v14c0 11-7 19-17 23-10-4-17-12-17-23V33l17-7Z" fill="#f8f5fc" stroke="#b6a2d3"/><path d="m240 46 5 5 10-12" stroke="#74539d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
         </div>
+        <p class="security-ready-status" id="security-ready-status" data-state="inspection" role="status" aria-live="polite">
+            <span class="security-ready-dot" aria-hidden="true"></span><span id="security-ready-text">Security inspection ready</span>
+        </p>
+        <div class="auth-security-indicators" role="group" aria-label="Available security review features">
+            <span class="auth-security-indicator" tabindex="0" aria-describedby="auth-indicator-tip-qr" data-tooltip="QR content is decoded for review before a destination is opened.">
+                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 4 4 8-8"/></svg><span>QR inspection</span><span class="visually-hidden" id="auth-indicator-tip-qr">QR content is decoded for review before a destination is opened.</span>
+            </span>
+            <span class="auth-security-indicator" tabindex="0" aria-describedby="auth-indicator-tip-url" data-tooltip="Review available URL, domain, and threat-check evidence.">
+                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 4 4 8-8"/></svg><span>URL analysis</span><span class="visually-hidden" id="auth-indicator-tip-url">Review available URL, domain, and threat-check evidence.</span>
+            </span>
+            <span class="auth-security-indicator" tabindex="0" aria-describedby="auth-indicator-tip-threats" data-tooltip="See detected indicators and checks that could not be completed.">
+                <svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 4 4 8-8"/></svg><span>Threat indicators</span><span class="visually-hidden" id="auth-indicator-tip-threats">See detected indicators and checks that could not be completed.</span>
+            </span>
+        </div>
 <p class="auth-caption">Inspect destinations. Review payment details. Keep a clear record.</p>
     </section>
     <section class="card" aria-labelledby="form-title">
@@ -184,7 +200,8 @@
 
         <div class="input-group">
             <label for="email">Email address</label>
-            <input type="email" id="email" placeholder="Enter your email" autocomplete="email" aria-required="true">
+            <input type="email" id="email" placeholder="Enter your email" autocomplete="email" aria-required="true" aria-describedby="email-feedback" oninput="updateEmailState()" onblur="updateEmailState()">
+            <p class="email-feedback" id="email-feedback" role="status" aria-live="polite" hidden></p>
         </div>
 
         <div class="input-group password-wrapper">
@@ -197,11 +214,17 @@
                 <div class="strength-fill" id="strength-fill"></div>
             </div>
             <div class="strength-label" id="strength-label" aria-live="polite"></div>
+            <ul class="password-requirements" id="password-requirements" aria-label="Password requirements" hidden>
+                <li id="password-req-length" data-met="false">At least 8 characters</li>
+                <li id="password-req-groups" data-met="false">At least 2 groups: uppercase, lowercase, number, or special character</li>
+                <li id="password-req-bytes" data-met="true">No more than 72 UTF-8 bytes</li>
+            </ul>
         </div>
 
-        <button type="button" onclick="handleSubmit()" id="submit-btn">Sign In</button>
+        <button type="button" onclick="handleSubmit()" id="submit-btn">Sign In →</button>
         <p class="toggle-form" id="toggle-form-copy">Don't have an account? <button type="button" onclick="toggleFormMode()">Register</button></p>
         <p id="message" role="status" aria-live="polite"></p>
+        <p class="auth-security-note"><svg aria-hidden="true" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5 16 5v4.6c0 3.7-2.4 6.3-6 7.9-3.6-1.6-6-4.2-6-7.9V5l6-2.5Z"/><path d="m7.5 10 1.7 1.7 3.4-3.5"/></svg><span>Your sign-in is handled by your QR Shield account.</span></p>
     </section>
 </main>
 <footer class="page-footer"><span>QR Shield &middot; QR code security &amp; analysis</span><span>Scan thoughtfully. Make informed decisions.</span></footer>
@@ -211,6 +234,28 @@
     // Gateway and forwarded pages use same-origin API; legacy localhost servers remain supported.
     const API_URL = window.QR_SHIELD_API_BASE || (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:"
         ? "http://127.0.0.1:8000" : "/api");
+
+    function updateEmailState() {
+        const emailInput = document.getElementById("email");
+        const feedback = document.getElementById("email-feedback");
+        const email = emailInput.value.trim();
+        if (!email) {
+            emailInput.setAttribute("data-validation", "");
+            emailInput.setAttribute("aria-invalid", "false");
+            feedback.hidden = true;
+            feedback.textContent = "";
+            return true;
+        }
+        const invalid = emailInput.validity && typeof emailInput.validity.typeMismatch === "boolean"
+            ? emailInput.validity.typeMismatch
+            : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        emailInput.setAttribute("data-validation", invalid ? "invalid" : "valid");
+        emailInput.setAttribute("aria-invalid", String(invalid));
+        feedback.hidden = false;
+        feedback.dataset.state = invalid ? "invalid" : "valid";
+        feedback.textContent = invalid ? "Please enter a valid email address." : "Email format looks valid.";
+        return !invalid;
+    }
 
     function togglePassword() {
         const passwordInput = document.getElementById("password");
@@ -223,30 +268,41 @@
     }
 
     function checkStrength() {
-        if (isLoginMode) return;
+        const requirements = document.getElementById("password-requirements");
+        if (isLoginMode) { if (requirements) requirements.hidden = true; return; }
         const password = document.getElementById("password").value;
+        if (requirements) requirements.hidden = password.length === 0;
         const barContainer = document.getElementById("strength-bar-container");
         const fill = document.getElementById("strength-fill");
         const label = document.getElementById("strength-label");
-
-        if (password.length === 0) {
+        const length = Array.from(password).length;
+        let byteLength = Infinity;
+        try {
+            byteLength = typeof TextEncoder === "function"
+                ? new TextEncoder().encode(password).length
+                : unescape(encodeURIComponent(password)).length;
+        } catch (_) { /* The server will remain authoritative for malformed text. */ }
+        const specialCharacters = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+        const groups = [/\p{Lu}/u.test(password), /\p{Ll}/u.test(password), /\p{N}/u.test(password),
+            Array.from(password).some(character => specialCharacters.includes(character))].filter(Boolean).length;
+        const lengthMet = length >= 8;
+        const groupsMet = groups >= 2;
+        const bytesMet = byteLength <= 72;
+        document.getElementById("password-req-length").dataset.met = String(lengthMet);
+        document.getElementById("password-req-groups").dataset.met = String(groupsMet);
+        document.getElementById("password-req-bytes").dataset.met = String(bytesMet);
+        if (!password) {
             barContainer.style.display = "none";
             label.innerText = "";
             return;
         }
         barContainer.style.display = "block";
-
-        let score = 0;
-        if (password.length >= 8) score++;
-        if (password.length >= 10) score++;
-        if (/[A-Z]/.test(password)) score++;
-        if (/[0-9]/.test(password)) score++;
-        if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) score++;
-
-        if (score <= 2) {
+        const acceptedByCurrentPolicy = lengthMet && groupsMet && bytesMet;
+        const strong = acceptedByCurrentPolicy && length >= 10 && groups >= 3;
+        if (!acceptedByCurrentPolicy) {
             fill.style.width = "33%"; fill.style.background = "#e74c3c";
-            label.style.color = "#e74c3c"; label.innerText = "Weak password";
-        } else if (score <= 3) {
+            label.style.color = "#e74c3c"; label.innerText = "Does not meet the current password requirements";
+        } else if (!strong) {
             fill.style.width = "66%"; fill.style.background = "#f39c12";
             label.style.color = "#f39c12"; label.innerText = "Medium strength";
         } else {
@@ -262,7 +318,7 @@
         document.getElementById("form-subtitle").innerText = isLoginMode
             ? "Log in to scan and secure your QR codes."
             : "Create an account to start scanning safely.";
-        document.getElementById("submit-btn").innerText = isLoginMode ? "Login" : "Register";
+        document.getElementById("submit-btn").innerText = isLoginMode ? "Sign In →" : "Create Account →";
         document.getElementById("toggle-form-copy").innerHTML = isLoginMode
             ? 'Don\'t have an account? <button type="button" onclick="toggleFormMode()">Register</button>'
             : 'Already have an account? <button type="button" onclick="toggleFormMode()">Login</button>';
@@ -271,8 +327,12 @@
         document.getElementById("password-toggle").setAttribute("aria-label", "Show password");
         document.getElementById("password-toggle").setAttribute("aria-pressed", "false");
         document.getElementById("message").innerText = "";
+        document.getElementById("message").dataset.state = "";
         document.getElementById("strength-bar-container").style.display = "none";
         document.getElementById("strength-label").innerText = "";
+        document.getElementById("password-requirements").hidden = true;
+        updateEmailState();
+        checkStrength();
     }
 
     function authDisplayError(message) {
@@ -283,13 +343,23 @@
 
     async function handleSubmit() {
         const email = document.getElementById("email").value;
+        const emailInput = document.getElementById("email");
         const password = document.getElementById("password").value;
         const messageEl = document.getElementById("message");
         const submitBtn = document.getElementById("submit-btn");
 
         if (!email || !password) {
             messageEl.style.color = "#e74c3c";
+            messageEl.dataset.state = "error";
             messageEl.innerText = "Please fill in all fields";
+            return;
+        }
+
+        if (!updateEmailState()) {
+            messageEl.style.color = "#e74c3c";
+            messageEl.dataset.state = "error";
+            messageEl.innerText = "Please enter a valid email address.";
+            emailInput.focus();
             return;
         }
 
@@ -303,7 +373,8 @@
         submitBtn.disabled = true;
         submitBtn.setAttribute("aria-busy", "true");
         messageEl.innerText = "";
-        submitBtn.innerText = isLoginMode ? "Logging in..." : "Creating account...";
+        messageEl.dataset.state = "";
+        submitBtn.innerText = isLoginMode ? "Signing in..." : "Creating account...";
 
         try {
             const request = (async () => {
@@ -348,15 +419,18 @@
                     try { localStorage.setItem("access_token", data.access_token); }
                     catch (_) { throw authDisplayError("Your browser could not save the sign-in session. Allow site storage and try again."); }
                     messageEl.style.color = "#27ae60";
-                    messageEl.innerText = "Login successful! Redirecting...";
+                    messageEl.dataset.state = "success";
+                    messageEl.innerText = "Access verified. Redirecting...";
                     setTimeout(() => { window.location.href = "scan.html"; }, 1000);
                 } else {
                     messageEl.style.color = "#27ae60";
+                    messageEl.dataset.state = "success";
                     messageEl.innerText = "Registered successfully! You can now login.";
                     setTimeout(() => toggleFormMode(), 1200);
                 }
             } else {
                 messageEl.style.color = "#e74c3c";
+                messageEl.dataset.state = "error";
                 // Only known public messages are shown; never echo arbitrary server details.
                 const publicMessages = new Set([
                     "Invalid email or password", "Email already registered",
@@ -370,6 +444,7 @@
             }
         } catch (error) {
             messageEl.style.color = "#e74c3c";
+            messageEl.dataset.state = "error";
             messageEl.innerText = timedOut ? "The request timed out. Check your connection and try again."
                 : error && error.safeToDisplay ? error.message
                 : "Could not reach the server. Check your connection and try again.";
@@ -380,6 +455,22 @@
             submitBtn.innerText = originalLabel;
         }
     }
+
+    (function wireLoginReadyStatus() {
+        const card = document.querySelector(".auth-page .card");
+        const status = document.getElementById("security-ready-status");
+        const statusText = document.getElementById("security-ready-text");
+        if (!card || !status || !statusText) return;
+        function markWorkspaceReady() {
+            status.dataset.state = "workspace";
+            statusText.textContent = "Secure workspace ready";
+        }
+        card.addEventListener("focusin", markWorkspaceReady);
+        card.addEventListener("input", markWorkspaceReady);
+        card.addEventListener("click", event => {
+            if (event.target.closest("button, input, select")) markWorkspaceReady();
+        });
+    })();
 </script>
 
 </body>

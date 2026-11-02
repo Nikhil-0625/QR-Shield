@@ -194,8 +194,20 @@ window.QRShieldModal = (() => {
         if (!url) { clear(); return; }
         pending = result;
         const high = result.label === "unsafe";
-        const caution = result.label === "suspicious" || result.findings.length > 0;
-        const needsWarning = high || caution || result.incomplete || result.humanVerdict !== "Likely safe";
+
+const caution =
+    result.label === "suspicious" ||
+    result.findings.length > 0;
+
+const safeVerdict = [
+    "Likely safe",
+    "No Known Threats Detected"
+].includes(result.humanVerdict);
+
+const needsWarning =
+    high ||
+    caution ||
+    (!safeVerdict && result.humanVerdict !== "Can't tell");
         const tone = high ? "danger" : needsWarning ? "warning" : "low";
         dialog.dataset.tone = tone;
         dialog.dataset.danger = String(needsWarning);
@@ -238,18 +250,45 @@ window.QRShieldModal = (() => {
             const explanation = document.createElement("p");
             explanation.textContent = "No rule-based indicator explanations were provided by this scan. Missing checks have not passed.";
             fullFindings.appendChild(explanation);
-        }
-        byId("link-warning-acknowledgment").hidden = !high;
-        acknowledgment.checked = false;
-        continueButton.disabled = high;
-        continueButton.textContent = needsWarning ? "Proceed anyway" : "Proceed";
-        cancelButton.textContent = "Cancel";
-        if (modal.open({ onProceed: proceed, onCancel: () => { pending = null; } })) {
-            dialog.querySelector(".link-warning-body").scrollTop = 0;
-        } else {
-            pending = null;
-            status.textContent = "The confirmation could not be displayed. No link was opened.";
-        }
+        }byId("link-warning-acknowledgment").hidden = !high;
+acknowledgment.checked = false;
+continueButton.disabled = high;
+continueButton.textContent = needsWarning ? "Proceed anyway" : "Proceed";
+cancelButton.textContent = "Cancel";
+
+/* Safe destinations open directly without a confirmation modal. */
+if (!needsWarning) {
+    const safeUrl = validatedUrl(result.href);
+
+    if (!safeUrl) {
+        pending = null;
+        status.textContent = "The destination URL is invalid. No link was opened.";
+        return;
+    }
+
+    used = true;
+    openButton.disabled = true;
+    pending = null;
+
+    try {
+        window.open(safeUrl.href, "_blank", "noopener,noreferrer");
+        status.textContent =
+            "The destination was opened. QR Shield found no known threat or suspicious rule-based indicators.";
+    } catch (_) {
+        used = false;
+        openButton.disabled = false;
+        status.textContent = "Your browser could not open the link.";
+    }
+
+    return;
+}
+
+if (modal.open({ onProceed: proceed, onCancel: () => { pending = null; } })) {
+    dialog.querySelector(".link-warning-body").scrollTop = 0;
+} else {
+    pending = null;
+    status.textContent = "The security warning could not be displayed. No link was opened.";
+}
     }
 
     acknowledgment.addEventListener("change", () => {

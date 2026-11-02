@@ -311,7 +311,8 @@ class WebsiteCheckerTests(unittest.TestCase):
         self.assertEqual(set(page), {"items", "has_more", "next_cursor", "snapshot_id", "timezone"})
         self.assertEqual({item["id"] for item in page["items"]}, {11, result["scan_id"]})
         self.assertEqual(set(page["items"][0]), {
-            "id", "decoded_content", "final_url", "domain", "risk_score", "risk_label", "scanned_at"
+            "id", "decoded_content", "final_url", "domain", "risk_score", "risk_label",
+            "risk_category", "scanned_at"
         })
         self.assert_offline()
 
@@ -322,7 +323,8 @@ class WebsiteCheckerTests(unittest.TestCase):
         self.assertEqual(code, 200, raw)
         summary = json.loads(raw)
         self.assertEqual(summary["total"], 2)
-        self.assertEqual(summary["counts"]["unclassified"], 1)
+        self.assertEqual(summary["counts"]["unverified"], 1)
+        self.assertEqual(summary["counts"]["unclassified"], 0)
         self.assertEqual(summary["counts"]["safe"], 0)
         self.assertIsNone(summary["average_url_risk"])
         self.assert_offline()

@@ -35,6 +35,31 @@
         status.textContent = text;
         status.dataset.tone = error ? 'error' : 'neutral';
     }
+    const query = new URLSearchParams(location.search);
+    const controlledDemoUrl = 'http://paypal-account-security.example/verify/login';
+    const demoUrl = query.get('demo_url');
+    let controlledDemoFlow = false;
+    const demoUrls = {
+        safe: 'https://www.google.com/',
+        suspicious: 'http://example.com/login'
+    };
+    if (demoUrl !== null) {
+        // URLSearchParams safely decodes the query value; accept only this local demo fixture.
+        if (demoUrl === controlledDemoUrl && !validate(demoUrl)) {
+            input.value = demoUrl;
+            controlledDemoFlow = true;
+            message('Controlled Phishing Simulation / Local Demo. This reserved .example URL is only prefilled; no check runs until you select Analyze Website.');
+        } else {
+            message('The controlled demo URL is invalid. No website has been checked.', true);
+        }
+    } else {
+        const demoScenario = query.get('demoScenario');
+        if (Object.prototype.hasOwnProperty.call(demoUrls, demoScenario)) {
+            input.value = demoUrls[demoScenario];
+            message('Demo Scenario: ' + (demoScenario === 'safe' ? 'Safe HTTPS example' : 'Suspicious HTTP example') +
+                '. Review the controlled URL, then select Analyze Website to run QR Shield’s existing checks.');
+        }
+    }
     function busy(value) {
         pending = value;
         analyzeButton.disabled = value;
@@ -60,6 +85,55 @@
             if (!['http:', 'https:'].includes(url.protocol) || !url.hostname || url.username || url.password) return 'Use an HTTP or HTTPS website link without embedded credentials.';
         } catch (_) { return 'Enter a valid HTTP or HTTPS website link.'; }
         return null;
+    }
+    function createControlledDemoResult(url) {
+        const indicators = [
+            ['HTTP instead of HTTPS', 'The synthetic URL uses unencrypted HTTP; no connection was made.'],
+            ['Brand impersonation / brand-like hostname', 'The hostname combines a PayPal-like brand name with the reserved .example domain; it does not identify a real PayPal site.'],
+            ['Account/security verification context', 'The hostname and path use account, security, and verification language as a simulated lure.'],
+            ['Login/credential collection path', 'The /verify/login path represents a simulated credential-entry destination; no page was opened.'],
+            ['Suspicious URL structure', 'Brand-like wording combined with account and login terms is shown as an illustrative phishing pattern.']
+        ].map(([name, reason]) => ({ name, reason }));
+        const networkChecks = [
+            'DNS lookup', 'HTTP request', 'HTTPS certificate', 'Redirect analysis',
+            'Domain registration / RDAP', 'Google Safe Browsing'
+        ];
+        return {
+            status: 'success',
+            submitted_url: url,
+            normalized_url: url,
+            domain: 'paypal-account-security.example',
+            risk_label: 'unsafe',
+            risk_score: null,
+            rule_score: null,
+            risk_score_reason: 'No score was calculated for this controlled simulation.',
+            explanation: 'Controlled simulation only; no real website was checked. The illustrative indicators are: HTTP instead of HTTPS, a brand-like hostname, account/security verification context, a login/credential collection path, and suspicious URL structure.',
+            recommended_action: 'Do not visit this simulated address or enter credentials. It is a controlled demonstration only.',
+            analysis_timestamp: new Date().toISOString(),
+            live_reputation: {
+                status: 'disabled',
+                provider: 'Not queried',
+                reason: 'No reputation request was made for this controlled simulation.'
+            },
+            domain_registration: {
+                status: 'not_applicable',
+                reason: 'The reserved .example domain was not looked up.'
+            },
+            ml_status: 'excluded',
+            ml_note: 'Experimental ML was not used. No score was generated for this simulation.',
+            risk_breakdown: indicators.map(item => ({
+                source: 'controlled_demo', category: 'phishing', name: item.name, reason: item.reason
+            })),
+            security_checks: [
+                ...indicators.map(item => ({ name: item.name, status: 'warning', detail: item.reason })),
+                ...networkChecks.map(name => ({
+                    name, status: 'not_checked',
+                    detail: 'Not performed for the controlled demo; no DNS or network request was made.'
+                })),
+                { name: 'Experimental ML', status: 'not_checked', detail: 'Not used for this controlled simulation.' }
+            ],
+            unavailable_checks: [...networkChecks, 'Experimental ML']
+        };
     }
     function addDetail(list, label, value) {
         list.append(node('dt', label), node('dd', value === null || value === undefined || value === '' ? 'Not available' : value));
@@ -98,7 +172,7 @@
             'Redirect destination': 'Redirect analysis'
         })[name] || name;
     }
-    function renderSimpleChecks(data, reputation, state) {
+    function renderSimpleChecks(data, reputation, state, controlledDemo = false) {
         const list = byId('website-simple-checks');
         list.replaceChildren();
         const add = (label, value, tone, detail) => {
@@ -127,23 +201,33 @@
         data.security_checks.forEach(item => {
             if (/\bml\b|machine learning/i.test(item.name)) return;
             const [value, tone] = statusCopy(item.status);
-            addOnce(checkLabel(item.name), value, tone);
+            const displayedValue = item.name === 'Domain registration / RDAP' && String(item.status).toLowerCase() === 'unavailable'
+                ? 'RDAP check unavailable' : value;
+            addOnce(checkLabel(item.name), displayedValue, tone,
+                ['unavailable', 'not_checked', 'blocked', 'failed'].includes(String(item.status).toLowerCase()) ? item.detail : '');
         });
         const reputationStatus = state;
         const reputationCopy = {
             threat: ['Threat reported', 'threat'], clear: ['No known threat reported', 'checked'],
-            disabled: ['Not checked', 'unavailable'], unavailable: ['Not available', 'unavailable']
+            disabled: ['Not checked', 'unavailable'], unavailable: ['Threat check unavailable', 'unavailable']
         }[reputationStatus];
-        if (reputationCopy) addOnce('Known threat check', reputationCopy[0], reputationCopy[1], reputation.provider || '');
+        if (reputationCopy) addOnce('Known threat check', reputationCopy[0], reputationCopy[1],
+            state === 'unavailable' ? 'Threat check unavailable. No safe result was reported.' : reputation.provider || '');
         else if (data.unavailable_checks.some(item => /live reputation/i.test(item))) addOnce('Known threat check', 'Not available', 'unavailable');
         const findings = Array.isArray(data.risk_breakdown) ? data.risk_breakdown
             .filter(item => item && typeof item.name === 'string').map(item => item.name) : [];
-        addOnce('Address warning signs', findings.length ? 'Warning signs found' : 'None reported by available checks',
-            findings.length ? 'warning' : 'checked', findings.join(', '));
+        addOnce(controlledDemo ? 'Simulation indicators' : 'Address warning signs',
+            controlledDemo ? 'Illustrative indicators' : findings.length ? 'Warning signs found' : 'None reported by available checks',
+            controlledDemo || findings.length ? 'warning' : 'checked', findings.join(', '));
         const unavailable = data.security_checks.some(item => !/\bml\b|machine learning/i.test(item.name) && ['unavailable', 'not_checked', 'blocked', 'failed'].includes(String(item.status).toLowerCase())) ||
             data.unavailable_checks.some(item => !/\bml\b|machine learning/i.test(item));
-        byId('website-simple-uncertainty').hidden = !unavailable;
-        byId('website-simple-message').textContent = 'The statuses below show which checks were available. A completed check does not guarantee safety.';
+        byId('website-simple-uncertainty').hidden = controlledDemo ? false : !unavailable;
+        byId('website-simple-uncertainty').textContent = controlledDemo
+            ? 'DNS, reputation, TLS, redirect, and RDAP checks were not performed for this controlled demo.'
+            : 'Some checks were not available. Unavailable checks have not passed.';
+        byId('website-simple-message').textContent = controlledDemo
+            ? 'This is a controlled phishing simulation. The indicators below are illustrative and are not findings from live URL analysis.'
+            : 'The statuses below show which checks were available. A completed check does not guarantee safety.';
         return findings;
     }
     function simpleExplanation(code, findings, reputationStatus) {
@@ -155,7 +239,7 @@
             : "We couldn't complete all security checks for this address.";
         return 'Some warning signs may be present. Verify the address and sender before continuing.';
     }
-    function render(data, focus = true) {
+    function render(data, focus = true, controlledDemo = false) {
         const requestedView = focus ? 'simple' : (results.dataset.resultView === 'technical' ? 'technical' : 'simple');
         if (expiryTimer !== null) clearTimeout(expiryTimer);
         expiryTimer = null;
@@ -191,10 +275,13 @@
             safe: 'm8 12 3 3 5-6', warning: 'M12 8v5m0 3h.01',
             danger: 'M12 8v5m0 3h.01', neutral: 'M9.5 9a2.5 2.5 0 1 1 4.4 1.6c-.9.5-1.9.9-1.9 2.4m0 3h.01'
         };
-        const verdict = overallRisk
-            ? { label: 'Overall Risk · ' + overallRisk.label, title: overallRisk.level,
-                tone: overallRisk.tone, symbol: overallSymbols[overallRisk.tone] || overallSymbols.neutral }
-            : liveVerdicts[resultCode] || verdicts[data.risk_label] || verdicts.unverified;
+        const verdict = controlledDemo
+            ? { label: 'Controlled Phishing Simulation / Local Demo', title: 'UNSAFE — CONTROLLED DEMO',
+                tone: 'danger', symbol: 'M12 8v5m0 3h.01' }
+            : overallRisk
+                ? { label: 'Overall Risk · ' + overallRisk.label, title: overallRisk.level,
+                    tone: overallRisk.tone, symbol: overallSymbols[overallRisk.tone] || overallSymbols.neutral }
+                : liveVerdicts[resultCode] || verdicts[data.risk_label] || verdicts.unverified;
         byId('website-verdict').dataset.tone = verdict.tone;
         byId('website-verdict-label').textContent = verdict.label;
         byId('website-verdict-title').textContent = verdict.title;
@@ -203,15 +290,15 @@
         byId('website-normalized-url').textContent = data.normalized_url;
         byId('website-ml-note').textContent = data.ml_note || 'ML output is unavailable and is not used in this verdict.';
 
-        byId('website-analysis-mode').textContent = state === 'disabled' ? 'Offline checks only' : state === 'unavailable' ? 'Live threat check unavailable' : 'Live threat check completed';
+        byId('website-analysis-mode').textContent = controlledDemo ? 'Controlled demo · no network checks' : state === 'disabled' ? 'Offline checks only' : state === 'unavailable' ? 'Live threat check unavailable' : 'Live threat check completed';
         const providerStatus = byId('website-reputation-status');
-        providerStatus.textContent = { threat: 'Threat reported', clear: 'No known threat reported', disabled: 'Not checked', unavailable: 'Not available' }[state];
+        providerStatus.textContent = { threat: 'Threat reported', clear: 'No known threat reported', disabled: 'Not checked', unavailable: 'Threat check unavailable' }[state];
         providerStatus.dataset.status = state;
         byId('website-reputation-detail').textContent = {
             threat: 'A known threat-list match was reported. This may indicate risk.',
             clear: 'No known threat was reported. This does not confirm legitimacy or guarantee safety.',
             disabled: 'The live threat check was not run.',
-            unavailable: 'The live threat check could not be completed.'
+            unavailable: 'Threat check unavailable. No safe result was reported.'
         }[state];
         const providerDetails = byId('website-reputation-data');
         providerDetails.replaceChildren();
@@ -222,8 +309,14 @@
         if (state === 'threat') addDetail(providerDetails, 'Reported categories', (reputation.threat_types || []).join(', '));
         byId('website-google-warning').hidden = state !== 'threat';
 
-        const findingsForSimple = renderSimpleChecks(data, reputation, state);
-        byId('website-explanation').textContent = overallRisk?.explanation || simpleExplanation(resultCode, findingsForSimple, state);
+        const findingsForSimple = renderSimpleChecks(data, reputation, state, controlledDemo);
+        byId('website-explanation').textContent = controlledDemo
+            ? data.explanation
+            : overallRisk?.explanation || simpleExplanation(resultCode, findingsForSimple, state);
+        const findingsNote = byId('website-findings-note');
+        if (findingsNote) findingsNote.textContent = controlledDemo
+            ? 'Synthetic scenario indicators only; these are not results from live URL analysis.'
+            : 'Rule-based evidence from the submitted address.';
 
         const findings = byId('website-findings');
         findings.replaceChildren();
@@ -246,6 +339,7 @@
             const status = String(item.status || '').toLowerCase();
             const state = ['checked', 'performed', 'passed', 'completed', 'not_applicable'].includes(status) ? 'checked' : status === 'warning' ? 'warning' : status === 'failed' ? 'failed' : 'unavailable';
             const label = status === 'blocked' ? 'Blocked by policy'
+                : status === 'unavailable' && item.name === 'Domain registration / RDAP' ? 'RDAP check unavailable'
                 : status === 'unavailable' || status === 'not_checked' ? 'Not available'
                 : status === 'failed' ? 'Check failed'
                 : status === 'not_applicable' ? 'Not applicable'
@@ -329,6 +423,19 @@
         const error = validate(value);
         input.setAttribute('aria-invalid', String(Boolean(error)));
         if (error) { message(error, true); input.focus(); return; }
+        if (controlledDemoFlow && value === controlledDemoUrl) {
+            sequence++;
+            if (expiryTimer !== null) clearTimeout(expiryTimer);
+            expiryTimer = null;
+            if (reportController) reportController.abort();
+            reportController = null;
+            scanId = null;
+            reportButton.disabled = true;
+            reportButton.textContent = 'Download Report';
+            render(createControlledDemoResult(value), true, true);
+            message('UNSAFE — CONTROLLED DEMO. No DNS, HTTP, TLS, redirect, RDAP, or reputation request was made.');
+            return;
+        }
         const request = ++sequence;
         if (expiryTimer !== null) clearTimeout(expiryTimer);
         expiryTimer = null;

@@ -19,14 +19,37 @@ def content_type(value):
     return "Unclassifiable" if not text else "URL" if text.startswith(("http://", "https://")) else "UPI" if text.startswith("upi://") else "Text / Other"
 
 
-def classification(content, label):
+def _overall_risk_code(score_explanation):
+    if not score_explanation:
+        return None
+    try:
+        metadata = json.loads(score_explanation) if isinstance(score_explanation, str) else score_explanation
+    except (ValueError, TypeError):
+        return None
+    overall_risk = metadata.get("overall_risk") if isinstance(metadata, dict) else None
+    code = overall_risk.get("code") if isinstance(overall_risk, dict) else None
+    return code if isinstance(code, str) else None
+
+
+def classification(content, label, score_explanation=None):
     kind = content_type(content)
     if kind == "Unclassifiable":
         return "unclassified"
     if kind != "URL":
         return "non_url"
+    code = _overall_risk_code(score_explanation)
+    if code == "low":
+        return "safe"
+    if code == "known_dangerous":
+        return "unsafe"
+    if code in {"suspicious", "integrity_review", "transport_warning"}:
+        return "suspicious"
+    if code == "inconclusive":
+        return "unverified"
     label = (label or "").lower()
-    return label if label in ("safe", "suspicious", "unsafe") else "unclassified"
+    if label in ("safe", "suspicious", "unsafe"):
+        return label
+    return "unverified" if label == "unverified" else "unclassified"
 
 
 def utc_timestamp(value):
@@ -42,8 +65,16 @@ def classification_expression(record):
     text = func.lower(func.trim(func.coalesce(record.decoded_content, ""), WHITESPACE))
     is_url = or_(text.startswith("http://"), text.startswith("https://"))
     label = func.lower(func.coalesce(record.risk_label, ""))
-    return case((text == "", "unclassified"), (~is_url, "non_url"),
-                (label.in_(["safe", "suspicious", "unsafe"]), label), else_="unclassified")
+    metadata = func.coalesce(record.score_explanation, "{}")
+    valid_metadata = case((func.json_valid(metadata) == 1, metadata), else_="{}")
+    code = func.json_extract(valid_metadata, "$.overall_risk.code")
+    return case(
+        (text == "", "unclassified"), (~is_url, "non_url"),
+        (code == "low", "safe"), (code == "known_dangerous", "unsafe"),
+        (code.in_(["suspicious", "integrity_review", "transport_warning"]), "suspicious"),
+        (code == "inconclusive", "unverified"),
+        (label.in_(["safe", "suspicious", "unsafe"]), label),
+        (label == "unverified", "unverified"), else_="unclassified")
 
 
 def summary(db, record, user_id, now=None):
@@ -53,11 +84,12 @@ def summary(db, record, user_id, now=None):
     by_day = {day["key"]: day for day in days}
     result = {"timezone": "UTC", "timestamp_convention": "ORM timestamps are UTC; missing timestamps are unknown",
               "snapshot_id": db.query(func.max(record.id)).filter(record.user_id == user_id).scalar() or 0,
-              "total": 0, "counts": dict.fromkeys(["safe", "suspicious", "unsafe", "non_url", "unclassified"], 0),
+              "total": 0, "counts": dict.fromkeys(["safe", "suspicious", "unsafe", "unverified", "non_url", "unclassified"], 0),
               "content_counts": dict.fromkeys(["URL", "UPI", "Text / Other", "Unclassifiable"], 0),
               "average_url_risk": None, "stored_findings": 0, "indicators": {}, "activity": days,
               "unknown_timestamps": 0}
-    query = db.query(record.decoded_content, record.risk_label, record.risk_score, record.risk_breakdown, record.scanned_at).filter(
+    query = db.query(record.decoded_content, record.risk_label, record.risk_score, record.risk_breakdown,
+                     record.score_explanation, record.scanned_at).filter(
         record.user_id == user_id, record.id <= result["snapshot_id"]).limit(5001).yield_per(100)
     size = 0
     score_sum = score_count = 0
@@ -67,10 +99,10 @@ def summary(db, record, user_id, now=None):
         size += len(json.dumps(list(row), default=str, ensure_ascii=False).encode("utf-8"))
         if size > MAX_BYTES:
             raise HTTPException(413, "Dashboard summary exceeds the 8 MiB processing limit")
-        content, label, score, breakdown, scanned_at = row
+        content, label, score, breakdown, score_explanation, scanned_at = row
         kind = content_type(content)
         result["total"] += 1
-        result["counts"][classification(content, label)] += 1
+        result["counts"][classification(content, label, score_explanation)] += 1
         result["content_counts"][kind] += 1
         try:
             numeric_score = float(score) if score is not None and score != "" else None
@@ -119,6 +151,7 @@ def page(db, record, user_id, limit, cursor_id=None, snapshot_id=None, category=
     more = len(rows) > limit
     items = [{"id": row.id, "decoded_content": row.decoded_content, "final_url": row.final_url,
               "domain": row.domain, "risk_score": row.risk_score, "risk_label": row.risk_label,
+              "risk_category": classification(row.decoded_content, row.risk_label, row.score_explanation),
               "scanned_at": utc_timestamp(row.scanned_at)} for row in rows[:limit]]
     result = {"items": items, "has_more": more, "next_cursor": items[-1]["id"] if more else None,
               "snapshot_id": snapshot_id, "timezone": "UTC"}

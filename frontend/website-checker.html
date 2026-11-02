@@ -18,6 +18,7 @@
 <link rel="stylesheet" href="master-design.css">
 
     <link rel="stylesheet" href="website-checker.css">
+    <link rel="stylesheet" href="product-ux.css">
 
     <script src="navigation.js" defer></script>
 
@@ -97,7 +98,7 @@
 
 <header class="qs-header">
 
-    <a class="qs-brand" href="scan.html" aria-label="QR Shield home">
+    <a class="qs-brand" href="index.html" aria-label="QR Shield home">
 
         <span class="qs-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
 
@@ -134,7 +135,7 @@
 
     <div class="website-heading">
 
-        <div><p class="intro-kicker">Link security</p><h1>Website Safety Checker</h1><p class="website-subtitle">Check whether a website link shows signs of phishing, impersonation, or other security risks.</p></div>
+        <div><p class="intro-kicker">Link security</p><h1>Check a Website</h1><p class="website-subtitle">Paste a link before you open it. Review available security indicators and their limitations.</p></div>
 
         <span class="website-offline-badge"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 20 6v5c0 5-4 8-8 10-4-2-8-5-8-10V6Z"/><path d="m8 12 3 3 5-6"/></svg><span id="website-analysis-mode">Optional live threat check</span></span>
 
@@ -271,7 +272,7 @@
 
         <div class="website-evidence-grid">
 
-            <section class="website-evidence website-technical-only" aria-labelledby="website-findings-title"><h3 id="website-findings-title">Warning signs</h3><p class="website-section-note">Rule-based evidence from the submitted address.</p><div id="website-findings"></div></section>
+            <section class="website-evidence website-technical-only" aria-labelledby="website-findings-title"><h3 id="website-findings-title">Warning signs</h3><p class="website-section-note" id="website-findings-note">Rule-based evidence from the submitted address.</p><div id="website-findings"></div></section>
 
             <section class="website-evidence website-technical-only" aria-labelledby="website-checks-title"><h3 id="website-checks-title">Detailed security checks</h3><p class="website-section-note">Unavailable checks are never counted as passed.</p><ul class="website-check-list" id="website-checks"></ul></section>
 
@@ -294,4 +295,3 @@
 </body>
 
 </html>
-

@@ -26,20 +26,61 @@
         const path = document.createElementNS(svg.namespaceURI, 'path'); path.setAttribute('d', paths); svg.appendChild(path);
         return svg;
     };
+    const setLinkLabel = (link, label) => {
+        [...link.childNodes].filter(node => node.nodeType === Node.TEXT_NODE).forEach(node => node.remove());
+        link.appendChild(document.createTextNode(label));
+    };
+    if (!links.querySelector('a[href="index.html"]')) {
+        const home = document.createElement('a');
+        home.className = 'qs-nav-link'; home.href = 'index.html';
+        home.append(icon('M3 10.5 12 3l9 7.5M5 9v11h14V9M9 20v-6h6v6'), 'Home');
+        links.appendChild(home);
+    }
+    const homeLink = links.querySelector('a[href="index.html"]');
+    const scanLink = links.querySelector('a[href="scan.html"]');
+    const websiteLink = links.querySelector('a[href="website-checker.html"]');
+    const dashboardLink = links.querySelector('a[href="dashboard.html"]');
+    if (homeLink) setLinkLabel(homeLink, 'Home');
+    if (scanLink) setLinkLabel(scanLink, 'Scan');
+    if (websiteLink) setLinkLabel(websiteLink, 'Website Check');
+    if (dashboardLink) setLinkLabel(dashboardLink, 'Dashboard');
+    for (const link of links.querySelectorAll('a[href]')) {
+        const page = link.getAttribute('href');
+        const active = page === (document.body.dataset.page === 'home' ? 'index.html' :
+            ({ dashboard: 'dashboard.html', scan: 'scan.html', 'website-checker': 'website-checker.html',
+                'security-lab': 'security-lab.html', generate: 'generate.html',
+                'experimental-warning': 'experimental-warning.html' })[document.body.dataset.page]);
+        if (active) link.setAttribute('aria-current', 'page');
+        else link.removeAttribute('aria-current');
+    }
     if (!links.querySelector('a[href="website-checker.html"]')) {
         const website = document.createElement('a');
         website.className = 'qs-nav-link'; website.href = 'website-checker.html';
-        website.append(icon('M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18Z'), 'Website Checker');
+        website.append(icon('M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM3 12h18M12 3a18 18 0 0 1 0 18 18 18 0 0 1 0-18Z'), 'Website Check');
         if (document.body.dataset.page === 'website-checker') website.setAttribute('aria-current', 'page');
         links.appendChild(website);
+    }
+    if (!links.querySelector('a[href="security-lab.html"]')) {
+        const lab = document.createElement('a');
+        lab.className = 'qs-nav-link'; lab.href = 'security-lab.html';
+        lab.append(icon('M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Zm-3 9 2 2 4-4'), 'Security Lab');
+        if (document.body.dataset.page === 'security-lab') lab.setAttribute('aria-current', 'page');
+        links.appendChild(lab);
     }
     const heading = document.createElement('div'); heading.className = 'qs-drawer-heading';
     const title = document.createElement('span'); title.textContent = 'Your workspace';
     const close = document.createElement('button'); close.type = 'button'; close.className = 'qs-drawer-close';
     close.setAttribute('aria-label', 'Close navigation menu'); close.appendChild(icon('m6 6 12 12M18 6 6 18'));
     heading.append(title, close); links.prepend(heading);
-    for (const destination of ['dashboard.html', 'scan.html', 'website-checker.html', 'generate.html', 'experimental-warning.html']) {
+    for (const destination of ['index.html', 'scan.html', 'website-checker.html', 'security-lab.html', 'dashboard.html', 'generate.html', 'experimental-warning.html']) {
         const link = links.querySelector('a[href="' + destination + '"]'); if (link) links.appendChild(link);
+    }
+    if (!links.querySelector('.qs-nav-cta')) {
+        const scanNow = document.createElement('a');
+        scanNow.className = 'qs-nav-cta'; scanNow.href = 'scan.html';
+        scanNow.setAttribute('aria-label', 'Scan a QR code now');
+        scanNow.append(icon('M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M9 9h6v6H9z'), 'Scan Now');
+        links.appendChild(scanNow);
     }
     const footer = document.createElement('div'); footer.className = 'qs-nav-footer';
     const theme = header.querySelector('[data-theme-toggle], [data-theme-select]');
@@ -89,5 +130,8 @@
     });
     document.addEventListener('click', event => { if (!header.contains(event.target) && event.target !== backdrop) setMenuOpen(false); });
     window.addEventListener('resize', () => { if (desktop.matches || !header.classList.contains('is-open')) setMenuOpen(false); });
+    const updateHeaderScroll = () => header.classList.toggle('is-scrolled', window.scrollY > 8);
+    window.addEventListener('scroll', updateHeaderScroll, { passive: true });
+    updateHeaderScroll();
     setMenuOpen(false);
 }());

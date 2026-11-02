@@ -267,6 +267,8 @@ result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probabil
         explanation:'Based on completed deterministic checks. No known threat was reported and no rule-based indicators were detected. This does not guarantee safety.',
         action:'You can open this.' } });
 check(result.banner.includes('Likely safe'), 'Deterministic LOW verdict is available without ML');
+check(result.banner.includes('Recommended action: You can open this.'), 'Simple verdict includes one explicit recommended action');
+check(result.banner.includes('No check can guarantee that a destination is safe.'), 'Safe result retains a short safety reminder');
 check(result.body.includes('LOW') && result.body.includes('NO KNOWN THREATS'));
 check(result.body.includes('Combined risk score') && result.body.includes('Unavailable'),
     'Unavailable combined score remains separate from deterministic classification');

@@ -154,6 +154,24 @@ class RdapIntegrationTests(unittest.TestCase):
         self.assertEqual(data["overall_risk"]["code"],"inconclusive")
         self.assertIn("does not",data["website_verdict"]["explanation"])
 
+    def test_external_service_timeouts_only_mark_their_own_signals_unavailable(self):
+        timeout = TimeoutError("synthetic provider timeout")
+        with patch.object(self.main.registration_client, "lookup", side_effect=timeout), \
+             patch.object(self.main.reputation_client, "lookup", side_effect=timeout):
+            qr = self.scan()
+            website = self.website()
+
+        for result in (qr, website):
+            self.assertEqual(result["status"], "success")
+            self.assertEqual(result["domain_registration"]["status"], "unavailable")
+            self.assertIn("RDAP", result["domain_registration"]["reason"])
+            self.assertEqual(result["live_reputation"]["status"], "unavailable")
+            self.assertIn("Threat check unavailable", result["live_reputation"]["reason"])
+            self.assertIn("Domain registration / RDAP", result["unavailable_checks"])
+            self.assertIn("Live reputation", result["unavailable_checks"])
+            self.assertIsNotNone(result["risk_breakdown"])
+            self.assertNotEqual(result["overall_risk"]["code"], "low")
+
     def test_known_threat_wins_with_old_domain_and_low_legacy_score(self):
         model=SimpleNamespace(classes_=[-1,1],predict_proba=Mock(return_value=[[0.01,0.99]]))
         with patch.object(self.main.registration_client,"lookup",return_value=self.registration()), \

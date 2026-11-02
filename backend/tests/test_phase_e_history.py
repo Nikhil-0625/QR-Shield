@@ -45,7 +45,7 @@ class HistoryViewsTests(unittest.TestCase):
         status, result = self.get("/history/summary")
         self.assertEqual(status, 200)
         self.assertEqual(result["total"], 7)
-        self.assertEqual(result["counts"], dict(safe=1, suspicious=1, unsafe=1, non_url=2, unclassified=2))
+        self.assertEqual(result["counts"], dict(safe=1, suspicious=1, unsafe=1, unverified=0, non_url=2, unclassified=2))
         self.assertAlmostEqual(result["average_url_risk"], 170/3)
         self.assertEqual(result["stored_findings"], 2)
         self.assertEqual(result["indicators"], {"A":2})
@@ -128,6 +128,39 @@ class HistoryViewsTests(unittest.TestCase):
             status, result = self.get("/history/page", "category="+category)
             self.assertEqual(status, 200)
             self.assertEqual(len(result["items"]), count)
+
+    def test_verdict_metadata_drives_owner_scoped_dashboard_categories(self):
+        def metadata(code):
+            return json.dumps({"analysis_source": "qr", "overall_risk": {"code": code}})
+
+        self.add([
+            dict(decoded_content="https://safe.example", risk_label="unverified",
+                 score_explanation=metadata("low")),
+            dict(decoded_content="https://review.example", risk_label="unverified",
+                 score_explanation=metadata("integrity_review")),
+            dict(decoded_content="https://danger.example", risk_label="unverified",
+                 score_explanation=metadata("known_dangerous")),
+            dict(decoded_content="https://unknown.example", risk_label="unverified"),
+            dict(decoded_content="https://missing.example", score_explanation="not-json"),
+        ])
+        result = self.get("/history/summary")[1]
+        self.assertEqual(result["counts"], dict(
+            safe=1, suspicious=1, unsafe=1, unverified=1, non_url=0, unclassified=1,
+        ))
+        for category in ("safe", "suspicious", "unsafe", "unverified", "unclassified"):
+            status, page = self.get("/history/page", "category=" + category)
+            self.assertEqual(status, 200)
+            self.assertEqual(len(page["items"]), 1, category)
+            self.assertEqual(page["items"][0]["risk_category"], category)
+
+        # A separate account's labels and metadata must not affect these counts.
+        with self.database.SessionLocal() as db:
+            db.add(self.database.ScanRecord(
+                user_id=2, decoded_content="https://other.example", risk_label="unsafe",
+                score_explanation=metadata("known_dangerous"),
+            ))
+            db.commit()
+        self.assertEqual(self.get("/history/summary", owner="a@example.test")[1]["counts"]["safe"], 1)
 
     def test_large_history_is_paged_without_changing_legacy_limits(self):
         with self.database.SessionLocal() as db:

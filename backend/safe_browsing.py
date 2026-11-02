@@ -242,6 +242,10 @@ def _result(status, reason, **fields):
             "verdict_expires_at": None, **fields}
 
 
+def _unavailable(reason):
+    return _result("unavailable", "Threat check unavailable. " + reason)
+
+
 def current_reputation(value):
     """Downgrade expired observations without networking (also used for saved PDFs)."""
     if not isinstance(value, dict) or value.get("status") not in {"threat", "clear"}:
@@ -253,7 +257,7 @@ def current_reputation(value):
         if expiry <= now or checked > now or (value["status"] == "threat" and now - checked >= 1800):
             raise ValueError("expired")
     except (KeyError, ValueError, TypeError, OverflowError, AttributeError):
-        return _result("unavailable", "The stored reputation observation has expired; it is not a current warning. Run a new check.")
+        return _unavailable("The stored observation has expired; it is not a current warning. Run a new check.")
     return value
 
 
@@ -355,13 +359,13 @@ class SafeBrowsingClient:
         if not key:
             return _result("disabled", "Live reputation is not configured; offline rules remain available.")
         if len(key) > 256 or any(ord(char) < 33 or ord(char) > 126 for char in key):
-            return _result("unavailable", "Reputation service configuration is invalid.")
+            return _unavailable("Reputation service configuration is invalid.")
         try:
             url = normalize_website_url(url)
         except Exception:
-            return _result("unavailable", "Only validated public website URLs can be checked.")
+            return _unavailable("Only validated public website URLs can be checked.")
         if not self.lock.acquire(blocking=False):
-            return _result("unavailable", "A reputation request is already in progress. Try again later.")
+            return _unavailable("A reputation request is already in progress. Try again later.")
         try:
             now = time.monotonic()
             self.cache = {digest: entry for digest, entry in self.cache.items() if entry[0] > now}
@@ -369,13 +373,13 @@ class SafeBrowsingClient:
             if digest in self.cache:
                 return current_reputation({**self.cache[digest][1], "cached": True})
             if len(self.cache) >= MAX_CACHE_ENTRIES:
-                return _result("unavailable", "The reputation cache is at capacity. Try again after entries expire.")
+                return _unavailable("The reputation cache is at capacity. Try again after entries expire.")
             if now < self.retry_at:
-                return _result("unavailable", "The reputation service is in backoff. Try again later.")
+                return _unavailable("The reputation service is in backoff. Try again later.")
             while self.events and self.events[0] <= now - 60:
                 self.events.popleft()
             if len(self.events) >= 10:
-                return _result("unavailable", "The local reputation request limit was reached. Try again later.")
+                return _unavailable("The local reputation request limit was reached. Try again later.")
             self.events.append(now)
             return self._request(url, key, digest)
         finally:
@@ -401,13 +405,13 @@ class SafeBrowsingClient:
                                  timeout=(3, 5), allow_redirects=False, stream=True, verify=True) as response:
                     if response.status_code in (401, 403):
                         self._backoff(response, 300)
-                        return _result("unavailable", "Reputation service credentials were rejected. Offline rules remain available.")
+                        return _unavailable("Reputation service credentials were rejected. Offline rules remain available.")
                     if response.status_code in (429, 503):
                         self._backoff(response)
-                        return _result("unavailable", "Reputation service quota or capacity is unavailable. Try again later.")
+                        return _unavailable("Reputation service quota or capacity is unavailable. Try again later.")
                     if response.status_code != 200:
                         self._backoff(response)
-                        return _result("unavailable", "The reputation service could not complete the check.")
+                        return _unavailable("The reputation service could not complete the check.")
                     content_type = response.headers.get("Content-Type", "").strip()
                     if not re.match(r"^application/(?:x-protobuf|octet-stream|vnd\.google\.protobuf)(?:\s*;.*)?$", content_type, re.I):
                         raise ValueError("unexpected response media type")
@@ -455,9 +459,9 @@ class SafeBrowsingClient:
             # Store hashes and small sanitized results, not submitted/matched URLs.
             self.cache[digest] = (time.monotonic() + duration, result)
             return current_reputation(result)
-        except (requests.RequestException, OSError, ValueError, TypeError, OverflowError, RecursionError):
+        except (requests.RequestException, OSError, ValueError, TypeError, OverflowError, RecursionError, UnicodeError):
             self.retry_at = time.monotonic() + 60
-            return _result("unavailable", "The reputation service is unavailable or returned an invalid response. Offline rules remain available.")
+            return _unavailable("The reputation service returned an invalid response or could not complete the request. Offline rules remain available.")
 
 
 client = SafeBrowsingClient()

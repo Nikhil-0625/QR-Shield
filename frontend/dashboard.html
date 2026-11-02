@@ -189,6 +189,9 @@
 
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="master-design.css">
+<link rel="stylesheet" href="product-ux.css">
+<link rel="stylesheet" href="account-modals.css">
+<link rel="stylesheet" href="dashboard-dark.css">
 
 </head>
 
@@ -264,7 +267,7 @@
 
     <header class="qs-header">
 
-            <a class="qs-brand" href="scan.html" aria-label="QR Shield home">
+            <a class="qs-brand" href="index.html" aria-label="QR Shield home">
 
                 <span class="qs-brand-mark" aria-hidden="true">
 
@@ -318,6 +321,54 @@
 
         </header>
 
+    <dialog class="account-dialog" id="profile-dialog" aria-labelledby="profile-dialog-title">
+        <section class="account-dialog-panel">
+            <button class="account-dialog-close" type="button" data-close-dialog aria-label="Close profile dialog">&times;</button>
+            <div class="account-dialog-heading">
+                <span class="account-dialog-avatar" id="profile-dialog-initial" aria-hidden="true">U</span>
+                <div><p class="account-dialog-eyebrow">ACCOUNT</p><h2 id="profile-dialog-title">Your profile</h2></div>
+            </div>
+            <dl class="account-profile-details">
+                <div id="profile-dialog-name-row" hidden><dt>Account name</dt><dd id="profile-dialog-name"></dd></div>
+                <div><dt>Email address</dt><dd id="profile-dialog-email">Account email unavailable</dd></div>
+                <div><dt>Session</dt><dd><span class="account-session-status">Signed in</span></dd></div>
+            </dl>
+            <p class="account-dialog-note">These details come from the current sign-in session. Profile editing is not available here.</p>
+            <div class="account-dialog-actions"><button class="account-button account-button-secondary" type="button" data-close-dialog>Close</button></div>
+        </section>
+    </dialog>
+
+    <dialog class="account-dialog" id="change-password-dialog" aria-labelledby="change-password-title">
+        <section class="account-dialog-panel account-password-panel">
+            <button class="account-dialog-close" type="button" data-close-dialog aria-label="Close change password dialog">&times;</button>
+            <p class="account-dialog-eyebrow">ACCOUNT SECURITY</p>
+            <h2 id="change-password-title">Change password</h2>
+            <p class="account-dialog-description">Password changes are not supported by the current account service. This preview does not send or store password values.</p>
+            <form id="change-password-form" autocomplete="off" novalidate>
+                <label class="account-field">Current password
+                    <span class="account-password-input"><input id="current-password-preview" type="password" autocomplete="off" data-password-preview><button type="button" data-password-toggle="current-password-preview" aria-label="Show current password" aria-pressed="false">Show</button></span>
+                </label>
+                <label class="account-field">New password
+                    <span class="account-password-input"><input id="new-password-preview" type="password" autocomplete="off" data-password-preview><button type="button" data-password-toggle="new-password-preview" aria-label="Show new password" aria-pressed="false">Show</button></span>
+                </label>
+                <ul class="account-password-requirements" aria-label="New password requirements">
+                    <li id="account-password-length" data-met="false">At least 8 characters</li>
+                    <li id="account-password-groups" data-met="false">At least 2 character groups</li>
+                    <li id="account-password-bytes" data-met="true">No more than 72 UTF-8 bytes</li>
+                </ul>
+                <p class="account-password-strength" id="account-password-strength" data-state="empty" aria-live="polite">Strength will appear as you type.</p>
+                <label class="account-field">Confirm new password
+                    <span class="account-password-input"><input id="confirm-password-preview" type="password" autocomplete="off" data-password-preview><button type="button" data-password-toggle="confirm-password-preview" aria-label="Show confirmation password" aria-pressed="false">Show</button></span>
+                </label>
+                <p class="account-password-match" id="account-password-match" data-state="empty" aria-live="polite"></p>
+                <div class="account-dialog-actions">
+                    <button class="account-button account-button-secondary" type="button" data-close-dialog>Cancel</button>
+                    <button class="account-button account-button-primary" type="submit" disabled>Change Password</button>
+                </div>
+            </form>
+        </section>
+    </dialog>
+
     <main class="container app-workspace" id="main-content">
 
 
@@ -325,7 +376,7 @@
         <section class="dashboard-intro" aria-labelledby="dashboard-title">
             <div class="dashboard-intro-top">
                 <div class="dashboard-intro-copy">
-                    <p class="intro-kicker">QR SHIELD ANALYTICS</p>
+                    <p class="intro-kicker">SECURITY OVERVIEW</p>
                     <div class="dashboard-title-row">
                         <div class="header-shield-badge" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -336,11 +387,15 @@
                         <div>
                             <h1 id="dashboard-title">Good Morning! 👋</h1>
                             <p class="section-subtitle">Your QR scans, security checks, and online safety — all in one place.</p>
+                            <div class="dashboard-first-actions" aria-label="Start a security check">
+                                <a class="primary-btn" href="scan.html">Scan a QR Code</a>
+                                <a class="secondary-btn" href="website-checker.html">Check a Website</a>
+                            </div>
                         </div>
                     </div>
                 </div>
                 <div class="dashboard-header-actions">
-                    <div class="master-protection-status"><span>Protection Status</span><b><i></i> Monitoring</b></div>
+                    <div class="master-protection-status"><span>Scan status</span><b>Ready when you are</b></div>
                     <button class="master-icon-button" type="button" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9"/><path d="M10 21h4"/></svg></button>
                     <div class="account-menu" id="account-menu">
                         <button class="master-profile-button" id="profile-button" type="button" aria-label="Open account menu" aria-controls="profile-popover" aria-expanded="false">
@@ -355,6 +410,8 @@
                                     <p class="account-popover-email" id="profile-email">Account email unavailable</p>
                                 </div>
                             </div>
+                            <button class="account-popover-action" id="view-profile-action" type="button">View Profile</button>
+                            <button class="account-popover-action" id="change-password-action" type="button">Change Password</button>
                             <div class="account-popover-divider" aria-hidden="true"></div>
                             <button class="account-popover-logout" id="profile-logout" type="button">Logout</button>
                         </div>
@@ -396,7 +453,7 @@
 
                     <h2 id="summary-title">Security Summary</h2>
 
-                    <div class="section-subtitle">A snapshot of your stored scans and URL security findings</div>
+                    <div class="section-subtitle">Recent scan activity and available security findings</div>
 
                 </div>
 
@@ -484,18 +541,18 @@
             <article class="master-security-cta">
                 <div class="master-eyebrow">QR SHIELD PROTECTION</div>
                 <h3>Stronger Security<br>Starts Here</h3>
-                <p>Scan QR codes, check websites, and generate secure QR codes — all in one place.</p>
+                <p>Scan QR codes, check websites, and generate QR codes for sharing — all in one place.</p>
                 <a href="scan.html">Scan a QR Code <span aria-hidden="true">→</span></a>
             </article>
             <article class="master-quick-actions">
                 <h3>Quick Actions</h3>
                 <div class="master-action-grid">
                     <a class="master-action" href="scan.html"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 4H5a1 1 0 0 0-1 1v3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><rect x="8" y="8" width="8" height="8" rx="1"/></svg></span><span class="master-action-copy"><strong>Scan QR</strong><span class="master-action-description">Check QR codes for safety</span></span></a>
-                    <a class="master-action" href="website-checker.html"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18M4.9 7h14.2M4.9 17h14.2"/></svg></span><span class="master-action-copy"><strong>Website Checker</strong><span class="master-action-description">Verify URLs and detect threats</span></span></a>
-                    <a class="master-action" href="generate.html"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M17 14.5v5M14.5 17h5"/></svg></span><span class="master-action-copy"><strong>Generate QR</strong><span class="master-action-description">Create secure QR codes</span></span></a>
+                    <a class="master-action" href="website-checker.html"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18M4.9 7h14.2M4.9 17h14.2"/></svg></span><span class="master-action-copy"><strong>Website Checker</strong><span class="master-action-description">Review URL signals and available threat data</span></span></a>
+                    <a class="master-action" href="generate.html"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4z"/><path d="M17 14.5v5M14.5 17h5"/></svg></span><span class="master-action-copy"><strong>Generate QR</strong><span class="master-action-description">Create QR codes for sharing</span></span></a>
                     <a class="master-action" href="#history-table-wrap"><span class="master-action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 17v-3m4 3v-6m4 6v-5"/></svg></span><span class="master-action-copy"><strong>View Reports</strong><span class="master-action-description">Review analytics and history</span></span></a>
                 </div>
-                <div class="master-latest-protection"><span class="master-latest-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span><strong>Latest Protection</strong><small>Real-time threat detection is active</small></span><span class="master-latest-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
+                <div class="master-latest-protection"><span class="master-latest-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span><strong>Available Checks</strong><small>URL and domain signals are reviewed</small></span><span class="master-latest-chevron" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span></div>
             </article>
         </section>
 
@@ -520,6 +577,8 @@
                     <button class="filter-btn" type="button" data-filter="suspicious" aria-pressed="false">Suspicious</button>
 
                     <button class="filter-btn" type="button" data-filter="unsafe" aria-pressed="false">Unsafe</button>
+
+                    <button class="filter-btn" id="unverified-filter" type="button" data-filter="unverified" aria-pressed="false" hidden>Unverified</button>
 
                     <button class="filter-btn" type="button" data-filter="non_url" aria-pressed="false">Non-URL</button>
 
@@ -630,6 +689,10 @@
             const popoverInitialEl = document.getElementById("profile-popover-initial");
             const nameEl = document.getElementById("profile-name");
             const emailEl = document.getElementById("profile-email");
+            const dialogInitialEl = document.getElementById("profile-dialog-initial");
+            const dialogNameRow = document.getElementById("profile-dialog-name-row");
+            const dialogNameEl = document.getElementById("profile-dialog-name");
+            const dialogEmailEl = document.getElementById("profile-dialog-email");
 
             function decodeTokenAccount() {
                 try {
@@ -654,8 +717,14 @@
             const initial = (localPart.replace(/[^A-Za-z0-9]/g, "")[0] || "U").toUpperCase();
             if (initialEl) initialEl.textContent = initial;
             if (popoverInitialEl) popoverInitialEl.textContent = initial;
+            if (dialogInitialEl) dialogInitialEl.textContent = initial;
             if (nameEl && displayName) { nameEl.textContent = displayName; nameEl.hidden = false; }
+            if (dialogNameRow && dialogNameEl && displayName) {
+                dialogNameEl.textContent = displayName;
+                dialogNameRow.hidden = false;
+            }
             if (emailEl) emailEl.textContent = account.email || "Account email unavailable";
+            if (dialogEmailEl) dialogEmailEl.textContent = account.email || "Account email unavailable";
             if (profileButton) profileButton.setAttribute("aria-label", account.email ? `Open account menu for ${account.email}` : "Open account menu");
         })();
 
@@ -728,6 +797,105 @@
 
         // Gateway and forwarded pages use same-origin API; legacy localhost servers remain supported.
 
+        (function wireAccountDialogs() {
+            const profileDialog = document.getElementById("profile-dialog");
+            const passwordDialog = document.getElementById("change-password-dialog");
+            const profileAction = document.getElementById("view-profile-action");
+            const passwordAction = document.getElementById("change-password-action");
+            const profileButton = document.getElementById("profile-button");
+            if (!profileDialog || !passwordDialog || !profileAction || !passwordAction) return;
+
+            function openDialog(dialog) {
+                if (profileButton && profileButton.getAttribute("aria-expanded") === "true") profileButton.click();
+                if (typeof dialog.showModal === "function") dialog.showModal();
+            }
+            function closeDialog(dialog) {
+                if (dialog && dialog.open) dialog.close();
+            }
+
+            profileAction.addEventListener("click", () => openDialog(profileDialog));
+            passwordAction.addEventListener("click", () => openDialog(passwordDialog));
+            document.querySelectorAll("[data-close-dialog]").forEach(button => {
+                button.addEventListener("click", () => closeDialog(button.closest("dialog")));
+            });
+            [profileDialog, passwordDialog].forEach(dialog => {
+                dialog.addEventListener("click", event => {
+                    if (event.target === dialog) closeDialog(dialog);
+                });
+            });
+
+            document.querySelectorAll("[data-password-toggle]").forEach(button => {
+                button.addEventListener("click", () => {
+                    const input = document.getElementById(button.dataset.passwordToggle);
+                    if (!input) return;
+                    const visible = input.type === "password";
+                    input.type = visible ? "text" : "password";
+                    button.textContent = visible ? "Hide" : "Show";
+                    const kind = input.id === "current-password-preview" ? "current" : input.id === "new-password-preview" ? "new" : "confirmation";
+                    button.setAttribute("aria-label", `${visible ? "Hide" : "Show"} ${kind} password`);
+                    button.setAttribute("aria-pressed", String(visible));
+                });
+            });
+
+            const newPassword = document.getElementById("new-password-preview");
+            const confirmation = document.getElementById("confirm-password-preview");
+            const lengthRequirement = document.getElementById("account-password-length");
+            const groupsRequirement = document.getElementById("account-password-groups");
+            const bytesRequirement = document.getElementById("account-password-bytes");
+            const strength = document.getElementById("account-password-strength");
+            const match = document.getElementById("account-password-match");
+            const changeForm = document.getElementById("change-password-form");
+
+            function updatePasswordPreview() {
+                const value = newPassword.value;
+                const length = Array.from(value).length;
+                let bytes = Infinity;
+                try {
+                    bytes = typeof TextEncoder === "function"
+                        ? new TextEncoder().encode(value).length
+                        : unescape(encodeURIComponent(value)).length;
+                } catch (_) { /* leave the byte limit unmet */ }
+                const specialCharacters = "!@#$%^&*()_+-=[]{}|;:,.<>?";
+                const groups = [
+                    /\p{Lu}/u.test(value), /\p{Ll}/u.test(value), /\p{N}/u.test(value),
+                    Array.from(value).some(character => specialCharacters.includes(character))
+                ].filter(Boolean).length;
+                lengthRequirement.dataset.met = String(length >= 8);
+                groupsRequirement.dataset.met = String(groups >= 2);
+                bytesRequirement.dataset.met = String(bytes <= 72);
+                const accepted = length >= 8 && groups >= 2 && bytes <= 72;
+                const strong = accepted && length >= 10 && groups >= 3;
+                strength.dataset.state = !value ? "empty" : !accepted ? "weak" : strong ? "strong" : "medium";
+                strength.textContent = !value ? "Strength will appear as you type."
+                    : !accepted ? "Does not meet the current registration requirements."
+                    : strong ? "Strong password."
+                    : "Medium strength password.";
+                const passwordsMatch = Boolean(confirmation.value) && confirmation.value === value;
+                match.dataset.state = !confirmation.value ? "empty" : passwordsMatch ? "match" : "mismatch";
+                match.textContent = !confirmation.value ? ""
+                    : passwordsMatch ? "The new passwords match."
+                    : "The new passwords do not match.";
+            }
+
+            newPassword.addEventListener("input", updatePasswordPreview);
+            confirmation.addEventListener("input", updatePasswordPreview);
+            changeForm.addEventListener("submit", event => event.preventDefault());
+            passwordDialog.addEventListener("close", () => {
+                document.querySelectorAll("[data-password-preview]").forEach(input => {
+                    input.value = "";
+                    input.type = "password";
+                });
+                document.querySelectorAll("[data-password-toggle]").forEach(button => {
+                    button.textContent = "Show";
+                    button.setAttribute("aria-pressed", "false");
+                    const kind = button.dataset.passwordToggle === "current-password-preview" ? "current" : button.dataset.passwordToggle === "new-password-preview" ? "new" : "confirmation";
+                    button.setAttribute("aria-label", `Show ${kind} password`);
+                });
+                match.textContent = "";
+                updatePasswordPreview();
+            });
+        })();
+
     const API_URL = window.QR_SHIELD_API_BASE || (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:"
 
         ? "http://127.0.0.1:8000" : "/api");
@@ -798,17 +966,33 @@
 
         function classifyScan(row) {
 
+            if (["safe", "suspicious", "unsafe", "unverified", "non_url", "unclassified"].includes(row.risk_category)) {
+
+                return row.risk_category;
+
+            }
+
             const contentType = classifyContent(row.decoded_content);
 
             if (contentType === "Unclassifiable") return "unclassified";
 
             if (contentType !== "URL") return "non_url";
 
-
+            const overallRiskCode = row.score_explanation && typeof row.score_explanation === "object"
+                ? row.score_explanation.overall_risk?.code : null;
+            const overallRiskCategory = {
+                low: "safe",
+                suspicious: "suspicious",
+                integrity_review: "suspicious",
+                transport_warning: "suspicious",
+                known_dangerous: "unsafe",
+                inconclusive: "unverified"
+            }[overallRiskCode];
+            if (overallRiskCategory) return overallRiskCategory;
 
             const label = String(row.risk_label || "").toLowerCase();
 
-            return ["safe", "suspicious", "unsafe"].includes(label) ? label : "unclassified";
+            return ["safe", "suspicious", "unsafe", "unverified"].includes(label) ? label : "unclassified";
 
         }
 
@@ -854,7 +1038,7 @@
 
                 return counts;
 
-            }, { safe: 0, suspicious: 0, unsafe: 0, non_url: 0, unclassified: 0 });
+            }, { safe: 0, suspicious: 0, unsafe: 0, unverified: 0, non_url: 0, unclassified: 0 });
 
         }
 
@@ -1003,6 +1187,8 @@
 
                 { key: "unsafe", label: "Unsafe", className: "unsafe" },
 
+                { key: "unverified", label: "Unverified", className: "unclassified" },
+
                 { key: "non_url", label: "NON-URL", className: "non-url" }
 
             ];
@@ -1049,7 +1235,7 @@
 
             const unclassifiedNote = counts.unclassified
 
-                ? `<p class="distribution-note">${counts.unclassified} record${counts.unclassified === 1 ? "" : "s"} could not be classified from stored content or URL risk labels.</p>`
+                ? `<p class="distribution-note">${counts.unclassified} record${counts.unclassified === 1 ? "" : "s"} have no recognized stored verdict.</p>`
 
                 : "";
 
@@ -1482,12 +1668,10 @@
                 const destination = row.domain || row.final_url || row.decoded_content || "—";
 
                 const label = classification === "non_url" ? "Non-URL" :
-
                     classification === "safe" ? "Low Risk" :
-
                     classification === "suspicious" ? "Suspicious" :
-
-                    classification === "unsafe" ? "High Risk" : "Unverified";
+                    classification === "unsafe" ? "High Risk" :
+                    classification === "unclassified" ? "Unclassified" : "Unverified";
 
                 const pillClass = classification === "safe" ? "safe-pill" :
 
@@ -1554,6 +1738,7 @@
             renderRecentScans(currentHistory, activeHistoryFilter);
 
             document.getElementById("unclassified-filter").hidden = counts.unclassified === 0;
+            document.getElementById("unverified-filter").hidden = counts.unverified === 0;
 
         }
 

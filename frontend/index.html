@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Check QR destinations before opening them. Scan a QR code or review a website with QR Shield.">
+    <title>QR Shield · Scan before you trust</title>
+    <script src="theme.js"></script>
+    <link rel="stylesheet" href="navigation.css">
+    <link rel="stylesheet" href="theme.css">
+    <link rel="stylesheet" href="master-design.css">
+    <link rel="stylesheet" href="product-ux.css">
+    <script src="navigation.js" defer></script>
+</head>
+<body data-page="home">
+    <header class="qs-header">
+        <a class="qs-brand" href="index.html" aria-label="QR Shield home">
+            <span class="qs-brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
+            </span>
+            <span class="qs-brand-copy"><span class="qs-brand-name">QR Shield</span><span class="qs-brand-subtitle">Scan before you trust</span></span>
+        </a>
+        <button class="qs-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false"><span class="qs-menu-icon" aria-hidden="true"></span></button>
+        <nav class="qs-nav-links" id="primary-navigation" aria-label="Main navigation">
+            <a class="qs-nav-link" href="index.html" aria-current="page">Home</a>
+            <a class="qs-nav-link" href="scan.html">Scan</a>
+            <a class="qs-nav-link" href="website-checker.html">Website Check</a>
+            <a class="qs-nav-link" href="security-lab.html">Security Lab</a>
+            <a class="qs-nav-link" href="dashboard.html">Dashboard</a>
+            <a class="qs-nav-link" href="generate.html">Generate QR</a>
+        </nav>
+        <button class="qs-theme-toggle" type="button" data-theme-toggle aria-label="Color theme" aria-describedby="theme-state"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg></button>
+        <span class="theme-state" id="theme-state" data-theme-state>Current theme: light</span>
+    </header>
+
+    <main class="app-workspace home-page" id="main-content">
+        <section class="home-hero" aria-labelledby="home-title">
+            <div class="home-hero-copy">
+                <p class="intro-kicker">CYBERSECURITY <span aria-hidden="true">•</span> QR INTELLIGENCE</p>
+                <h1 id="home-title">Scan smarter.<br>Stay protected.</h1>
+                <p class="home-lede">Inspect QR destinations and website links before opening them. QR Shield brings available security signals into one clear review.</p>
+                <div class="home-actions">
+                    <a class="primary-btn home-primary-action" href="scan.html"><span aria-hidden="true">⌑</span> Scan a QR</a>
+                    <a class="secondary-btn home-secondary-action" href="website-checker.html"><span aria-hidden="true">↗</span> Check a Website</a>
+                </div>
+                <p class="home-limit">QR Shield checks available signals. No result can guarantee a destination is safe.</p>
+            </div>
+            <div class="home-visual" role="img" aria-label="Illustrative QR Shield interface showing a QR code, scanning beam, and security shield. Decorative labels, not live scan results.">
+                <div class="visual-caption">PRODUCT VISUAL · NOT A LIVE RESULT</div>
+                <svg class="home-qr-illustration" viewBox="0 0 340 260" aria-hidden="true">
+                    <rect x="36" y="30" width="196" height="196" rx="18" fill="var(--surface-raised)" stroke="var(--line)" stroke-width="2"/>
+                    <path d="M50 72V52a8 8 0 0 1 8-8h20m132 0h20a8 8 0 0 1 8 8v20m0 112v20a8 8 0 0 1-8 8h-20M78 220H58a8 8 0 0 1-8-8v-20" fill="none" stroke="var(--action)" stroke-width="3" stroke-linecap="round"/>
+                    <g fill="var(--ink)">
+                        <path d="M58 52h55v55H58zm12 12v31h31V64zm7 7h17v17H77zM155 52h55v55h-55zm12 12v31h31V64zm7 7h17v17h-17zM58 151h55v55H58zm12 12v31h31v-31zm7 7h17v17H77zM130 53h12v12h-12zm0 24h12v12h-12zm0 24h12v12h-12zm25 24h12v12h-12zm24 0h12v12h-12zm-49 24h12v12h-12zm24 24h12v12h-12zm24 0h12v12h-12zm24 0h12v12h-12zm-48 24h12v12h-12zm24 0h12v12h-12zm24-24h12v12h-12z"/>
+                    </g>
+                    <circle cx="134" cy="128" r="39" fill="var(--accent-soft)" stroke="var(--surface-raised)" stroke-width="7"/>
+                    <path d="m134 99 21 9v16c0 18-9 29-21 36-12-7-21-18-21-36v-16z" fill="var(--surface-raised)" stroke="var(--action)" stroke-width="3" stroke-linejoin="round"/>
+                    <path d="m126 123 6 6 12-14" fill="none" stroke="var(--safe)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path class="home-scan-line" d="M49 139h172" stroke="var(--action)" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div class="home-signal-chips" aria-hidden="true">
+                    <span>HTTPS</span><span>DOMAIN CHECK</span><span>THREAT ANALYSIS</span><span>QR INTEGRITY</span>
+                </div>
+                <div class="home-flow" aria-hidden="true">
+                    <span>QR</span><i>→</i><span>Scan</span><i>→</i><span>Analyze</span><i>→</i><span>Protect</span>
+                </div>
+                <p class="home-visual-note">Illustrative interface · labels are not live findings</p>
+            </div>
+        </section>
+
+        <section class="home-section" aria-labelledby="how-title">
+            <div class="home-section-heading">
+                <p class="intro-kicker">A CLEARER WAY TO CHECK</p>
+                <h2 id="how-title">How QR Shield protects you</h2>
+                <p>From scan to decision, each step is designed to make the destination easier to understand.</p>
+            </div>
+            <ol class="home-steps">
+                <li><span>01</span><h3>Scan</h3><p>Capture or upload a QR code.</p></li>
+                <li><span>02</span><h3>Analyze</h3><p>Check the destination and available security indicators.</p></li>
+                <li><span>03</span><h3>Protect</h3><p>Understand the result before deciding what to do next.</p></li>
+            </ol>
+        </section>
+
+        <section class="home-section home-checks-section" aria-labelledby="checks-title">
+            <div class="home-section-heading">
+                <p class="intro-kicker">TOOLS AND CAPABILITIES</p>
+                <h2 id="checks-title">One place to scan, check, and learn</h2>
+                <p>Explore QR Shield tools and controlled examples. Security checks depend on the destination and information available.</p>
+            </div>
+            <article class="home-feature-highlight">
+                <div>
+                    <p class="feature-eyebrow">CORE CAPABILITY</p>
+                    <h3>Understand suspicious links before opening them.</h3>
+                    <p>Review URL patterns and available security signals before deciding whether to continue. A result is informative, not a guarantee of safety.</p>
+                </div>
+                <div class="feature-signal-visual" aria-hidden="true">
+                    <span>URL STRUCTURE</span><span>DOMAIN DATA</span><span>AVAILABLE CHECKS</span>
+                    <small>Illustrative categories · not live findings</small>
+                </div>
+            </article>
+            <div class="home-checks">
+                <article><span aria-hidden="true">▦</span><h3>QR scanning</h3><p>Upload an image or use your camera to inspect a QR destination.</p><a class="home-feature-link" href="scan.html">Open scanner <span aria-hidden="true">→</span></a></article>
+                <article><span aria-hidden="true">↗</span><h3>Website safety</h3><p>Check a website and review the available security information.</p><a class="home-feature-link" href="website-checker.html">Check a website <span aria-hidden="true">→</span></a></article>
+                <article><span aria-hidden="true">⌁</span><h3>Threat analysis</h3><p>Understand URL, domain, connection, and reputation signals when available.</p><a class="home-feature-link" href="scan.html">Explore a scan <span aria-hidden="true">→</span></a></article>
+                <article><span aria-hidden="true">▧</span><h3>QR generation</h3><p>Create a QR code for a destination you choose.</p><a class="home-feature-link" href="generate.html">Generate a QR <span aria-hidden="true">→</span></a></article>
+                <article><span aria-hidden="true">▤</span><h3>Security reports</h3><p>Generate a report from an available scan result.</p><a class="home-feature-link" href="scan.html">View scan options <span aria-hidden="true">→</span></a></article>
+                <article><span aria-hidden="true">◉</span><h3>Security Demo Lab</h3><p>Explore controlled safe, suspicious, and local simulation scenarios.</p><a class="home-feature-link" href="security-lab.html">Explore the lab <span aria-hidden="true">→</span></a></article>
+            </div>
+        </section>
+
+        <section class="home-next-step" aria-labelledby="next-step-title">
+            <div><p class="intro-kicker">START WITH A DESTINATION</p><h2 id="next-step-title">Ready to check a QR code?</h2><p>Upload an image or use your camera to begin.</p></div>
+            <a class="primary-btn home-primary-action" href="scan.html">Scan a QR Code <span aria-hidden="true">→</span></a>
+        </section>
+    </main>
+</body>
+</html>
