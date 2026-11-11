@@ -48,6 +48,7 @@ class ContainerStartupContractTests(unittest.TestCase):
         self.assertIn("QR_SHIELD_MODE must be restricted-demo or production", invalid_branch.group(1))
 
     def test_both_modes_use_render_port_and_all_interface_binding(self):
+        self.assertIn("EXPOSE 10000", self.dockerfile)
         self.assertIn('--host 0.0.0.0 --port "${PORT:-8000}"', self.entrypoint)
         self.assertIn('exec gosu 10001:10001 python -m uvicorn "$@"', self.entrypoint)
 

@@ -13,5 +13,5 @@ RUN python /app/backend/demo_smoke.py
 RUN chmod 755 /app/demo-entrypoint.sh
 ENV QR_SHIELD_MODE=restricted-demo DATABASE_URL=sqlite:////data/demo.db PORT=8000
 WORKDIR /app/backend
-EXPOSE 8000
+EXPOSE 10000
 ENTRYPOINT ["/app/demo-entrypoint.sh"]
