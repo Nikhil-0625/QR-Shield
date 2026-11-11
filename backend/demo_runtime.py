@@ -8,11 +8,17 @@ import threading
 from fastapi import HTTPException
 
 
-def restricted_demo():
+def runtime_mode():
     mode = os.environ.get("QR_SHIELD_MODE", "development")
-    if mode not in {"development", "restricted-demo"}:
-        raise RuntimeError("Invalid QR_SHIELD_MODE")
-    return mode == "restricted-demo"
+    if mode not in {"development", "production", "restricted-demo"}:
+        raise RuntimeError(
+            "Invalid QR_SHIELD_MODE; expected development, production, or restricted-demo"
+        )
+    return mode
+
+
+def restricted_demo():
+    return runtime_mode() == "restricted-demo"
 
 
 def load_production_model(loader):

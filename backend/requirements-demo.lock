@@ -22,6 +22,7 @@ cryptography==50.0.1
 python-dotenv==1.2.3
 pydantic==2.13.5
 sqlalchemy==2.0.52
+psycopg[binary]==3.3.8
 qrcode==8.2
 pillow==12.3.0
 reportlab==5.0.1

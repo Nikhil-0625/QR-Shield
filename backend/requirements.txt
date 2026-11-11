@@ -16,6 +16,7 @@ python-jose[cryptography]
 python-dotenv
 pydantic
 sqlalchemy
+psycopg[binary]
 qrcode[pil]
 reportlab
 
