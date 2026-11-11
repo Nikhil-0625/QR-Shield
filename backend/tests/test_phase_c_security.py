@@ -45,6 +45,35 @@ class ApiBoundaryTests(unittest.TestCase):
             self.assertEqual(self.request(headers=headers)[0],400)
         self.assertEqual(self.calls,[])
 
+    def test_configured_render_hostname_accepts_optional_container_port(self):
+        with patch.dict(os.environ,{"QR_SHIELD_ALLOWED_HOSTS":"qr-shield-2bb0.onrender.com"}):
+            self.guard=ApiBoundary(self.guard.app)
+        for host in (b"qr-shield-2bb0.onrender.com",b"qr-shield-2bb0.onrender.com:10000"):
+            status,body,_=self.request(headers=[(b"host",host)])
+            self.assertEqual((status,body),(200,b"ok"))
+        # Forwarded host headers stay untrusted and cannot override Host.
+        status,_,_=self.request(headers=[(b"host",b"attacker.invalid"),(b"x-forwarded-host",b"qr-shield-2bb0.onrender.com")])
+        self.assertEqual(status,400)
+        self.assertEqual(len(self.calls),2)
+
+    def test_port_specific_allowlist_remains_port_specific(self):
+        with patch.dict(os.environ,{"QR_SHIELD_ALLOWED_HOSTS":"qr-shield-2bb0.onrender.com:10000"}):
+            self.guard=ApiBoundary(self.guard.app)
+        self.assertEqual(self.request(headers=[(b"host",b"qr-shield-2bb0.onrender.com:10000")])[0],200)
+        self.assertEqual(self.request(headers=[(b"host",b"qr-shield-2bb0.onrender.com:8000")])[0],400)
+        self.assertEqual(self.request(headers=[(b"host",b"qr-shield-2bb0.onrender.com")])[0],400)
+
+    def test_host_rejection_log_contains_only_host_diagnostics(self):
+        with patch.dict(os.environ,{"QR_SHIELD_ALLOWED_HOSTS":"qr-shield-2bb0.onrender.com"}):
+            self.guard=ApiBoundary(self.guard.app)
+        with self.assertLogs("api_security",level="WARNING") as captured:
+            status,_,_=self.request(headers=[(b"host",b"unrecognized.example")])
+        self.assertEqual(status,400)
+        message="\n".join(captured.output)
+        self.assertIn("unrecognized.example",message)
+        self.assertIn("qr-shield-2bb0.onrender.com",message)
+        self.assertNotIn("authorization",message.lower())
+
     def test_body_limits_before_application_including_chunked(self):
         for headers in [ [(b"host",b"localhost"),(b"content-length",b"7000000")],
                          [(b"host",b"localhost"),(b"content-length",b"1"),(b"transfer-encoding",b"chunked")],
@@ -93,6 +122,42 @@ class PhaseCIntegrationTests(unittest.TestCase):
     token=url_harness.UrlDetectionTests.token
     api=url_harness.UrlDetectionTests.api
     scan=url_harness.UrlDetectionTests.scan
+
+    def test_production_root_accepts_render_host_with_container_port(self):
+        async def run():
+            messages=[]
+            delivered=False
+            async def receive():
+                nonlocal delivered
+                if delivered:
+                    await asyncio.Event().wait()
+                delivered=True
+                return {"type":"http.request","body":b"","more_body":False}
+            async def send(message): messages.append(message)
+            scope={
+                "type":"http","asgi":{"version":"3.0","spec_version":"2.4"},
+                "http_version":"1.1","method":"GET","scheme":"https",
+                "path":"/","raw_path":b"/","query_string":b"","root_path":"",
+                "app":self.main.app,
+                "headers":[
+                    (b"host",b"qr-shield-2bb0.onrender.com:10000"),
+                    (b"x-forwarded-host",b"attacker.invalid"),
+                ],
+                "client":("127.0.0.1",1234),"server":("container",10000),
+            }
+            previous_stack=self.main.app.middleware_stack
+            try:
+                with patch.dict(os.environ,{"QR_SHIELD_ALLOWED_HOSTS":"qr-shield-2bb0.onrender.com"}):
+                    self.main.app.middleware_stack=None
+                    await self.main.app(scope,receive,send)
+            finally:
+                self.main.app.middleware_stack=previous_stack
+            start=next(message for message in messages if message["type"]=="http.response.start")
+            body=b"".join(message.get("body",b"") for message in messages if message["type"]=="http.response.body")
+            return start["status"],body
+        status,body=asyncio.run(run())
+        self.assertEqual(status,200)
+        self.assertEqual(body,b'{"message":"QR Scanner Backend is running"}')
 
     def test_no_network_even_rebinding_private_redirect_slow_or_large_responses(self):
         urls=["http://127.0.0.1/","http://localhost/","http://10.0.0.1/","http://172.16.1.1/","http://192.168.1.1/","http://169.254.169.254/","http://[::1]/","http://[fd00::1]/","http://[fe80::1]/","http://[ff02::1]/","http://224.0.0.1/","http://0.0.0.0/","http://2130706433/","http://0177.0.0.1/","http://0x7f000001/","https://public.example/"]

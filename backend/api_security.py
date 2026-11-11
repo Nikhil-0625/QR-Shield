@@ -2,24 +2,49 @@
 import asyncio
 from collections import deque
 import json
+import logging
 import os
 import re
 import time
 from urllib.parse import urlsplit
+
+logger = logging.getLogger(__name__)
 
 
 class ApiBoundary:
     def __init__(self, app):
         self.app = app
         self.extra_hosts = {h.strip().lower() for h in os.environ.get("QR_SHIELD_ALLOWED_HOSTS", "").split(",") if h.strip()}
+        # A hostname configured without a port should match the same Host with
+        # Render's internal port suffix. Entries configured with a port remain
+        # port-specific via the exact-host comparison below.
+        self.extra_hostnames = set()
         self.origins = {value.strip().encode() for value in os.environ.get("CORS_ALLOWED_ORIGINS","http://localhost:5500,http://127.0.0.1:5500").split(",") if value.strip()}
         if any(not re.fullmatch(r"[a-z0-9.-]+(?::[0-9]+)?", host) for host in self.extra_hosts):
             raise RuntimeError("QR_SHIELD_ALLOWED_HOSTS must contain exact hosts, not wildcards")
+        for configured_host in self.extra_hosts:
+            configured = urlsplit("//" + configured_host)
+            if configured.port is None:
+                self.extra_hostnames.add(configured.hostname)
         self.events = {}
         self.active = 0
         self.max_active = 4
         self.body_timeout = 10
         self.request_timeout = 45
+        self.last_host_diagnostic_log = 0.0
+
+    def log_host_rejection(self, received_host, hostname):
+        """Rate-limit diagnostics for rejected hosts; never log other headers."""
+        now = time.monotonic()
+        if now - self.last_host_diagnostic_log < 60:
+            return
+        self.last_host_diagnostic_log = now
+        configured = sorted(self.extra_hosts)
+        logger.warning(
+            "Host validation rejected request: received_host=%r hostname=%r "
+            "configured_hosts=%r configured_host_count=%d",
+            received_host[:255], hostname, configured[:32], len(configured),
+        )
 
     def allowed(self, category, count, seconds):
         now = time.monotonic()
@@ -62,14 +87,22 @@ class ApiBoundary:
         if len(values.get(b"authorization",b""))>8192:
             return await self.respond(send,401,"Invalid authorization header")
         host = values.get(b"host",b"").decode("latin1").lower()
+        hostname = None
         try:
             parsed = urlsplit("//"+host)
             # A port is optional; accessing it rejects malformed port syntax.
             parsed.port
-            valid_host = bool(host and parsed.hostname and not any(c in host for c in "/\\?#@ \t\r\n"))
+            hostname = parsed.hostname
+            valid_host = bool(host and hostname and not any(c in host for c in "/\\?#@ \t\r\n"))
         except ValueError:
             valid_host = False
-        if not valid_host or (parsed.hostname not in {"localhost","127.0.0.1","::1"} and host not in self.extra_hosts):
+        host_allowed = valid_host and (
+            hostname in {"localhost", "127.0.0.1", "::1"}
+            or host in self.extra_hosts
+            or hostname in self.extra_hostnames
+        )
+        if not host_allowed:
+            self.log_host_rejection(host, hostname)
             return await self.respond(send,400,"Unrecognized host")
         path = scope.get("path","")
         category = "scan" if path in {"/scan", "/website/check"} else "login" if path == "/login" else "register" if path == "/register" else "report" if path.startswith("/report/") else "history" if path in {"/history", "/history/page", "/history/summary"} else "other"
