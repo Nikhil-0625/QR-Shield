@@ -1,0 +1,38 @@
+{
+  "id": "./index.html",
+  "name": "QR Shield",
+  "short_name": "QR Shield",
+  "description": "Review QR destinations and website security signals before you trust them.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F3F0FF",
+  "theme_color": "#F3F0FF",
+  "categories": ["security", "productivity"],
+  "icons": [
+    {
+      "src": "./icons/qr-shield-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/qr-shield-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/qr-shield-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/qr-shield-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

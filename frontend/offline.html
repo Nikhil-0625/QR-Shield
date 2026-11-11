@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#F3F0FF">
+    <title>QR Shield is offline</title>
+    <style>
+        :root { color-scheme: light; font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #172039; background: #F3F0FF; }
+        * { box-sizing: border-box; }
+        body { display: grid; min-height: 100vh; min-height: 100dvh; margin: 0; padding: 24px; place-items: center; background: radial-gradient(ellipse at 20% 10%, #e7e1fa 0, transparent 55%), #F3F0FF; }
+        main { width: min(100%, 460px); padding: 32px; border: 1px solid #ddd8ed; border-radius: 20px; background: #fff; box-shadow: 0 18px 48px #29204b14; }
+        .mark { display: grid; width: 48px; height: 48px; margin-bottom: 22px; place-items: center; border-radius: 14px; background: #51478f; color: #fff; }
+        .mark svg { width: 27px; height: 27px; }
+        h1 { margin: 0; font-size: 25px; letter-spacing: -.5px; }
+        p { margin: 12px 0 0; color: #5d6576; line-height: 1.65; }
+        a { display: inline-flex; min-height: 44px; margin-top: 24px; padding: 11px 16px; align-items: center; border-radius: 10px; background: #51478f; color: #fff; font-weight: 650; text-decoration: none; }
+        a:focus-visible { outline: 3px solid #7968d8; outline-offset: 3px; }
+    </style>
+</head>
+<body>
+    <main>
+        <div class="mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></div>
+        <h1>You’re offline</h1>
+        <p>QR Shield needs a connection to sign in and run security checks. Reconnect, then return to the app to continue.</p>
+        <a href="./index.html">Try again</a>
+    </main>
+</body>
+</html>
