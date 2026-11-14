@@ -177,11 +177,16 @@
         list.replaceChildren();
         const add = (label, value, tone, detail) => {
             const row = node('li');
+            const icon = node('span', null, 'result-check-icon');
+            icon.dataset.status = tone;
+            icon.setAttribute('aria-hidden', 'true');
             const name = node('strong', label);
-            const badge = node('span', value, 'website-check-status');
+            const copy = node('span', null, 'result-check-copy');
+            copy.append(name);
+            const badge = node('span', value, 'website-check-status result-status-chip');
             badge.dataset.status = tone;
-            row.append(name, badge);
-            if (detail) row.append(node('small', detail, 'website-simple-check-detail'));
+            row.append(icon, copy, badge);
+            if (detail) copy.append(node('small', detail, 'website-simple-check-detail'));
             list.append(row);
         };
         const labels = new Set();
@@ -192,7 +197,7 @@
         };
         const statusCopy = status => ({
             checked: ['Checked offline', 'checked'], performed: ['Completed', 'checked'],
-            completed: ['Completed', 'checked'], not_applicable: ['Not applicable', 'checked'],
+            completed: ['Completed', 'checked'], not_applicable: ['Not applicable', 'neutral'],
             blocked: ['Blocked by policy', 'unavailable'],
             passed: ['Passed', 'passed'], warning: ['Warning found', 'warning'],
             failed: ['Failed', 'failed'], threat: ['Threat detected', 'threat'],
@@ -337,17 +342,21 @@
             const row = node('li');
             const heading = node('div', null, 'website-check-heading');
             const status = String(item.status || '').toLowerCase();
-            const state = ['checked', 'performed', 'passed', 'completed', 'not_applicable'].includes(status) ? 'checked' : status === 'warning' ? 'warning' : status === 'failed' ? 'failed' : 'unavailable';
+            const state = ['checked', 'performed', 'passed', 'completed'].includes(status) ? 'checked' : status === 'not_applicable' ? 'neutral' : status === 'warning' ? 'warning' : status === 'failed' ? 'failed' : 'unavailable';
+            const icon = node('span', null, 'result-check-icon');
+            icon.dataset.status = state === 'checked' ? 'passed' : state;
+            icon.setAttribute('aria-hidden', 'true');
             const label = status === 'blocked' ? 'Blocked by policy'
                 : status === 'unavailable' && item.name === 'Domain registration / RDAP' ? 'RDAP check unavailable'
                 : status === 'unavailable' || status === 'not_checked' ? 'Not available'
                 : status === 'failed' ? 'Check failed'
                 : status === 'not_applicable' ? 'Not applicable'
+                : state === 'neutral' ? 'Not applicable'
                 : state === 'checked' ? (item.name === 'Domain registration / RDAP' ? 'RDAP completed' : 'Check completed')
                 : state === 'warning' ? 'Warning found' : 'Not available';
-            const badge = node('span', label, 'website-check-status');
+            const badge = node('span', label, 'website-check-status result-status-chip');
             badge.dataset.status = state;
-            heading.append(node('strong', item.name), badge);
+            heading.append(icon, node('strong', item.name), badge);
             row.append(heading);
             if (typeof item.detail === 'string') row.append(node('p', item.detail));
             checks.append(row);
@@ -384,6 +393,31 @@
         addDetail(technical, 'Experimental ML', data.ml_note || 'Not used in this assessment.');
         addDetail(technical, 'Unavailable checks', data.unavailable_checks.length ? data.unavailable_checks.join(', ') : 'None reported');
         setWebsiteResultView(requestedView);
+        const simpleChecks = byId('website-simple-checks');
+        const renderedChecks = Array.from(simpleChecks.querySelectorAll(':scope > li'));
+        const unavailableCount = renderedChecks.filter(row => row.querySelector('[data-status="unavailable"]')).length;
+        const warningCount = renderedChecks.filter(row => row.querySelector('[data-status="warning"], [data-status="failed"], [data-status="threat"]')).length;
+        const summary = node('div', null, 'result-summary-chips');
+        [
+            renderedChecks.length - unavailableCount + ' checks completed',
+            unavailableCount + ' not available',
+            warningCount + ' warnings'
+        ].forEach(text => summary.append(node('span', text, 'result-summary-chip')));
+        const address = results.querySelector('.website-address');
+        address.classList.add('result-destination-card');
+        byId('website-normalized-url').classList.add('result-destination-url');
+        const disclaimer = results.querySelector('.website-simple-disclaimer, .website-verdict-footnote');
+        if (disclaimer) {
+            disclaimer.className = 'website-verdict-footnote';
+            disclaimer.textContent = 'Verify the address and sender before continuing. This does not guarantee safety.';
+            if (!byId('website-verdict').contains(disclaimer)) {
+                byId('website-verdict').querySelector('div').append(disclaimer);
+            }
+        }
+        results.querySelector('.result-summary-chips')?.remove();
+        const viewToggle = results.querySelector('.website-view-toggle');
+        results.insertBefore(summary, viewToggle);
+        results.insertBefore(address, viewToggle);
         scanId = Number.isInteger(data.scan_id) && data.scan_id > 0 ? data.scan_id : null;
         reportButton.disabled = !scanId;
         byId('website-report-status').textContent = scanId ? '' : 'No stored report is available for this check.';

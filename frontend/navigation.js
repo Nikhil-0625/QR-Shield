@@ -79,7 +79,7 @@
         const scanNow = document.createElement('a');
         scanNow.className = 'qs-nav-cta'; scanNow.href = 'scan.html';
         scanNow.setAttribute('aria-label', 'Scan a QR code now');
-        scanNow.append(icon('M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M9 9h6v6H9z'), 'Scan Now');
+        scanNow.append(icon('M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M9 9h6v6H9z'), 'Scan QR');
         links.appendChild(scanNow);
     }
     const footer = document.createElement('div'); footer.className = 'qs-nav-footer';

@@ -2840,11 +2840,13 @@
 <link rel="stylesheet" href="theme.css">
 <link rel="stylesheet" href="master-design.css">
 <link rel="stylesheet" href="product-ux.css">
+<link rel="stylesheet" href="premium-redesign.css">
 
 <meta name="theme-color" content="#F3F0FF">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/qr-shield-192.png">
 <link rel="apple-touch-icon" href="./icons/qr-shield-192.png">
+<script src="./bg-network.js" defer></script>
 <script src="./pwa.js" defer></script>
 </head>
 
@@ -3024,6 +3026,11 @@
                 <a class="scanner-check-link" href="website-checker.html">Checking a link instead? Check a website</a>
         </section>
 
+    <ol class="process-steps" aria-label="Scan process">
+        <li class="is-current"><span class="process-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 8V4h4m8 0h4v4m0 8v4h-4M8 20H4v-4M9 9h6v6H9z"/></svg></span><span>Upload</span></li>
+        <li><span class="process-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/><circle cx="12" cy="12" r="5"/></svg></span><span>Analyze</span></li>
+        <li><span class="process-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span>Decide</span></li>
+    </ol>
     <div class="scanner-layout">
         <div class="scanner-workspace">
 
@@ -3264,11 +3271,12 @@
 </div>
 
 <aside class="scanner-context" aria-label="About QR analysis">
+            <h2 class="scanner-context-title">What we check</h2>
             <div class="feature-list" aria-label="Scanner capabilities">
 
-                <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m12.5 12.5 4 4M6.5 8.5h4M8.5 6.5v4"/></svg></span><span>URL Security Analysis</span></div>
+                <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20"><circle cx="8.5" cy="8.5" r="5.5"/><path d="m12.5 12.5 4 4M6.5 8.5h4M8.5 6.5v4"/></svg></span><span>HTTPS, redirects &amp; domain</span></div>
 
-                <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5 17 6v4.5c0 4.2-2.8 7.3-7 9-4.2-1.7-7-4.8-7-9V6l7-3.5Z"/><path d="m7.5 10 2 2 3.5-4"/></svg></span><span>Threat reputation when available</span></div>
+                <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2.5 17 6v4.5c0 4.2-2.8 7.3-7 9-4.2-1.7-7-4.8-7-9V6l7-3.5Z"/><path d="m7.5 10 2 2 3.5-4"/></svg></span><span>Brand and reputation signals</span></div>
 
                 <div class="feature-item"><span class="feature-mark" aria-hidden="true"><svg viewBox="0 0 20 20"><path d="M3 7V4a1 1 0 0 1 1-1h3M13 3h3a1 1 0 0 1 1 1v3M17 13v3a1 1 0 0 1-1 1h-3M7 17H4a1 1 0 0 1-1-1v-3"/><path d="M7 7h2v2H7zM12 7h2v2h-2zM7 12h2v2H7zM12 12h2v2h-2z"/></svg></span><span>QR Integrity Checks</span></div>
 
@@ -3277,6 +3285,7 @@
             </div>
 
             <p class="intro-note">A QR scan provides security indicators; always review the destination and payment details before acting.</p>
+            <p class="scan-privacy-note">We never open the page or download its content.</p>
 
 
 </aside>
@@ -3312,15 +3321,33 @@
 
     <div class="results-actions">
 
-        <button type="button" class="report-btn action-primary" id="open-link-btn" disabled onclick="QRShieldLinkWarning.open()">Open Link</button>
+        <div class="results-actions-main">
 
-        <button type="button" class="scan-again-btn" id="scan-again-btn" onclick="resetScan()">Scan Another QR</button>
+            <button type="button" class="report-btn action-primary" id="open-link-btn" disabled onclick="QRShieldLinkWarning.open()">Open Link</button>
 
-        <button type="button" class="report-btn" id="copy-content-btn" disabled onclick="copyQrContent()" aria-describedby="copy-content-status">Copy QR Content</button>
+            <button type="button" class="scan-again-btn" id="scan-again-btn" onclick="resetScan()">Scan Another QR</button>
 
-        <button class="report-btn" id="report-btn" disabled onclick="downloadReport()">Download PDF Report</button>
+        </div>
 
-        <button type="button" class="report-btn" id="copy-summary-btn" disabled onclick="copySummary()" aria-describedby="copy-summary-status">Copy Summary</button>
+        <div class="results-actions-tools">
+
+            <button type="button" class="report-btn" id="copy-content-btn" disabled onclick="copyQrContent()" aria-describedby="copy-content-status" aria-label="Copy QR content" title="Copy QR content">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="5.25" y="5.25" width="2.5" height="2.5" rx=".35"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="16.25" y="5.25" width="2.5" height="2.5" rx=".35"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="5.25" y="16.25" width="2.5" height="2.5" rx=".35"/></g><g fill="currentColor"><circle cx="13" cy="13" r="1"/><circle cx="17" cy="13" r="1"/><circle cx="13" cy="17" r="1"/><circle cx="17" cy="17" r="1"/><circle cx="21" cy="17" r="1"/></g></svg>
+                <span class="sr-only">Copy QR Content</span>
+            </button>
+
+            <button class="report-btn" id="report-btn" disabled aria-busy="false" onclick="downloadReport()" aria-label="Download PDF report" title="Download PDF report">
+                <svg class="report-download-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 3v12m0 0 4-4m-4 4-4-4M5 17v3h14v-3" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <svg class="report-spinner-icon" aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2" opacity=".25"/><path d="M20.5 12a8.5 8.5 0 0 0-8.5-8.5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <span class="sr-only">Download PDF Report</span>
+            </button>
+
+            <button type="button" class="report-btn" id="copy-summary-btn" disabled onclick="copySummary()" aria-describedby="copy-summary-status" aria-label="Copy summary" title="Copy summary">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="18" rx="2"/><path d="M9 4.5V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1.5M8.5 10h7M8.5 14h7M8.5 18h4"/></g></svg>
+                <span class="sr-only">Copy Summary</span>
+            </button>
+
+        </div>
 
     </div>
 
@@ -3336,7 +3363,7 @@
 
     </div>
 
-    <p class="report-status" id="report-status" aria-live="polite"></p>
+    <p class="report-status" id="report-status" role="status" aria-live="polite"></p>
 
 </div>
 
@@ -5412,6 +5439,16 @@
 
 
 
+    function setUtilityButtonLabel(button, label) {
+
+        const labelElement = button.querySelector(".sr-only");
+
+        if (labelElement) labelElement.textContent = label;
+
+    }
+
+
+
     function resetCopyContent(content = null) {
 
         copyContentGeneration++;
@@ -5420,7 +5457,7 @@
         copyableQrContent = typeof content === "string" ? content : null;
 
         document.getElementById("copy-content-btn").disabled = !copyableQrContent;
-        document.getElementById("copy-content-btn").textContent = "Copy QR Content";
+        setUtilityButtonLabel(document.getElementById("copy-content-btn"), "Copy QR Content");
 
         document.getElementById("copy-content-status").textContent = "";
 
@@ -5460,10 +5497,11 @@
             if (copyContentGeneration === generation) {
 
                 status.textContent = "QR content copied.";
+                showCopyToast("QR content copied.");
                 if (copyContentFeedbackTimer !== null) clearTimeout(copyContentFeedbackTimer);
-                button.textContent = "✓ Copied";
+                setUtilityButtonLabel(button, "Copied");
                 copyContentFeedbackTimer = setTimeout(() => {
-                    if (copyContentGeneration === generation) button.textContent = buttonLabel;
+                    if (copyContentGeneration === generation) setUtilityButtonLabel(button, buttonLabel);
                     copyContentFeedbackTimer = null;
                 }, 2200);
 
@@ -5488,7 +5526,7 @@
             document.getElementById("copy-content-fallback-label").hidden = false;
 
             status.textContent = "Automatic copying is unavailable. Select the content below and use Copy, or press Ctrl+C / Command+C.";
-            button.textContent = buttonLabel;
+            setUtilityButtonLabel(button, buttonLabel);
 
             fallback.focus();
 
@@ -5580,7 +5618,7 @@
 
 
 
-    function createSimpleSecuritySummary(data) {
+    function createSimpleSecuritySummary(data, subtitle) {
 
         const section = document.createElement("section");
 
@@ -5591,6 +5629,10 @@
         const heading = document.createElement("h3");
 
         heading.textContent = "Security Checks";
+
+        const subtitleNode = document.createElement("p");
+        subtitleNode.className = "result-checks-subtitle";
+        subtitleNode.textContent = subtitle;
 
         const list = document.createElement("ul");
 
@@ -5610,15 +5652,30 @@
 
             row.setAttribute("data-state", state || "neutral");
 
+            const icon = document.createElement("span");
+            icon.className = "result-check-icon";
+            icon.dataset.status = state === "neutral" && /^(Checked\b|Available$|None detected)/.test(value)
+                ? "passed" : state || "neutral";
+            icon.setAttribute("aria-hidden", "true");
+
             const name = document.createElement("strong");
 
             name.textContent = label;
 
+            const copy = document.createElement("span");
+            copy.className = "result-check-copy";
+            copy.appendChild(name);
+
             const status = document.createElement("span");
 
+            status.className = "result-status-chip";
+            const positiveStatus = state === "passed"
+                || ["Checked offline", "Completed", "Checked", "Available", "None detected by completed checks", "No known threat reported"].includes(value)
+                || /^Checked — \d+ redirects?$/.test(value);
+            status.dataset.status = positiveStatus ? "checked" : state || "neutral";
             status.textContent = value;
 
-            row.append(name, status);
+            row.append(icon, copy, status);
 
             if (detail) {
 
@@ -5628,7 +5685,7 @@
 
                 note.textContent = detail;
 
-                row.appendChild(note);
+                copy.appendChild(note);
 
             }
 
@@ -5742,19 +5799,19 @@
 
         }
 
-        section.append(heading, list);
+        section.append(heading, subtitleNode, list);
 
-        const note = document.createElement("aside");
-        note.className = "simple-security-note";
-        note.setAttribute("role", "note");
-        const noteTitle = document.createElement("strong");
-        noteTitle.textContent = "Important";
-        const noteText = document.createElement("span");
-        noteText.textContent = unavailable.length
-            ? "Some checks were unavailable and have not passed. Verify the address and sender before sharing sensitive information."
-            : "Automated checks can miss threats. Verify the address and sender before sharing sensitive information.";
-        note.append(noteTitle, noteText);
-        section.appendChild(note);
+        if (unavailable.length) {
+            const note = document.createElement("aside");
+            note.className = "simple-security-note";
+            note.setAttribute("role", "note");
+            const noteTitle = document.createElement("strong");
+            noteTitle.textContent = "Important";
+            const noteText = document.createElement("span");
+            noteText.textContent = "Some checks were not available. Unavailable checks have not passed. Verify the address and sender before sharing sensitive information.";
+            note.append(noteTitle, noteText);
+            section.appendChild(note);
+        }
 
         return section;
 
@@ -6087,11 +6144,36 @@
         summaryToastTimer = null;
 
         document.getElementById("copy-summary-status").textContent = "";
+        document.getElementById("copy-summary-status").classList.remove("is-copied");
 
         document.getElementById("copy-summary-btn").disabled = !summary;
-        document.getElementById("copy-summary-btn").textContent = "Copy Summary";
+        setUtilityButtonLabel(document.getElementById("copy-summary-btn"), "Copy Summary");
 
         document.getElementById("copy-summary-btn").setAttribute("aria-busy", "false");
+
+    }
+
+
+
+    function showCopyToast(message) {
+
+        const toast = document.getElementById("copy-summary-status");
+
+        if (summaryToastTimer !== null) clearTimeout(summaryToastTimer);
+
+        toast.classList.add("is-copied");
+
+        toast.textContent = message;
+
+        summaryToastTimer = setTimeout(() => {
+
+            toast.textContent = "";
+
+            toast.classList.remove("is-copied");
+
+            summaryToastTimer = null;
+
+        }, 2000);
 
     }
 
@@ -6113,6 +6195,7 @@
         if (summaryToastTimer !== null) clearTimeout(summaryToastTimer);
 
         status.textContent = "";
+        status.classList.remove("is-copied");
 
         button.disabled = true;
 
@@ -6130,13 +6213,15 @@
 
             copied = true;
 
-            status.textContent = "Copied to clipboard!";
-            button.textContent = "✓ Copied";
+            status.textContent = "Summary copied.";
+            status.classList.add("is-copied");
+            setUtilityButtonLabel(button, "Copied");
 
         } catch (_) {
 
             if (generation !== summaryGeneration) return;
 
+            status.classList.remove("is-copied");
             status.textContent = "Could not copy summary. Use HTTPS or localhost and allow clipboard access.";
 
         } finally {
@@ -6150,12 +6235,13 @@
                 summaryToastTimer = setTimeout(() => {
 
                     if (generation === summaryGeneration) status.textContent = "";
+                    if (generation === summaryGeneration) status.classList.remove("is-copied");
 
-                    if (generation === summaryGeneration) button.textContent = buttonLabel;
+                    if (generation === summaryGeneration) setUtilityButtonLabel(button, buttonLabel);
 
                     summaryToastTimer = null;
 
-                }, copied ? 3000 : 6000);
+                }, copied ? 2000 : 6000);
 
             }
 
@@ -6214,7 +6300,7 @@
         const safeResult = isUrlContent && !unsafeResult && !suspiciousResult
             && ["Likely safe", "No Known Threats Detected"].includes(verdict.title);
         const statusTone = unsafeResult ? "unsafe" : safeResult ? "safe" : isUrlContent ? "caution" : "neutral";
-        const statusTitle = unsafeResult ? "Unsafe" : safeResult ? "Likely safe" : isUrlContent ? "Can't tell" : verdict.title;
+        const statusTitle = verdict.title || (unsafeResult ? "Unsafe" : safeResult ? "Likely safe" : "Can't tell");
         const statusIcon = unsafeResult ? "warning" : safeResult ? "shield" : isUrlContent ? "question" : verdict.icon || "shield";
 
         const banner = document.getElementById("verdict-banner");
@@ -6249,6 +6335,7 @@
         explanation.textContent = "Recommended action: " + (isUrlContent
             ? humanVerdict?.action || verdict.explanation
             : humanVerdict ? humanVerdict.action : verdict.explanation);
+        explanation.textContent = explanation.textContent.replace(/ A new or unlisted threat may be missed\.$/, "");
 
         verdictCopy.append(title, explanation);
 
@@ -6277,23 +6364,15 @@
 
         if (!humanVerdict) verdictCopy.appendChild(plainVerdict);
 
-        if (safeResult) {
-
-            const disclaimer = document.createElement("span");
-
-            disclaimer.className = "verdict-disclaimer";
-
-            disclaimer.textContent = "No check can guarantee that a destination is safe.";
-
-            verdictCopy.appendChild(disclaimer);
-
-        }
-
-        const scannedContent = document.createElement("code");
-
-        scannedContent.className = "summary-destination";
-
-        scannedContent.textContent = displayValue(data.decoded_content, "Decoded content unavailable");
+        const verdictFootnote = document.createElement("div");
+        verdictFootnote.className = "verdict-footnote";
+        const verdictFootnoteIcon = document.createElement("span");
+        verdictFootnoteIcon.className = "verdict-footnote-icon";
+        verdictFootnoteIcon.setAttribute("aria-hidden", "true");
+        verdictFootnoteIcon.textContent = "i";
+        const verdictFootnoteText = document.createElement("span");
+        verdictFootnoteText.textContent = "Automated checks can miss new or unlisted threats. No result is a guarantee of safety.";
+        verdictFootnote.append(verdictFootnoteIcon, verdictFootnoteText);
 
         const recommendation = document.createElement("span");
 
@@ -6309,7 +6388,9 @@
 
             : "Recommendation: The assessment is incomplete. Verify the destination independently before proceeding.";
 
-        if (!humanVerdict) verdictCopy.append(scannedContent, recommendation);
+        if (!humanVerdict) verdictCopy.append(recommendation);
+
+        verdictCopy.appendChild(verdictFootnote);
 
         banner.appendChild(verdictCopy);
 
@@ -6320,6 +6401,7 @@
             banner.replaceChildren();
 
             banner.appendChild(createUpiDirectionBanner(data.upi_details || {}, data.upi_analysis));
+            banner.appendChild(verdictFootnote);
 
         }
 
@@ -6489,7 +6571,7 @@
             resultRows.appendChild(riskPanel);
 
             resultRows.appendChild(createSection("Heuristic Risk Assessment", "gauge", [
-                ["Combined risk score", hasScore ? score + " / 100" : "Score unavailable"],
+                ["Combined risk score", hasScore ? score + " / 100" : "Unavailable"],
                 ["Scoring status", hasScore ? "Available — heuristic, not a probability" : "Unavailable — no replacement score invented"],
                 ["Why", typeof data.risk_score_reason === "string" ? data.risk_score_reason : hasScore
                     ? "This is the stored backend score. Available indicators do not guarantee safety; unavailable checks have not passed."
@@ -7018,7 +7100,7 @@
 
             simpleReason.textContent = getSimpleUrlReason(data);
 
-            simpleCopy.append(simpleReason, createSimpleSecuritySummary(data));
+            simpleCopy.append(createSimpleSecuritySummary(data, simpleReason.textContent));
 
         } else if (humanVerdict) technicalBody.appendChild(plainReason);
 
@@ -7034,7 +7116,7 @@
 
             const heading = document.createElement("strong");
 
-            heading.textContent = "QR image integrity needs review.";
+            heading.textContent = "This QR code may have been altered — handle with caution.";
 
             const context = document.createElement("p");
 
@@ -7112,6 +7194,38 @@
 
         resultRows.appendChild(technicalDetails);
 
+        resultsCard.classList.add("shared-result-ui");
+        resultsCard.classList.toggle("result-reputation-clear",
+            isUrlContent && getCurrentReputationStatus(data) === "clear");
+        resultsCard.querySelector(".result-summary-chips")?.remove();
+        resultsCard.querySelector(".result-destination-card")?.remove();
+        const renderedChecks = Array.from(resultRows.querySelectorAll(".simple-security-check"));
+        const unavailableCount = renderedChecks.filter(row => row.dataset.state === "unavailable").length;
+        const warningCount = renderedChecks.filter(row => ["warning", "threat", "failed"].includes(row.dataset.state)).length;
+        const summaryChips = document.createElement("div");
+        summaryChips.className = "result-summary-chips";
+        [
+            renderedChecks.length - unavailableCount + " checks completed",
+            unavailableCount + " not available",
+            warningCount + " warnings"
+        ].forEach(text => {
+            const chip = document.createElement("span");
+            chip.className = "result-summary-chip";
+            chip.textContent = text;
+            summaryChips.appendChild(chip);
+        });
+        const destinationCard = document.createElement("div");
+        destinationCard.className = "result-destination-card";
+        const destinationLabel = document.createElement("span");
+        destinationLabel.className = "result-destination-label";
+        destinationLabel.textContent = "Destination";
+        const destinationValue = document.createElement("code");
+        destinationValue.textContent = displayValue(data.decoded_content, "Decoded content unavailable");
+        destinationCard.append(destinationLabel, destinationValue);
+        const viewToggle = resultsCard.querySelector(".result-view-toggle");
+        resultsCard.insertBefore(summaryChips, viewToggle);
+        resultsCard.insertBefore(destinationCard, viewToggle);
+
     }
 
 
@@ -7187,10 +7301,13 @@
         const reportButton = document.getElementById("report-btn");
 
         const reportStatus = document.getElementById("report-status");
+        const reportButtonLabel = reportButton.querySelector(".sr-only");
 
         reportButton.disabled = true;
 
-        reportButton.innerText = "Preparing PDF...";
+        reportButton.setAttribute("aria-busy", "true");
+        reportButton.setAttribute("aria-label", "Preparing PDF report");
+        reportButtonLabel.textContent = "Preparing PDF report...";
 
         reportStatus.style.color = "#666";
 
@@ -7256,7 +7373,9 @@
 
             reportButton.disabled = !currentScanId;
 
-            reportButton.innerText = "Download PDF Report";
+            reportButton.setAttribute("aria-busy", "false");
+            reportButton.setAttribute("aria-label", "Download PDF report");
+            reportButtonLabel.textContent = "Download PDF Report";
 
         }
 

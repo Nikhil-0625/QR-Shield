@@ -5,11 +5,8 @@
     const root = document.documentElement;
     const system = window.matchMedia('(prefers-color-scheme: dark)');
     const themes = {
-        system: 'System',
         light: 'Light',
-        dark: 'Dark',
-        midnight: 'Midnight',
-        emerald: 'Emerald'
+        dark: 'Dark'
     };
     const valid = value => Object.prototype.hasOwnProperty.call(themes, value);
     let preference;
@@ -17,14 +14,13 @@
     if (!valid(preference)) preference = null;
 
     function apply() {
-        const theme = !preference || preference === 'system' ? (system.matches ? 'dark' : 'light') : preference;
-        // Keep existing dark component styles for every dark palette.
+        const theme = preference || (system.matches ? 'dark' : 'light');
         root.dataset.palette = theme;
         root.dataset.theme = theme === 'light' ? 'light' : 'dark';
         root.style.colorScheme = root.dataset.theme;
         document.querySelectorAll('[data-theme-select]').forEach(select => {
-            select.value = preference === 'system' ? 'system' : theme;
-            select.title = 'Color theme: ' + themes[theme] + (preference === 'system' ? ' (System)' : '');
+            select.value = theme;
+            select.title = 'Color theme: ' + themes[theme];
         });
         document.querySelectorAll('[data-theme-state]').forEach(state => {
             state.textContent = 'Current theme: ' + themes[theme];
@@ -58,7 +54,7 @@
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initialize, { once: true });
     else initialize();
-    const systemChanged = () => { if (!preference || preference === 'system') apply(); };
+    const systemChanged = () => { if (!preference) apply(); };
     if (system.addEventListener) system.addEventListener('change', systemChanged);
     else system.addListener(systemChanged);
     window.addEventListener('storage', function (event) {
