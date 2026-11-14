@@ -19,6 +19,7 @@
 
     <link rel="stylesheet" href="website-checker.css">
     <link rel="stylesheet" href="product-ux.css">
+    <link rel="stylesheet" href="premium-redesign.css">
 
     <script src="navigation.js" defer></script>
 
@@ -28,6 +29,7 @@
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/qr-shield-192.png">
 <link rel="apple-touch-icon" href="./icons/qr-shield-192.png">
+<script src="./bg-network.js" defer></script>
 <script src="./pwa.js" defer></script>
 </head>
 
@@ -146,7 +148,11 @@
 
     </div>
 
-
+    <ol class="process-steps" aria-label="Website check process">
+        <li class="is-current"><span class="process-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 5h14v14H5z"/><path d="M8 9h8M8 13h5"/></svg></span><span>Paste</span></li>
+        <li><span class="process-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1"/><circle cx="12" cy="12" r="5"/></svg></span><span>Analyze</span></li>
+        <li><span class="process-step-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span><span>Decide</span></li>
+    </ol>
 
     <div class="website-workspace">
 
@@ -283,13 +289,13 @@
 
         </div>
 
-        <div class="website-limitations"><strong>Before you continue</strong><p>The page is not opened in a browser and its body is not downloaded. Enabled checks may resolve the hostname, verify TLS, inspect bounded redirect response headers, send the URL to Google Safe Browsing, and send the registered domain to RDAP. Review which checks completed. This result does not confirm that the destination is safe. Verify the address and sender before sharing passwords or payment details.</p><p id="website-ml-note" class="website-technical-only"></p></div>
+        <div class="website-limitations"><strong>Before you continue</strong><p>The page is not opened in a browser and its body is not downloaded. Enabled checks may resolve the hostname, verify TLS, inspect bounded redirect response headers, send the URL to Google Safe Browsing, and send the registered domain to RDAP. Review which checks completed. Verify the address and sender before sharing passwords or payment details.</p><p id="website-ml-note" class="website-technical-only"></p></div>
 
         <details class="website-technical"><summary>Technical details <span>For reference only — not a probability.</span></summary><dl id="website-technical-data"></dl></details>
 
         </div>
 
-        <div class="website-report-actions"><button class="report-btn" id="website-report" type="button" disabled>Download Report</button><a class="website-history-link" href="dashboard.html">View scan history <span aria-hidden="true">→</span></a></div>
+        <div class="website-report-actions"><button class="report-btn" id="website-report" type="button" disabled>Download Report</button><a class="website-check-another" href="#website-form">Check Another</a><a class="website-history-link" href="dashboard.html">View scan history <span aria-hidden="true">→</span></a></div>
 
         <p class="website-report-status" id="website-report-status" role="status" aria-live="polite"></p>
 

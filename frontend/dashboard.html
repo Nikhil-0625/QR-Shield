@@ -192,11 +192,13 @@
 <link rel="stylesheet" href="product-ux.css">
 <link rel="stylesheet" href="account-modals.css">
 <link rel="stylesheet" href="dashboard-dark.css">
+<link rel="stylesheet" href="premium-redesign.css">
 
 <meta name="theme-color" content="#F3F0FF">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/qr-shield-192.png">
 <link rel="apple-touch-icon" href="./icons/qr-shield-192.png">
+<script src="./bg-network.js" defer></script>
 <script src="./pwa.js" defer></script>
 </head>
 
@@ -390,7 +392,7 @@
                             </svg>
                         </div>
                         <div>
-                            <h1 id="dashboard-title">Good Morning! 👋</h1>
+                            <h1 id="dashboard-title">Good Morning!</h1>
                             <p class="section-subtitle">Your QR scans, security checks, and online safety — all in one place.</p>
                             <div class="dashboard-first-actions" aria-label="Start a security check">
                                 <a class="primary-btn" href="scan.html">Scan a QR Code</a>
@@ -1352,14 +1354,11 @@
 
             const areaPath = `${linePath} L ${right} ${baseline} L ${left} ${baseline} Z`;
 
-            const gridLines = [0, 1, 2, 3].map(index => {
-
-                const y = top + (baseline - top) * index / 3;
-
-                const value = Math.round(chartMax * (3 - index) / 3);
-
+            const gridValues = [...new Set([0, 1, 2, 3].map(index =>
+                Math.round(chartMax * (3 - index) / 3)))];
+            const gridLines = gridValues.map(value => {
+                const y = baseline - (value / chartMax) * (baseline - top);
                 return `<line class="activity-grid-line" x1="${left}" y1="${y}" x2="${right}" y2="${y}"/><text class="activity-grid-label" x="4" y="${y + 3}">${value}</text>`;
-
             }).join("");
 
             const dayLabels = points.map(point => `

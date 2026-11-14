@@ -7,7 +7,7 @@ const source = typeof require === 'function'
     ? require('node:fs').readFileSync(require('node:path').join(__dirname, '../scan.html'), 'utf8')
     : globalThis.SCAN_SOURCE;
 class Element {
-    constructor() { this.children = []; this.style = {}; this.ownText = ''; }
+    constructor() { this.children = []; this.style = {}; this.dataset = {}; this.classList = { toggle() {}, add() {}, remove() {}, contains() { return false; } }; this.ownText = ''; }
     set textContent(value) { this.ownText = String(value); this.children = []; }
     get textContent() { return this.ownText + this.children.map(c => c.textContent).join(' '); }
     append(...children) {
