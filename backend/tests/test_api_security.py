@@ -12,7 +12,7 @@ import test_history_authorization as harness
 class ApiSecurityTests(harness.HistoryAuthorizationTests):
     @classmethod
     def setUpClass(cls):
-        with patch("dotenv.load_dotenv", return_value=False), patch.dict("os.environ", {"CORS_ALLOWED_ORIGINS":"http://localhost:5500,http://127.0.0.1:5500"}):
+        with patch("dotenv.load_dotenv", return_value=False), patch.dict("os.environ", {"CORS_ALLOWED_ORIGINS":"http://localhost:5500,http://127.0.0.1:5500,https://qr-shield.pages.dev,https://0ac29073.qr-shield.pages.dev,https://581928c8.qr-shield.pages.dev"}):
             super().setUpClass()
     def api(self, path, method='GET', token=None, body=b'', headers=None, query=''):
         async def run():
@@ -129,6 +129,15 @@ class ApiSecurityTests(harness.HistoryAuthorizationTests):
             code,_,headers=self.api('/history','OPTIONS',headers=[(b'origin',origin.encode()),(b'access-control-request-method',b'GET'),(b'access-control-request-headers',b'authorization')])
             self.assertEqual(code,200)
             self.assertEqual(headers[b'access-control-allow-origin'],origin.encode())
+
+    def test_cors_allows_cloudflare_frontends_preflight(self):
+        for origin in ['https://qr-shield.pages.dev','https://0ac29073.qr-shield.pages.dev','https://581928c8.qr-shield.pages.dev']:
+            with self.subTest(origin=origin):
+                code,_,headers=self.api('/history','OPTIONS',headers=[(b'origin',origin.encode()),(b'access-control-request-method',b'GET'),(b'access-control-request-headers',b'authorization')])
+                self.assertEqual(code,200)
+                self.assertEqual(headers[b'access-control-allow-origin'],origin.encode())
+                self.assertEqual(headers[b'access-control-allow-credentials'],b'true')
+                self.assertIn(b'authorization',headers[b'access-control-allow-headers'].lower())
 
     def test_upload_limits_before_opencv_allocation(self):
         import asyncio
