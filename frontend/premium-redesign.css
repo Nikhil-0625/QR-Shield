@@ -2821,3 +2821,116 @@ body[data-page] .qs-nav-link:not([aria-current="page"]):hover,
 body[data-page] .qs-nav-link:not([aria-current="page"]):focus-visible {
     opacity: 1;
 }
+
+body[data-page] { min-width: 0; overflow-x: clip; }
+body[data-page] :is(main.app-workspace, main.scanner-shell, main.website-shell, main.experimental-main) {
+    min-width: 0;
+    max-width: 100%;
+}
+.qs-brand { gap: 10px; }
+.qs-brand-mark { width: 42px; height: 42px; flex-basis: 42px; }
+.qs-brand-copy { min-width: 0; }
+.qs-nav-link { min-height: 48px; }
+.header-shield-badge { background: transparent !important; box-shadow: none !important; }
+.header-shield-badge img { display: block; width: 100%; height: 100%; object-fit: contain; }
+
+@media (max-width: 600px) {
+    .website-check-heading { align-items: flex-start; flex-direction: column; gap: 6px; }
+    .website-check-heading strong { min-width: 0; line-height: 1.45; }
+    .website-check-status { max-width: 100%; white-space: normal; overflow-wrap: anywhere; }
+    .website-report-actions { align-items: stretch; }
+    .website-report-actions > :is(button, a) { display: flex; width: 100%; min-width: 0; justify-content: center; }
+    body[data-page=website-checker] .website-results { padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+
+    body[data-page=scan] .simple-security-checks > li {
+        grid-template-columns: 22px minmax(0, 1fr);
+        align-items: start;
+        gap: 7px 10px;
+        min-height: 0;
+    }
+    body[data-page=scan] .simple-security-checks .result-check-copy { grid-column: 2; }
+    body[data-page=scan] .simple-security-checks strong { font-size: 14px; line-height: 1.45; overflow-wrap: anywhere; }
+    body[data-page=scan] .simple-security-checks .result-check-icon { width: 22px; height: 22px; }
+    body[data-page=scan] .simple-security-checks .result-status-chip {
+        grid-column: 2;
+        justify-self: start;
+        align-self: start;
+        max-width: 100%;
+        padding: 3px 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--surface-soft);
+        font-size: 12px;
+        line-height: 1.4;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    body[data-page=scan] .simple-security-check-detail { min-width: 0; grid-column: auto; }
+    body[data-page=scan] .results-actions {
+        position: static;
+        z-index: auto;
+        bottom: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+        margin: 0;
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+    body[data-page=scan] .results-actions-main,
+    body[data-page=scan] .results-actions-tools { display: grid; width: 100%; min-width: 0; gap: 10px; }
+    body[data-page=scan] .results-actions-main { grid-template-columns: minmax(0, 1fr); }
+    body[data-page=scan] .results-actions-tools { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    body[data-page=scan] .results-actions button { min-width: 0; width: 100%; }
+    body[data-page=scan] #results-card { padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+    body[data-page=website-checker] .website-report-actions {
+        position: static;
+        z-index: auto;
+        bottom: auto;
+        margin: 0;
+        background: transparent;
+        box-shadow: none;
+        backdrop-filter: none;
+    }
+}
+
+@media (max-width: 480px) {
+    .qs-brand { gap: 8px; }
+    .qs-brand-mark { width: 36px; height: 36px; flex-basis: 36px; }
+    .qs-brand-name { font-size: 17px; }
+    .qs-brand-subtitle { max-width: 36vw; font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .qs-menu-toggle { width: 44px; height: 44px; flex: 0 0 44px; }
+    .qs-nav-links .qs-nav-link { min-height: 48px; }
+    body[data-page] :is(main.app-workspace, main.scanner-shell, main.website-shell, main.experimental-main) {
+        padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+    }
+    body[data-page=dashboard] .summary-grid,
+    body[data-page=dashboard] .insights-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    body[data-page=dashboard] .stat { min-height: 0; padding: 14px; gap: 8px; }
+    body[data-page=dashboard] .stat-top-left { gap: 8px; }
+    body[data-page=dashboard] .stat-icon { width: 34px; height: 34px; flex-basis: 34px; }
+    body[data-page=dashboard] .stat-label { font-size: 12px; line-height: 1.35; }
+    body[data-page=dashboard] .stat-value { font-size: 29px; letter-spacing: -.8px; }
+    body[data-page=dashboard] .stat-subtext { font-size: 11px; line-height: 1.45; }
+    body[data-page=dashboard] .analytics-grid > .card { min-height: 0; padding: 16px; }
+    body[data-page=dashboard] .activity-card .section-heading { align-items: flex-start; flex-direction: column; gap: 8px; }
+    body[data-page=dashboard] .activity-summary { max-width: none; text-align: left; }
+    body[data-page=dashboard] .activity-chart { margin: 10px 0 0; }
+    body[data-page=dashboard] .activity-grid-label { font-size: 25px; }
+    body[data-page=dashboard] .activity-day-label { font-size: 25px; }
+    body[data-page=dashboard] .activity-today-label { font-size: 22px; }
+    body[data-page=dashboard] .legend-row { grid-template-columns: minmax(0, 1fr) auto minmax(30px, 38px); gap: 7px; font-size: 12px; }
+    body[data-page=dashboard] .legend-percent { font-size: 11px; }
+}
+
+@media (max-width: 359px) {
+    .qs-header { padding-right: 12px; padding-left: 12px; }
+    .qs-brand-subtitle { display: none; }
+    body[data-page=dashboard] .stat { padding: 12px; }
+    body[data-page=dashboard] .activity-grid-label { font-size: 23px; }
+    body[data-page=dashboard] .activity-day-label { font-size: 23px; }
+}

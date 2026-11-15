@@ -1,5 +1,15 @@
 (function () {
     'use strict';
+    try {
+        if (!localStorage.getItem('access_token')) {
+            location.replace('login.html');
+            return;
+        }
+    } catch (_) {
+        location.replace('login.html');
+        return;
+    }
+
     const scenarios = {
         safe: {
             title: 'Trusted HTTPS Website',

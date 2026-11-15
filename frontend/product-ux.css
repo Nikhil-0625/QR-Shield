@@ -417,7 +417,7 @@ body.auth-page { background:var(--app-bg); }
     .qs-brand-mark { width:36px !important; height:36px !important; flex-basis:36px !important; }
     .qs-brand-name { font-size:16px !important; }
     .qs-brand-subtitle { font-size:10px !important; }
-    .qs-theme-toggle,.qs-menu-toggle { width:40px !important; height:40px !important; flex-basis:40px !important; }
+    .qs-theme-toggle,.qs-menu-toggle { width:44px !important; height:44px !important; flex-basis:44px !important; }
     .qs-nav-links { inset:64px 0 auto !important; height:calc(100dvh - 64px) !important; }
     .home-actions { flex-direction:column; }
     .home-actions a { width:100%; }
