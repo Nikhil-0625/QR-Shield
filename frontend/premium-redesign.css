@@ -932,9 +932,6 @@ body[data-page] {
 
 /* Header and navigation */
 body[data-page] .qs-header {
-    position: sticky !important;
-    top: 0 !important;
-    z-index: 100;
     border: 0 !important;
     border-bottom: 1px solid var(--line) !important;
     border-radius: 0 !important;

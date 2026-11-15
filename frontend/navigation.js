@@ -102,16 +102,25 @@
         document.body.prepend(skip);
     }
     let mainWasInert = false;
+    let pageScrollY = 0;
     function setMenuOpen(open, restoreFocus = false) {
         open = Boolean(open && !desktop.matches);
         const wasOpen = header.classList.contains('is-open');
-        if (open && !wasOpen) mainWasInert = main ? main.inert : false;
+        if (open && !wasOpen) {
+            mainWasInert = main ? main.inert : false;
+            pageScrollY = window.scrollY;
+            document.body.style.top = `-${pageScrollY}px`;
+        }
         header.classList.toggle('is-open', open); document.body.classList.toggle('qs-menu-open', open);
         toggle.setAttribute('aria-expanded', String(open)); toggle.setAttribute('aria-label', open ? 'Close navigation menu' : 'Open navigation menu');
         links.inert = !desktop.matches && !open;
         if (links.inert) links.setAttribute('aria-hidden', 'true'); else links.removeAttribute('aria-hidden');
         backdrop.hidden = !open;
         if (main && (open || wasOpen)) main.inert = open || mainWasInert;
+        if (!open && wasOpen) {
+            document.body.style.top = '';
+            window.scrollTo(0, pageScrollY);
+        }
         if (open) close.focus(); else if (restoreFocus) toggle.focus();
     }
     toggle.addEventListener('click', () => setMenuOpen(toggle.getAttribute('aria-expanded') !== 'true'));

@@ -27,7 +27,7 @@ html:not(.show-experimental-ml) .qs-nav-link[href="experimental-warning.html"] {
 .qs-nav-link:focus-visible,.qs-menu-toggle:focus-visible,.qs-drawer-close:focus-visible { outline:3px solid var(--focus) !important; outline-offset:3px; }
 .qs-skip-link { position:fixed; left:16px; top:-80px; z-index:2000; padding:12px 18px; border-radius:8px; background:var(--surface); color:var(--ink); }
 .qs-skip-link:focus { top:12px; }
-body.qs-menu-open { overflow:hidden; }
+body[data-page].qs-menu-open { position:fixed !important; inset:0 auto auto 0; width:100%; overflow:hidden; overscroll-behavior:none; }
 body[data-page] :is(main.app-workspace,.scanner-shell,.website-shell,.experimental-main) { min-width:0; width:100%; max-width:1440px; box-sizing:border-box; margin:0 auto; padding:32px; }
 @media(min-width:1200px) {
  body[data-page] { padding:0 0 0 248px; }
