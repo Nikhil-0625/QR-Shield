@@ -19,7 +19,7 @@ class ApiBoundary:
         # Render's internal port suffix. Entries configured with a port remain
         # port-specific via the exact-host comparison below.
         self.extra_hostnames = set()
-        self.origins = {value.strip().encode() for value in os.environ.get("CORS_ALLOWED_ORIGINS","http://localhost:5500,http://127.0.0.1:5500,https://qr-shield.pages.dev").split(",") if value.strip()}
+        self.origins = {value.strip().encode() for value in os.environ.get("CORS_ALLOWED_ORIGINS","https://qr-shield.pages.dev,https://0ac29073.qr-shield.pages.dev").split(",") if value.strip()}
         if any(not re.fullmatch(r"[a-z0-9.-]+(?::[0-9]+)?", host) for host in self.extra_hosts):
             raise RuntimeError("QR_SHIELD_ALLOWED_HOSTS must contain exact hosts, not wildcards")
         for configured_host in self.extra_hosts:
