@@ -92,7 +92,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=False)
 cors_origins = [origin.strip() for origin in os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500,https://qr-shield.pages.dev,https://0ac29073.qr-shield.pages.dev,https://581928c8.qr-shield.pages.dev"
+    "CORS_ALLOWED_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500,https://qr-shield.pages.dev,https://0ac29073.qr-shield.pages.dev,https://581928c8.qr-shield.pages.dev,https://1ec02d66.qr-shield.pages.dev"
 ).split(",") if origin.strip()]
 if any(origin == "*" or origin == "null" or urlparse(origin).scheme not in ("http", "https")
        or not urlparse(origin).netloc for origin in cors_origins):
