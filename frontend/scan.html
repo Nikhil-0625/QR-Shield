@@ -3442,8 +3442,8 @@
     // Gateway and forwarded pages use same-origin API; legacy localhost servers remain supported.
 
     const API_URL = window.QR_SHIELD_API_BASE || (location.hostname === "localhost" || location.hostname === "127.0.0.1" || location.protocol === "file:"
+        ? "http://127.0.0.1:8000" : "https://aauc0ba9-fastapi-qr-shield-api.apps-2.websson.cloud");
 
-        ? "http://127.0.0.1:8000" : "/api");
 
     const SCAN_ENDPOINT = "/scan"; // <-- update if your route name is different
 

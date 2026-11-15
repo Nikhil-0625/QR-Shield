@@ -4,7 +4,7 @@
     const form = byId('website-form');
     if (!form) return;
     const api = window.QR_SHIELD_API_BASE || (location.hostname === 'localhost' || location.hostname === '127.0.0.1' || location.protocol === 'file:'
-        ? 'http://127.0.0.1:8000' : '/api');
+        ? 'http://127.0.0.1:8000' : 'https://aauc0ba9-fastapi-qr-shield-api.apps-2.websson.cloud');
     const input = byId('website-url');
     const analyzeButton = byId('website-analyze');
     const pasteButton = byId('website-paste');
