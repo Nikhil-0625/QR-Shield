@@ -3121,9 +3121,20 @@ body[data-page="website-checker"] .website-analysis-score-note {
         align-items: start;
         gap: 7px 9px;
     }
+    body[data-page="website-checker"] .website-simple-checks .result-check-icon {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    body[data-page="website-checker"] .website-simple-checks .result-check-copy {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+    }
     body[data-page="website-checker"] .website-simple-checks .website-check-status {
         grid-column: 2;
+        grid-row: 2;
         justify-self: start;
+        margin-top: 3px;
         max-width: 100%;
         text-align: left;
         white-space: normal;
@@ -3139,15 +3150,23 @@ body[data-page="website-checker"] .website-analysis-score-note {
         align-items: start;
         gap: 7px 9px;
     }
+    body[data-page="website-checker"] .website-check-list .website-check-heading > .result-check-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-self: start;
+    }
     body[data-page="website-checker"] .website-check-list .website-check-heading > strong {
         grid-column: 2;
+        grid-row: 1;
         min-width: 0;
         line-height: 1.45;
         overflow-wrap: anywhere;
     }
     body[data-page="website-checker"] .website-check-list .website-check-heading > .website-check-status {
         grid-column: 2;
+        grid-row: 2;
         justify-self: start;
+        margin-top: 3px;
         max-width: 100%;
         text-align: left;
         white-space: normal;
@@ -3168,5 +3187,126 @@ body[data-page="website-checker"] .website-analysis-score-note {
         line-height: 1.55;
         font-weight: 400;
         overflow-wrap: anywhere;
+    }
+    body[data-page="website-checker"] .website-technical > summary::after {
+        top: 50%;
+        transform: translateY(-50%) rotate(45deg);
+    }
+    body[data-page="website-checker"] .website-technical[open] > summary::after {
+        transform: translateY(-50%) rotate(225deg);
+    }
+
+    body[data-page="scan"] .verdict-banner.has-risk-score {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        padding: 16px 14px;
+        min-width: 0;
+    }
+    body[data-page="scan"] .verdict-banner.has-risk-score .verdict-copy {
+        min-width: 0;
+        width: 100%;
+        overflow-wrap: anywhere;
+    }
+    html[data-theme="dark"] body[data-page="scan"] #results-card > #verdict-banner.has-risk-score {
+        background: #1D2941;
+        border: 1px solid rgba(148, 163, 184, .24);
+    }
+    body[data-page="scan"] #results-card #result-rows > .risk-panel {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+        min-width: 0;
+        padding: 16px;
+    }
+    body[data-page="scan"] #results-card #result-rows > .risk-panel > * {
+        grid-column: 1;
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="scan"] #results-card #result-rows > .risk-panel .risk-heading {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 8px 10px;
+    }
+    body[data-page="scan"] #results-card #result-rows > .risk-panel .risk-heading > .label {
+        grid-column: 1 / -1;
+        min-width: 0;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="scan"] #results-card #result-rows > .risk-panel .risk-badge {
+        grid-column: 1;
+        grid-row: 2;
+        justify-self: start;
+        max-width: 100%;
+    }
+    body[data-page="scan"] #results-card #result-rows > .risk-panel .risk-score-wrap {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: end;
+        min-width: 0;
+        margin: 0;
+    }
+    body[data-page="scan"] #results-card #result-rows > .risk-panel .risk-meta {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        align-items: start;
+        gap: 8px;
+    }
+    body[data-page="scan"] #results-card #result-rows > .risk-panel .risk-meta span:last-child {
+        min-width: 0;
+        text-align: right;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="scan"] .result-technical-group > summary {
+        display: grid;
+        grid-template-columns: 20px minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: start;
+        gap: 4px 9px;
+        min-width: 0;
+        padding: 13px 40px 13px 13px;
+    }
+    body[data-page="scan"] .result-technical-group > summary > svg {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-self: start;
+        width: 20px;
+        height: 20px;
+    }
+    body[data-page="scan"] .result-technical-group-title {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+        line-height: 1.4;
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
+    }
+    body[data-page="scan"] .result-technical-group-description {
+        grid-column: 2;
+        grid-row: 2;
+        min-width: 0;
+        margin: 0;
+        line-height: 1.5;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="scan"] .result-technical-group > summary::after,
+    body[data-page="scan"] .result-technical-details > summary::after {
+        top: 50%;
+        right: 14px;
+        transform: translateY(-50%) rotate(45deg);
+    }
+    body[data-page="scan"] .result-technical-group[open] > summary::after,
+    body[data-page="scan"] .result-technical-details[open] > summary::after {
+        transform: translateY(-50%) rotate(225deg);
+    }
+    body[data-page="scan"] .result-technical-details > summary {
+        min-width: 0;
+        padding-right: 38px;
+        line-height: 1.45;
+        overflow-wrap: normal;
+        word-break: normal;
     }
 }
