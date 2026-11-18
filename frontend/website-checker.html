@@ -250,11 +250,22 @@
 
         <section class="website-analysis-score" id="website-analysis-score-card" aria-label="QR Shield analysis score">
 
-            <div class="website-analysis-score-value"><span id="website-analysis-score">Unavailable</span><span id="website-analysis-score-out-of"></span></div>
+            <div class="qrs-risk-score-indicator website-risk-score-indicator" id="website-analysis-score-indicator" data-band="unavailable" role="img" aria-label="Risk Score unavailable. Risk classification unavailable.">
+                <span class="qrs-risk-score-label">Risk Score</span>
+                <div class="qrs-risk-score-circle">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                        <circle class="qrs-risk-score-track" cx="50" cy="50" r="42"></circle>
+                        <circle class="qrs-risk-score-progress" id="website-analysis-score-progress" cx="50" cy="50" r="42" stroke-dasharray="263.8938" stroke-dashoffset="263.8938"></circle>
+                    </svg>
+                    <div class="qrs-risk-score-center">
+                        <span class="qrs-risk-score-value" id="website-analysis-score">Unavailable</span>
+                        <span class="qrs-risk-score-out-of" id="website-analysis-score-out-of"></span>
+                    </div>
+                </div>
+                <strong class="qrs-risk-score-classification" id="website-analysis-risk-level">Risk classification unavailable</strong>
+            </div>
 
-            <div class="website-analysis-score-copy"><strong id="website-analysis-risk-level">Risk classification unavailable</strong><p>Higher scores mean more detected risk signals. This is not a probability, and unavailable checks have not passed.</p></div>
-
-            <div class="website-analysis-score-track" role="img" aria-label="Detected risk score"><span id="website-analysis-score-fill"></span></div>
+            <p class="website-analysis-score-note">Higher scores mean more detected risk signals. This is not a probability, and unavailable checks have not passed.</p>
 
         </section>
 

@@ -322,20 +322,36 @@
             ? data.analysis_score : data.risk_score;
         const validAnalysisScore = typeof rawAnalysisScore === 'number' && Number.isFinite(rawAnalysisScore)
             && rawAnalysisScore >= 0 && rawAnalysisScore <= 100;
-        const analysisLevel = ['Low', 'Moderate', 'Elevated', 'High', 'Critical'].includes(data.analysis_risk_level)
-            ? data.analysis_risk_level
-            : validAnalysisScore ? rawAnalysisScore >= 80 ? 'Critical' : rawAnalysisScore >= 60 ? 'High'
-                : rawAnalysisScore >= 40 ? 'Elevated' : rawAnalysisScore >= 20 ? 'Moderate' : 'Low' : null;
+        const scoreBand = validAnalysisScore
+            ? rawAnalysisScore < 20 ? 'safe' : rawAnalysisScore < 40 ? 'moderate'
+                : rawAnalysisScore < 60 ? 'elevated' : rawAnalysisScore < 80 ? 'high' : 'critical'
+            : 'unavailable';
+        const scoreClassification = {
+            safe: 'Likely safe',
+            moderate: 'Moderate risk',
+            elevated: 'Elevated risk',
+            high: 'High risk',
+            critical: 'Critical risk'
+        }[scoreBand];
         const scoreCard = byId('website-analysis-score-card');
-        scoreCard.dataset.level = analysisLevel || 'Unavailable';
+        scoreCard.dataset.band = scoreBand;
+        const scoreIndicator = byId('website-analysis-score-indicator');
+        scoreIndicator.dataset.band = scoreBand;
         byId('website-analysis-score').textContent = validAnalysisScore ? String(rawAnalysisScore) : 'Unavailable';
         byId('website-analysis-score-out-of').textContent = validAnalysisScore ? '/100' : '';
-        byId('website-analysis-risk-level').textContent = analysisLevel
-            ? analysisLevel + ' detected risk' : 'Risk classification unavailable';
-        byId('website-analysis-score-fill').style.width = (validAnalysisScore ? rawAnalysisScore : 0) + '%';
-        byId('website-analysis-score-card').setAttribute('aria-label', validAnalysisScore
-            ? 'Analysis score ' + rawAnalysisScore + ' out of 100; ' + analysisLevel + ' risk'
-            : 'Analysis score unavailable');
+        byId('website-analysis-risk-level').textContent = validAnalysisScore
+            ? scoreClassification : 'Risk classification unavailable';
+        const scoreProgress = byId('website-analysis-score-progress');
+        const scoreCircumference = 263.8938;
+        scoreProgress.setAttribute('stroke-dashoffset', String(scoreCircumference));
+        if (validAnalysisScore) {
+            window.requestAnimationFrame(() => {
+                scoreProgress.setAttribute('stroke-dashoffset', String(scoreCircumference * (1 - rawAnalysisScore / 100)));
+            });
+        }
+        scoreIndicator.setAttribute('aria-label', validAnalysisScore
+            ? 'Risk Score: ' + rawAnalysisScore + ' out of 100. ' + scoreClassification + '.'
+            : 'Risk Score unavailable. Risk classification unavailable.');
 
         byId('website-analysis-mode').textContent = controlledDemo ? 'Controlled demo · no network checks' : state === 'disabled' ? 'Offline checks only' : state === 'unavailable' ? 'Live threat check unavailable' : 'Live threat check completed';
         const providerStatus = byId('website-reputation-status');

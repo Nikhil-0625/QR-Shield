@@ -6281,6 +6281,66 @@
 
 
 
+    function createRiskScoreIndicator(score, band, classification) {
+
+        const available = typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= 100;
+        const circumference = 263.8938;
+        const indicator = document.createElement("div");
+        indicator.className = "qrs-risk-score-indicator scan-risk-score-indicator";
+        indicator.dataset.band = available ? band : "unavailable";
+        indicator.setAttribute("role", "img");
+        indicator.setAttribute("aria-label", available
+            ? "Risk Score: " + score + " out of 100. " + classification + "."
+            : "Risk Score unavailable. Risk classification unavailable.");
+
+        const label = document.createElement("span");
+        label.className = "qrs-risk-score-label";
+        label.textContent = "Risk Score";
+
+        const circle = document.createElement("div");
+        circle.className = "qrs-risk-score-circle";
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 100 100");
+        svg.setAttribute("aria-hidden", "true");
+        const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        track.setAttribute("class", "qrs-risk-score-track");
+        track.setAttribute("cx", "50");
+        track.setAttribute("cy", "50");
+        track.setAttribute("r", "42");
+        const progress = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        progress.setAttribute("class", "qrs-risk-score-progress");
+        progress.setAttribute("cx", "50");
+        progress.setAttribute("cy", "50");
+        progress.setAttribute("r", "42");
+        progress.setAttribute("stroke-dasharray", String(circumference));
+        progress.setAttribute("stroke-dashoffset", String(circumference));
+        svg.append(track, progress);
+
+        const center = document.createElement("div");
+        center.className = "qrs-risk-score-center";
+        const value = document.createElement("span");
+        value.className = "qrs-risk-score-value";
+        value.textContent = available ? String(score) : "Unavailable";
+        const outOf = document.createElement("span");
+        outOf.className = "qrs-risk-score-out-of";
+        outOf.textContent = available ? "/100" : "";
+        center.append(value, outOf);
+        circle.append(svg, center);
+
+        const tier = document.createElement("strong");
+        tier.className = "qrs-risk-score-classification";
+        tier.textContent = available ? classification : "Risk classification unavailable";
+        indicator.append(label, circle, tier);
+
+        if (available) {
+            window.requestAnimationFrame(() => {
+                progress.setAttribute("stroke-dashoffset", String(circumference * (1 - score / 100)));
+            });
+        }
+        return indicator;
+    }
+
+
     function showResults(data) {
 
         window.QRShieldLinkWarning?.setResult(data);
@@ -6310,6 +6370,8 @@
 
 
         const isUrlContent = data.final_url !== undefined && data.final_url !== null;
+
+        document.getElementById("results-card").classList.toggle("has-risk-score", isUrlContent);
 
         const isUpiContent = !isUrlContent && Boolean(data.upi_details || data.upi_analysis);
 
@@ -6479,6 +6541,29 @@
             const hasScore = typeof rawScore === "number" && Number.isFinite(rawScore) && rawScore >= 0 && rawScore <= 100;
 
             const score = hasScore ? rawScore : null;
+            const scoreBand = hasScore ? score < 20 ? "safe" : score < 40 ? "moderate"
+                : score < 60 ? "elevated" : score < 80 ? "high" : "critical" : "unavailable";
+            const scoreClassification = {
+                safe: "Likely safe",
+                moderate: "Moderate risk",
+                elevated: "Elevated risk",
+                high: "High risk",
+                critical: "Critical risk"
+            }[scoreBand] || "Risk classification unavailable";
+
+            const scoreIndicator = createRiskScoreIndicator(score, scoreBand, scoreClassification);
+            title.hidden = true;
+            title.setAttribute("aria-hidden", "true");
+            verdictIcon.hidden = true;
+            banner.classList.add("has-risk-score");
+            banner.insertBefore(scoreIndicator, verdictCopy);
+
+            if (getAssessmentContext(data).conflict) {
+                const conflictNotice = document.createElement("p");
+                conflictNotice.className = "assessment-conflict scan-summary-conflict";
+                conflictNotice.textContent = "Conflicting signals: rule-based findings and the experimental ML estimate strongly disagree. Review both; neither proves destination safety.";
+                verdictCopy.appendChild(conflictNotice);
+            }
             const legacyScore = typeof data.risk_score === "number" && Number.isFinite(data.risk_score)
                 && data.risk_score >= 0 && data.risk_score <= 100 ? data.risk_score : null;
             const hasLegacyScore = legacyScore !== null;
