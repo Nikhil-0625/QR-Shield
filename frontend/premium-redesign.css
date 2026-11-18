@@ -3320,3 +3320,138 @@ body[data-page="website-checker"] .website-analysis-score-note {
         word-break: normal;
     }
 }
+
+/* Final mobile layout corrections: use the actual generated result DOM. */
+@media (max-width: 560px) {
+    /* Website Checker: reserve a full row for each status instead of a narrow badge column. */
+    body[data-page="website-checker"] .website-simple-checks > li {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: start;
+        column-gap: 10px;
+        row-gap: 6px;
+        min-width: 0;
+    }
+    body[data-page="website-checker"] .website-simple-checks > li > .result-check-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+        align-self: start;
+    }
+    body[data-page="website-checker"] .website-simple-checks > li > .result-check-copy {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+        width: 100%;
+    }
+    body[data-page="website-checker"] .website-simple-checks > li > .website-check-status {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: start;
+        align-self: start;
+        width: fit-content;
+        max-width: 100%;
+        min-width: 0;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+    }
+    body[data-page="website-checker"] .website-check-list .website-check-heading {
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: start;
+        gap: 6px 10px;
+        min-width: 0;
+    }
+    body[data-page="website-checker"] .website-check-list .website-check-heading > .result-check-icon {
+        grid-column: 1;
+        grid-row: 1 / span 2;
+    }
+    body[data-page="website-checker"] .website-check-list .website-check-heading > strong {
+        grid-column: 2;
+        grid-row: 1;
+        min-width: 0;
+        overflow-wrap: break-word;
+        word-break: normal;
+        hyphens: none;
+    }
+    body[data-page="website-checker"] .website-check-list .website-check-heading > .website-check-status {
+        grid-column: 2;
+        grid-row: 2;
+        justify-self: start;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        text-align: left;
+    }
+
+    /* Scanner Technical View: prevent inherited anywhere-wrapping and narrow icon columns. */
+    body[data-page="scan"] #result-technical-body .result-technical-group > summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto auto;
+        align-items: start;
+        gap: 4px;
+        width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        white-space: normal;
+        overflow-wrap: normal;
+        word-break: normal;
+        hyphens: none;
+        padding: 13px 42px 13px 42px;
+    }
+    body[data-page="scan"] #result-technical-body .result-technical-group > summary > svg {
+        position: absolute;
+        top: 14px;
+        left: 13px;
+        grid-column: auto;
+        grid-row: auto;
+        width: 20px;
+        height: 20px;
+    }
+    body[data-page="scan"] #result-technical-body .result-technical-group-title,
+    body[data-page="scan"] #result-technical-body .result-technical-group-description {
+        display: block;
+        grid-column: 1;
+        min-width: 0;
+        max-width: 100%;
+        white-space: normal;
+        overflow-wrap: break-word;
+        word-break: normal;
+        hyphens: none;
+    }
+    body[data-page="scan"] #result-technical-body .result-technical-group-title {
+        grid-row: 1;
+        line-height: 1.4;
+    }
+    body[data-page="scan"] #result-technical-body .result-technical-group-description {
+        grid-row: 2;
+        margin: 0;
+        line-height: 1.5;
+    }
+
+    /* Risk Summary is moved by JS inside a technical-group-content element. */
+    body[data-page="scan"] #results-card #result-technical-body .result-technical-group-content > .risk-panel {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-auto-flow: row;
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+        box-sizing: border-box;
+        margin: 0;
+        padding: 14px;
+        gap: 12px;
+        overflow: hidden;
+    }
+    body[data-page="scan"] #results-card #result-technical-body .result-technical-group-content > .risk-panel > * {
+        grid-column: 1 / -1;
+        min-width: 0;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+}
