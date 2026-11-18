@@ -173,9 +173,34 @@
             'Redirect destination': 'Redirect analysis'
         })[name] || name;
     }
+    function getDomainRegistration(data) {
+        const primary = data.domain_registration && typeof data.domain_registration === 'object' ? data.domain_registration : null;
+        const explained = data.score_explanation?.domain_registration && typeof data.score_explanation.domain_registration === 'object'
+            ? data.score_explanation.domain_registration : null;
+        const candidates = [primary, explained].filter(Boolean);
+        const hasValues = value => Object.values(value).some(item => item !== null && item !== undefined && item !== '');
+        return candidates.find(value => String(value.status || '').toLowerCase() === 'available')
+            || candidates.find(hasValues) || {};
+    }
+    function domainRegistrationSummary(data, registration) {
+        const details = [];
+        const addText = (label, value) => {
+            if (typeof value === 'string' && value.trim()) details.push(label + ': ' + value.trim());
+        };
+        addText('Registered domain', registration.registered_domain || data.registered_domain);
+        addText('Registrar', registration.registrar);
+        addText('Registration date', registration.registration_date);
+        const ageValue = registration.domain_age_days ?? data.domain_age_days;
+        const age = typeof ageValue === 'number' ? ageValue : typeof ageValue === 'string' && ageValue.trim() ? Number(ageValue) : NaN;
+        if (Number.isSafeInteger(age) && age >= 0) details.push('Domain age: ' + age + ' days at lookup');
+        addText('Expires', registration.expiration_date);
+        return details.join(' | ');
+    }
     function renderSimpleChecks(data, reputation, state, controlledDemo = false) {
         const list = byId('website-simple-checks');
         list.replaceChildren();
+        const registration = getDomainRegistration(data);
+        const registrationAvailable = String(registration.status || '').toLowerCase() === 'available';
         const add = (label, value, tone, detail) => {
             const row = node('li');
             const icon = node('span', null, 'result-check-icon');
@@ -208,15 +233,32 @@
         })[String(status || '').toLowerCase()] || ['Not available', 'unavailable'];
         data.security_checks.forEach(item => {
             if (/\bml\b|machine learning/i.test(item.name)) return;
-            const [value, tone] = statusCopy(item.status);
             const checkStatus = String(item.status).toLowerCase();
-            const displayedValue = item.name === 'Domain registration / RDAP' && checkStatus === 'unavailable'
+            const isRegistrationCheck = item.name === 'Domain registration / RDAP';
+            let [value, tone] = statusCopy(item.status);
+            if (isRegistrationCheck && registrationAvailable
+                && ['unavailable', 'not_checked', 'blocked', 'disabled'].includes(checkStatus)) {
+                [value, tone] = ['Registration data available', 'checked'];
+            }
+            const displayedValue = isRegistrationCheck && registrationAvailable
+                ? value
+                : item.name === 'Domain registration / RDAP' && checkStatus === 'unavailable'
                 ? 'RDAP check unavailable'
                 : item.name === 'Google Safe Browsing' && ['unavailable', 'blocked'].includes(checkStatus)
                     ? 'Threat check unavailable' : value;
+            const detail = isRegistrationCheck && registrationAvailable
+                ? domainRegistrationSummary(data, registration)
+                : ['unavailable', 'not_checked', 'blocked', 'failed'].includes(checkStatus) ? item.detail : '';
             addOnce(checkLabel(item.name), displayedValue, tone,
-                ['unavailable', 'not_checked', 'blocked', 'failed'].includes(String(item.status).toLowerCase()) ? item.detail : '');
+                detail);
         });
+        if (registration.status) {
+            addOnce('Domain information', registrationAvailable ? 'Registration data available'
+                : String(registration.status).toLowerCase() === 'not_applicable' ? 'Not applicable'
+                : String(registration.status).toLowerCase() === 'disabled' ? 'Not checked' : 'Not available',
+                registrationAvailable ? 'checked' : String(registration.status).toLowerCase() === 'not_applicable' ? 'neutral' : 'unavailable',
+                registrationAvailable ? domainRegistrationSummary(data, registration) : registration.reason || '');
+        }
         const reputationStatus = state;
         const reputationCopy = {
             threat: ['Threat reported', 'threat'], clear: ['No known threat reported', 'checked'],
@@ -230,8 +272,11 @@
         addOnce(controlledDemo ? 'Simulation indicators' : 'Address warning signs',
             controlledDemo ? 'Illustrative indicators' : findings.length ? 'Warning signs found' : 'None reported by available checks',
             controlledDemo || findings.length ? 'warning' : 'checked', findings.join(', '));
-        const unavailable = data.security_checks.some(item => !/\bml\b|machine learning/i.test(item.name) && ['unavailable', 'not_checked', 'blocked', 'disabled'].includes(String(item.status).toLowerCase())) ||
-            data.unavailable_checks.some(item => !/\bml\b|machine learning/i.test(item));
+        const unavailable = data.security_checks.some(item => !/\bml\b|machine learning/i.test(item.name)
+            && !(item.name === 'Domain registration / RDAP' && registrationAvailable)
+            && ['unavailable', 'not_checked', 'blocked', 'disabled'].includes(String(item.status).toLowerCase())) ||
+            data.unavailable_checks.some(item => !/\bml\b|machine learning/i.test(item)
+                && !(registrationAvailable && /domain registration|rdap/i.test(item)));
         byId('website-simple-uncertainty').hidden = controlledDemo ? false : !unavailable;
         byId('website-simple-uncertainty').textContent = controlledDemo
             ? 'DNS, reputation, TLS, redirect, and RDAP checks were not performed for this controlled demo.'
@@ -280,6 +325,8 @@
                 recommended_action: offline?.action || "Verify the address and sender before logging in or paying." };
         }
         const state = ['threat', 'clear', 'unavailable', 'disabled'].includes(reputation.status) ? reputation.status : 'unavailable';
+        const registration = getDomainRegistration(data);
+        const registrationAvailable = String(registration.status || '').toLowerCase() === 'available';
         if (Array.isArray(data.security_checks)) {
             const currentStatus = state === 'disabled' ? 'not_checked' : state;
             data = { ...data, security_checks: data.security_checks.map(item =>
@@ -322,17 +369,23 @@
         const rawAnalysisScore = data.analysis_score;
         const validAnalysisScore = typeof rawAnalysisScore === 'number' && Number.isFinite(rawAnalysisScore)
             && rawAnalysisScore >= 0 && rawAnalysisScore <= 100;
-        const scoreBand = validAnalysisScore
+        const scoreBandFromValue = validAnalysisScore
             ? rawAnalysisScore < 20 ? 'safe' : rawAnalysisScore < 40 ? 'moderate'
                 : rawAnalysisScore < 60 ? 'elevated' : rawAnalysisScore < 80 ? 'high' : 'critical'
             : 'unavailable';
-        const scoreClassification = {
+        const bandFromRiskLevel = {
+            low: 'safe', moderate: 'moderate', elevated: 'elevated', high: 'high', critical: 'critical'
+        };
+        const analysisRiskLevel = typeof data.analysis_risk_level === 'string' ? data.analysis_risk_level.trim().toLowerCase() : '';
+        const scoreBand = validAnalysisScore ? bandFromRiskLevel[analysisRiskLevel] || scoreBandFromValue : 'unavailable';
+        const scoreClassifications = {
             safe: 'Likely safe',
             moderate: 'Moderate risk',
             elevated: 'Elevated risk',
             high: 'High risk',
             critical: 'Critical risk'
-        }[scoreBand];
+        };
+        const scoreClassification = scoreClassifications[scoreBand];
         const analysisLevel = scoreClassification;
         const scoreCard = byId('website-analysis-score-card');
         scoreCard.dataset.band = scoreBand;
@@ -400,7 +453,10 @@
         data.security_checks.forEach(item => {
             const row = node('li');
             const heading = node('div', null, 'website-check-heading');
-            const status = String(item.status || '').toLowerCase();
+            const rawStatus = String(item.status || '').toLowerCase();
+            const isRegistrationCheck = item.name === 'Domain registration / RDAP';
+            const status = isRegistrationCheck && registrationAvailable
+                && ['unavailable', 'not_checked', 'blocked', 'disabled'].includes(rawStatus) ? 'available' : rawStatus;
             const state = ['available', 'checked', 'performed', 'passed', 'completed', 'verified', 'clear'].includes(status) ? 'checked' : status === 'not_applicable' ? 'neutral' : status === 'warning' ? 'warning' : status === 'failed' ? 'failed' : status === 'threat' ? 'threat' : 'unavailable';
             const icon = node('span', null, 'result-check-icon');
             icon.dataset.status = state === 'checked' ? 'passed' : state;
@@ -423,7 +479,9 @@
             badge.dataset.status = state;
             heading.append(icon, node('strong', item.name), badge);
             row.append(heading);
-            if (typeof item.detail === 'string') row.append(node('p', item.detail));
+            const checkDetail = isRegistrationCheck && registrationAvailable
+                ? domainRegistrationSummary(data, registration) : item.detail;
+            if (typeof checkDetail === 'string' && checkDetail) row.append(node('p', checkDetail));
             checks.append(row);
         });
         if (!data.security_checks.length) checks.append(node('li', 'No check details are available.'));
@@ -433,7 +491,7 @@
         addDetail(technical, 'Submitted URL', data.submitted_url);
         addDetail(technical, 'Normalized URL', data.normalized_url);
         addDetail(technical, 'Hostname', data.domain);
-        addDetail(technical, 'Registered domain', data.registered_domain);
+        addDetail(technical, 'Registered domain', registration.registered_domain || data.registered_domain);
         let scheme = 'Not available';
         try { scheme = new URL(data.normalized_url).protocol.replace(':', '').toUpperCase(); } catch (_) { /* Display no invented scheme. */ }
         addDetail(technical, 'URL scheme', scheme);
@@ -458,10 +516,12 @@
         addDetail(technical, 'Scoring status', validScore ? 'Available — heuristic, not a probability' : 'Unavailable');
         addDetail(technical, 'Scoring explanation', typeof data.risk_score_reason === 'string' ? data.risk_score_reason : 'The existing combined score is not replaced when experimental ML is excluded. Missing checks have not passed.');
         addDetail(technical, 'Rule-based points (performed checks only)', typeof data.rule_score === 'number' && Number.isFinite(data.rule_score) && data.rule_score >= 0 ? data.rule_score : 'Unavailable');
-        const registration = data.domain_registration && typeof data.domain_registration === 'object' ? data.domain_registration : {};
         addDetail(technical, 'Registrar', registration.registrar);
         addDetail(technical, 'Registration date (UTC)', registration.registration_date);
-        addDetail(technical, 'Domain age', typeof data.domain_age_days === 'number' && Number.isInteger(data.domain_age_days) && data.domain_age_days >= 0 ? data.domain_age_days + ' days at lookup' : 'Unavailable');
+        const domainAge = registration.domain_age_days ?? data.domain_age_days;
+        const validDomainAge = typeof domainAge === 'number' ? Number.isSafeInteger(domainAge) && domainAge >= 0
+            : typeof domainAge === 'string' && /^\d+$/.test(domainAge) && Number.isSafeInteger(Number(domainAge));
+        addDetail(technical, 'Domain age', validDomainAge ? Number(domainAge) + ' days at lookup' : 'Unavailable');
         addDetail(technical, 'Expiration date (UTC)', registration.expiration_date);
         addDetail(technical, 'RDAP lookup status', ({available:'Registration data available',disabled:'Disabled — not checked',unavailable:'Unavailable',not_applicable:'Not applicable'})[registration.status] || 'Not recorded / unavailable');
         addDetail(technical, 'RDAP details', typeof registration.reason === 'string' ? registration.reason : 'No reliable registration lookup was recorded.');

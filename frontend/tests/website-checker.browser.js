@@ -56,6 +56,25 @@ window.runWebsiteCheckerChecks = async function () {
         check(id('website-technical-data').textContent.includes('2026-01-01T00:00:00Z'), 'Registration date remains available');
         check(id('website-technical-data').textContent.includes('Combined score is unavailable because ML is excluded.'), 'No replacement combined score');
         check(id('website-checks').textContent.includes('RDAP completed')&&!id('website-checks').textContent.includes('Checked offline'), 'Live registration is not mislabeled as offline');
+        await show(fixture({ analysis_score: 0, analysis_score_status: 'available', analysis_risk_level: 'Low',
+            risk_score: null, risk_label: 'unverified', ml_phishing_probability: null, ml_status: 'excluded',
+            overall_risk: overallRisk('low', 'LOW', 'NO KNOWN THREATS', 'safe',
+                'Available deterministic analysis indicates low risk.', 'Check the address and sender.'),
+            live_reputation: { status: 'disabled', reason: 'Not checked.' }, website_verdict: { code: 'unable_to_verify' },
+            unavailable_checks: ['ML verdict', 'Domain registration / RDAP'],
+            domain_registration: { status: 'unavailable' },
+            score_explanation: { domain_registration: { status: 'available', registered_domain: 'example.test',
+                registrar: 'Example Registrar', registration_date: '2024-01-02T00:00:00Z',
+                expiration_date: '2028-01-02T00:00:00Z', domain_age_days: 700 } },
+            security_checks: [{ name: 'Domain registration / RDAP', status: 'unavailable', detail: 'Stale unavailable status.' }] }));
+        check(id('website-analysis-score').textContent === '0' && id('website-analysis-risk-level').textContent === 'Likely safe',
+            'Available zero analysis score and backend risk level are displayed as actual values');
+        check(id('website-simple-checks').textContent.includes('Registration data available')
+            && id('website-simple-checks').textContent.includes('Example Registrar')
+            && id('website-simple-checks').textContent.includes('700 days at lookup'),
+            'Simple View uses available nested RDAP fields instead of a stale unavailable status');
+        check(!id('website-simple-uncertainty').textContent.includes('RDAP'),
+            'Available nested RDAP data is not reported as an unavailable check');
         const injection = '<script>window.__websiteInjection=1</script><img src=x onerror="window.__websiteInjection=2">';
         await show(fixture({ submitted_url: injection, normalized_url: 'https://example.test/?q=' + injection, explanation: injection, ml_note: injection, risk_label: 'suspicious', risk_breakdown: [{ name: injection, reason: injection, points: 15 }], security_checks: [{ name: injection, status: 'unavailable', detail: injection }], unavailable_checks: [injection] }));
         check(id('website-findings').textContent.includes(injection), 'Finding content preserved as text');

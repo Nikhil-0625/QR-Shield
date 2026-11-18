@@ -50,7 +50,9 @@ function findClass(root, wanted) {
     return null;
 }
 const document = {
+    documentElement: new Element(),
     createElement: () => new Element(),
+    createElementNS: (_namespace, tag) => Object.assign(new Element(), { tagName: tag }),
     createTextNode: text => Object.assign(new Element(), { ownText: text }),
     getElementById: id => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); }
 };
@@ -158,6 +160,48 @@ check(!result.body.includes('Analysis Incomplete'), 'Excluded ML does not mark c
 check(result.body.includes('combined risk score is unavailable because experimental ML was not used'), 'Score unavailability is attributed specifically to excluded ML');
 check(result.body.includes('Not used; experimental ML is disabled.'), 'Technical details state that experimental ML was not used');
 check(result.body.includes('does not verify legitimacy or guarantee safety'), 'No-match safety limitation remains visible');
+
+const rdapAvailable = {
+    status: 'available', registered_domain: 'wikipedia.org', registrar: 'Example Registrar',
+    registration_date: '2001-01-13T00:00:00Z', expiration_date: '2027-01-13T00:00:00Z', domain_age_days: 9000
+};
+result = render({ ...completedDeterministic, risk_score: null, risk_label: 'unverified', ml_status: 'excluded',
+    security_checks: [{ name: 'Domain registration / RDAP', status: 'unavailable', detail: 'Stale check status.' }],
+    domain_registration: rdapAvailable });
+const availableDomainRow = findClass(document.getElementById('result-rows'), 'simple-security-summary')
+    ?.querySelectorAll('.simple-security-check').find(row => row.textContent.includes('Domain information'))?.textContent || '';
+check(result.simple.includes('Domain information') && result.simple.includes('Available') && result.simple.includes('Example Registrar'),
+    'Simple View uses available RDAP details even when the separate check row is stale');
+check(result.simple.includes('Registration date: 2001-01-13T00:00:00Z')
+    && result.simple.includes('Expires: 2027-01-13T00:00:00Z')
+    && result.simple.includes('Domain age: 9000 days at lookup'),
+    'Simple View renders the available RDAP registration, expiry, and age fields');
+check(availableDomainRow.includes('Available'), 'RDAP availability takes precedence over an unavailable security_checks entry');
+const availableDomainSection = findSection(document.getElementById('result-rows'), 'Domain Information');
+check(availableDomainSection?.sectionRows.find(row => row.label === 'Registrar')?.value === 'Example Registrar'
+    && availableDomainSection?.sectionRows.find(row => row.label === 'Expiry date (UTC)')?.value === '2027-01-13T00:00:00Z',
+    'Technical Domain Information displays actual registrar and expiry values');
+
+result = render({ ...base, decoded_content: 'https://www.wikipedia.org/', final_url: 'https://www.wikipedia.org/',
+    analysis_score: 0, analysis_score_status: 'available', analysis_risk_level: 'Low',
+    overall_risk: { level: 'LOW' }, risk_score: null, risk_score_status: 'unavailable',
+    risk_label: 'unverified', ml_status: 'excluded', ml_phishing_probability: null,
+    https_valid: true, risk_breakdown: [], unavailable_checks: ['Live reputation', 'ML verdict'],
+    live_reputation: { status: 'unavailable', reason: 'Provider unavailable.' } });
+check(result.banner.includes('Likely safe') && !result.banner.includes('Unable to Verify')
+    && !result.banner.includes('assessment is incomplete'),
+    'Available analysis score and level determine the verdict when only legacy ML scoring is unavailable');
+check(findClass(document.getElementById('result-rows'), 'risk-score')?.textContent === '0'
+    && findClass(document.getElementById('result-rows'), 'risk-badge')?.textContent === 'Low Risk',
+    'Analysis score zero and Low classification are displayed as valid values');
+check(result.simple.includes('Threat check unavailable') && result.simple.includes('Unavailable checks have not passed'),
+    'Unavailable checks remain explicit and separate from the analysis verdict');
+
+result = render({ analysis_score: 0, analysis_score_status: 'available', analysis_risk_level: 'Low',
+    risk_score: null, risk_label: 'unverified', ml_status: 'excluded', ml_phishing_probability: null,
+    risk_breakdown: [], tampering_reasons: ['Synthetic overlay evidence'] });
+check(result.simple.includes('may have been altered') && result.simple.includes('Synthetic overlay evidence'),
+    'A valid low analysis score does not remove a genuine QR tampering warning');
 
 result = render({ ...completedDeterministic, registered_domain: 'wikipedia.org',
     domain_registration: { status: 'unavailable', registered_domain: null } });
