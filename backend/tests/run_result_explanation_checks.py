@@ -28,7 +28,7 @@ script = "globalThis.UPI_INTENT_FIXTURES=" + json.dumps(fixtures).replace("</", 
 with tempfile.TemporaryDirectory(prefix="qrshield-result-tests-") as temporary:
     folder = Path(temporary)
     page = folder / "test.html"
-    page.write_text('<html><body><script>' + script + '</script></body></html>', encoding="utf-8")
+    page.write_text('<html><head><meta charset="utf-8"></head><body><script>' + script + '</script></body></html>', encoding="utf-8")
     result = subprocess.run([
         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
         "--headless=new", "--disable-gpu", "--no-first-run", "--disable-background-networking",

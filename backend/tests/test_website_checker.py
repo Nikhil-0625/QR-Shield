@@ -118,6 +118,16 @@ class WebsiteCheckerTests(unittest.TestCase):
         self.assertEqual(result["rule_score"], 0)
         self.assertEqual(result["risk_breakdown"], [])
         self.assertIsNone(result["risk_score"])
+        self.assertEqual(result["analysis_score"], 0)
+        self.assertEqual(result["analysis_risk_level"], "Low")
+        self.assertEqual(result["analysis_score_status"], "available")
+        basis = result["analysis_confidence_basis"]
+        self.assertEqual(result["analysis_confidence"],
+                         round(basis["completed_checks"] / (basis["completed_checks"] + basis["unavailable_checks"]) * 100))
+        checks = {item["name"]: item for item in result["security_checks"]}
+        self.assertEqual(checks["Experimental ML"]["status"], "not_checked")
+        self.assertEqual(checks["Google Safe Browsing"]["status"], "not_checked")
+        self.assertEqual(checks["HTTPS certificate"]["status"], "unavailable")
         self.assertIsNone(result["ml_phishing_probability"])
         self.assertEqual(result["ml_status"], "excluded")
         self.assertTrue(result["ml_note"])
@@ -144,8 +154,23 @@ class WebsiteCheckerTests(unittest.TestCase):
         self.assertIn("example.com", findings["Possible Brand Impersonation"]["reason"])
         self.assertIn("indicator", findings["Possible Brand Impersonation"]["reason"])
         self.assertEqual(result["rule_score"], sum(item["points"] for item in findings.values()))
+        self.assertEqual(result["analysis_score"], min(result["rule_score"], 100))
+        self.assertEqual(result["analysis_risk_level"], "Elevated")
+        self.assertIn("warning", {item["status"] for item in result["security_checks"]})
         self.assertIsNone(result["risk_score"])
         self.assert_offline()
+
+    def test_analysis_confidence_counts_failed_checks_as_completed_and_skips_not_applicable(self):
+        confidence, basis = self.main._analysis_confidence([
+            {"status": "passed"}, {"status": "failed"},
+            {"status": "unavailable"}, {"status": "not_checked"},
+            {"status": "not_applicable"},
+        ])
+        self.assertEqual(confidence, 50)
+        self.assertEqual(basis, {
+            "completed_checks": 2, "unavailable_checks": 2,
+            "excluded_not_applicable_checks": 1,
+        })
 
     def test_qr_and_website_share_exact_rule_findings_for_same_urls(self):
         for url in (

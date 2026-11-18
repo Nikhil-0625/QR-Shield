@@ -172,18 +172,33 @@ window.QRShieldModal = (() => {
             return;
         }
         const number = value => typeof value === "number" && Number.isFinite(value) ? value : null;
-        const rawScore = number(data.risk_score);
+        const rawScore = number(data.analysis_score !== null && data.analysis_score !== undefined
+            ? data.analysis_score : data.risk_score);
         const score = rawScore !== null && rawScore >= 0 && rawScore <= 100 ? rawScore : null;
-        const label = ["safe", "suspicious", "unsafe"].includes(data.risk_label) ? data.risk_label : "unavailable";
+        const riskLevel = ["Low", "Moderate", "Elevated", "High", "Critical"].includes(data.analysis_risk_level)
+            ? data.analysis_risk_level
+            : score === null ? null : score >= 80 ? "Critical" : score >= 60 ? "High"
+                : score >= 40 ? "Elevated" : score >= 20 ? "Moderate" : "Low";
+        const reputationThreat = data.live_reputation?.status === "threat"
+            || data.overall_risk?.code === "known_dangerous";
+        const label = reputationThreat || data.risk_label === "unsafe" || ["High", "Critical"].includes(riskLevel)
+            ? "unsafe" : data.risk_label === "suspicious" || ["Moderate", "Elevated"].includes(riskLevel)
+                ? "suspicious" : ["safe", "unverified"].includes(data.risk_label) ? data.risk_label : "unavailable";
         const findings = Array.isArray(data.risk_breakdown)
             ? data.risk_breakdown.filter(item => item && typeof item.name === "string").map(item => ({ name: item.name, reason: typeof item.reason === "string" ? item.reason : "", points: typeof item.points === "number" && Number.isFinite(item.points) ? item.points : null })) : [];
+        const checks = Array.isArray(data.security_checks)
+            ? data.security_checks.filter(item => item && typeof item.name === "string").map(item => ({
+                name: item.name, status: typeof item.status === "string" ? item.status : "unavailable",
+                detail: typeof item.detail === "string" ? item.detail : ""
+            })) : [];
         const incomplete = label === "unavailable" || score === null || !Array.isArray(data.risk_breakdown) ||
             data.domain_age_days === null || data.domain_age_days === undefined ||
             (url.protocol === "https:" && typeof data.https_valid !== "boolean") ||
             data.ml_phishing_probability === null || data.ml_phishing_probability === undefined ||
-            Boolean(data.network_analysis);
+            (Array.isArray(data.unavailable_checks) && data.unavailable_checks.length > 0) ||
+            checks.some(item => ["unavailable", "blocked", "not_checked", "disabled"].includes(item.status.toLowerCase()));
         result = { href: url.href, host: url.hostname, domain: typeof data.registered_domain === "string" ? data.registered_domain : "Unavailable",
-            label, score, findings, incomplete,
+            label, score, riskLevel, findings, checks, incomplete, reputationThreat,
             humanVerdict: window.getHumanVerdict?.(data, true)?.title || "Can't tell" };
         openButton.disabled = false;
     }
@@ -193,11 +208,9 @@ window.QRShieldModal = (() => {
         const url = validatedUrl(result.href);
         if (!url) { clear(); return; }
         pending = result;
-        const high = result.label === "unsafe";
+        const high = result.label === "unsafe" || result.reputationThreat;
 
-const caution =
-    result.label === "suspicious" ||
-    result.findings.length > 0;
+const caution = result.label === "suspicious" || result.findings.length > 0;
 
 const safeVerdict = [
     "Likely safe",
@@ -207,17 +220,21 @@ const safeVerdict = [
 const needsWarning =
     high ||
     caution ||
+    result.incomplete ||
     (!safeVerdict && result.humanVerdict !== "Can't tell");
         const tone = high ? "danger" : needsWarning ? "warning" : "low";
         dialog.dataset.tone = tone;
         dialog.dataset.danger = String(needsWarning);
         byId("link-warning-classification").className = "risk-badge " + (tone === "danger" ? "unsafe" : tone === "warning" ? "suspicious" : "safe");
-        byId("link-warning-classification").textContent = result.label === "safe" ? "Low calculated risk" : result.label === "unsafe" ? "High risk" : result.label === "suspicious" ? "Suspicious" : "Inconclusive";
+        byId("link-warning-classification").textContent = result.riskLevel
+            ? result.riskLevel + " risk" : result.label === "safe" ? "Low calculated risk" : result.label === "unsafe" ? "High risk" : result.label === "suspicious" ? "Suspicious" : "Inconclusive";
         byId("link-warning-score").textContent = result.score === null ? "Score unavailable" : result.score + " / 100";
         byId("link-warning-title").textContent = needsWarning ? "Security Warning" : "Confirm destination";
-        byId("link-warning-message").textContent = needsWarning
+        byId("link-warning-message").textContent = high || caution
             ? "You are about to leave QR Shield and visit a site flagged as potentially dangerous. Are you sure you want to proceed?"
-            : "No major rule-based risk indicators were identified in the completed checks. This does not guarantee the destination is safe.";
+            : result.incomplete
+                ? "Some security checks could not be completed. QR Shield cannot verify this destination; review the URL and check details before continuing."
+                : "No major rule-based risk indicators were identified in the completed checks. This does not guarantee the destination is safe.";
         byId("link-warning-url").textContent = result.href;
         byId("link-warning-host").textContent = result.host;
         byId("link-warning-domain").textContent = result.domain;
@@ -227,10 +244,29 @@ const needsWarning =
         brandNote.hidden = !mismatch;
         brandNote.textContent = mismatch ? "A possible brand mismatch was detected. Compare the registered domain with the familiar wording in the hostname; see the original evidence below." : "";
         const list = byId("link-warning-findings");
+        const checkList = byId("link-warning-checks");
         const fullFindings = byId("link-warning-full-findings");
         list.replaceChildren();
+        checkList.replaceChildren();
         fullFindings.replaceChildren();
         byId("link-warning-technical").open = false;
+        const statusLabels = {
+            checked: "Checked", completed: "Completed", performed: "Completed", passed: "Passed", verified: "Passed",
+            warning: "Warning found", failed: "Failed", threat: "Threat detected", clear: "No known threat reported",
+            unavailable: "Not available", blocked: "Blocked by policy", not_checked: "Not checked",
+            disabled: "Not checked", not_applicable: "Not applicable"
+        };
+        for (const check of result.checks) {
+            const item = document.createElement("li");
+            const status = check.status.toLowerCase();
+            item.textContent = check.name + ": " + (statusLabels[status] || "Not available");
+            if (check.detail) {
+                const detail = document.createElement("small");
+                detail.textContent = check.detail;
+                item.appendChild(detail);
+            }
+            checkList.appendChild(item);
+        }
         for (const finding of result.findings) {
             const item = document.createElement("li");
             item.textContent = finding.name;
@@ -254,34 +290,7 @@ const needsWarning =
 acknowledgment.checked = false;
 continueButton.disabled = high;
 continueButton.textContent = needsWarning ? "Proceed anyway" : "Proceed";
-cancelButton.textContent = "Cancel";
-
-/* Safe destinations open directly without a confirmation modal. */
-if (!needsWarning) {
-    const safeUrl = validatedUrl(result.href);
-
-    if (!safeUrl) {
-        pending = null;
-        status.textContent = "The destination URL is invalid. No link was opened.";
-        return;
-    }
-
-    used = true;
-    openButton.disabled = true;
-    pending = null;
-
-    try {
-        window.open(safeUrl.href, "_blank", "noopener,noreferrer");
-        status.textContent =
-            "The destination was opened. QR Shield found no known threat or suspicious rule-based indicators.";
-    } catch (_) {
-        used = false;
-        openButton.disabled = false;
-        status.textContent = "Your browser could not open the link.";
-    }
-
-    return;
-}
+cancelButton.textContent = "Back to safety";
 
 if (modal.open({ onProceed: proceed, onCancel: () => { pending = null; } })) {
     dialog.querySelector(".link-warning-body").scrollTop = 0;

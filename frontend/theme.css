@@ -606,6 +606,9 @@ body[data-page=scan] .link-warning-dialog h2 { font-size:23px; line-height:1.35;
 .link-warning-technical { border:1px solid var(--line); border-radius:9px; margin:14px 0; }
 .link-warning-technical > summary { padding:11px 12px; min-height:44px; cursor:pointer; color:var(--accent-ink); font-weight:600; font-size:14px; }
 .link-warning-technical > summary:focus-visible { outline:3px solid var(--focus); outline-offset:2px; border-radius:8px; }
+.link-warning-checks { display:grid; gap:8px; margin:0; padding:0 12px 12px; list-style:none; overflow-wrap:anywhere; font-size:13px; }
+.link-warning-checks li { padding:8px 0; border-top:1px solid var(--line); font-weight:600; }
+.link-warning-checks small { display:block; margin-top:3px; color:var(--muted); font-weight:400; line-height:1.5; }
 #link-warning-full-findings { padding:0 12px 12px; overflow-wrap:anywhere; font-size:14px; }
 #link-warning-full-findings article + article { border-top:1px solid var(--line); margin-top:12px; padding-top:12px; }
 #link-warning-full-findings h4 { margin:8px 0 4px; font-size:14px; }

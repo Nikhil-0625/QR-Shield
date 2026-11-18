@@ -248,6 +248,16 @@
 
         <div class="website-address"><span>Analyzed website</span><p id="website-normalized-url"></p></div>
 
+        <section class="website-analysis-score" id="website-analysis-score-card" aria-label="QR Shield analysis score">
+
+            <div class="website-analysis-score-value"><span id="website-analysis-score">Unavailable</span><span id="website-analysis-score-out-of"></span></div>
+
+            <div class="website-analysis-score-copy"><strong id="website-analysis-risk-level">Risk classification unavailable</strong><p>Higher scores mean more detected risk signals. This is not a probability, and unavailable checks have not passed.</p></div>
+
+            <div class="website-analysis-score-track" role="img" aria-label="Detected risk score"><span id="website-analysis-score-fill"></span></div>
+
+        </section>
+
         <section class="website-simple-security" aria-labelledby="website-simple-security-title">
 
             <h3 id="website-simple-security-title">Security checks</h3>
@@ -292,7 +302,7 @@
 
         <div class="website-limitations"><strong>Before you continue</strong><p>The page is not opened in a browser and its body is not downloaded. Enabled checks may resolve the hostname, verify TLS, inspect bounded redirect response headers, send the URL to Google Safe Browsing, and send the registered domain to RDAP. Review which checks completed. Verify the address and sender before sharing passwords or payment details.</p><p id="website-ml-note" class="website-technical-only"></p></div>
 
-        <details class="website-technical"><summary>Technical details <span>For reference only — not a probability.</span></summary><dl id="website-technical-data"></dl></details>
+        <details class="website-technical"><summary>Detailed Analysis <span>Confidence and check evidence; the score is not a probability.</span></summary><dl id="website-technical-data"></dl></details>
 
         </div>
 

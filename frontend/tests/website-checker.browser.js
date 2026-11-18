@@ -4,7 +4,7 @@ window.runWebsiteCheckerChecks = async function () {
     const check = (value, detail) => { if (!value) throw new Error(detail); count++; };
     const id = value => document.getElementById(value);
     const wait = async predicate => { for (let n = 0; n < 100; n++) { if (predicate()) return; await new Promise(resolve => setTimeout(resolve, 10)); } throw new Error('Synthetic browser state did not settle'); };
-    const fixture = (changes = {}) => ({ status: 'success', submitted_url: 'https://example.test/', normalized_url: 'https://example.test/', domain: 'example.test', registered_domain: 'example.test', decoded_content: 'https://example.test/', final_url: 'https://example.test/', risk_score: null, risk_label: 'unverified', rule_score: 0, risk_breakdown: [], ml_status: 'excluded', ml_note: 'Experimental ML excluded: training and inference features are not fully compatible.', network_analysis: 'offline', security_checks: [{ name: 'URL structure', status: 'checked', detail: 'Inspected the address offline.' }, { name: 'TLS certificate', status: 'unavailable', detail: 'Not checked. No network requests were made.' }], unavailable_checks: ['TLS certificate', 'Domain age', 'Redirect journey'], explanation: 'No major rule-based indicators were found, but this website could not be verified.', recommended_action: 'Verify the sender before paying or logging in.', scan_id: 17, ...changes });
+    const fixture = (changes = {}) => ({ status: 'success', submitted_url: 'https://example.test/', normalized_url: 'https://example.test/', domain: 'example.test', registered_domain: 'example.test', decoded_content: 'https://example.test/', final_url: 'https://example.test/', risk_score: null, analysis_score: 25, analysis_risk_level: 'Moderate', analysis_confidence: 50, analysis_confidence_basis: { completed_checks: 2, unavailable_checks: 2, excluded_not_applicable_checks: 0 }, risk_label: 'unverified', rule_score: 0, risk_breakdown: [], ml_status: 'excluded', ml_note: 'Experimental ML excluded: training and inference features are not fully compatible.', network_analysis: 'offline', security_checks: [{ name: 'URL structure', status: 'checked', detail: 'Inspected the address offline.' }, { name: 'TLS certificate', status: 'unavailable', detail: 'Not checked. No network requests were made.' }, { name: 'Google Safe Browsing', status: 'clear', detail: 'No known threat was reported.' }], unavailable_checks: ['TLS certificate', 'Domain age', 'Redirect journey'], explanation: 'No major rule-based indicators were found, but this website could not be verified.', recommended_action: 'Verify the sender before paying or logging in.', scan_id: 17, ...changes });
     const overallRisk = (code, level, label, tone, explanation, action) => ({ code, level, label, tone, explanation, action });
     window.__websiteFixture = fixture;
     const jsonResponse = data => ({ ok: true, status: 200, json: async () => data });
@@ -30,6 +30,9 @@ window.runWebsiteCheckerChecks = async function () {
             check(id('website-verdict').dataset.tone === tone, 'Correct semantic tone');
             check(!document.querySelector('.website-technical').open, 'Technical details initially collapsed');
             check(id('website-results').dataset.resultView === 'simple' && id('website-simple-view-btn').getAttribute('aria-pressed') === 'true', 'Simple view is the default');
+            check(id('website-analysis-score').textContent === '25' && id('website-analysis-risk-level').textContent === 'Moderate detected risk',
+                'Prominent website score and five-level risk classification are rendered');
+            check(id('website-normalized-url').textContent === 'https://example.test/', 'Analyzed URL is visible before opening elsewhere');
         }
         check(id('website-explanation').textContent === "We couldn't complete all security checks for this address.", 'Unavailable result has the requested plain-language explanation');
         check(id('website-simple-checks').textContent.includes('Address format') && id('website-simple-checks').textContent.includes('Not available'), 'Simple view summarizes real available and unavailable checks');
@@ -38,6 +41,8 @@ window.runWebsiteCheckerChecks = async function () {
         id('website-technical-view-btn').click();
         check(id('website-results').dataset.resultView === 'technical' && id('website-technical-view-btn').getAttribute('aria-pressed') === 'true' && document.querySelector('.website-technical').open, 'Technical control reveals technical view and details');
         check(getComputedStyle(id('website-ml-note')).display !== 'none' && id('website-technical-data').textContent.includes('Combined risk score'), 'Technical view preserves raw analysis fields');
+        check(id('website-technical-data').textContent.includes('Analysis confidence') &&
+            id('website-technical-data').textContent.includes('50%'), 'Confidence appears only in Detailed Analysis');
         id('website-simple-view-btn').click();
         check(id('website-results').dataset.resultView === 'simple' && !document.querySelector('.website-technical').open, 'Simple control hides and collapses technical details');
         check(id('website-technical-data').textContent.includes('Not calculated'), 'No invented combined score');
@@ -185,14 +190,14 @@ window.runWebsiteCheckerChecks = async function () {
         await show(fixture({ risk_label: 'unverified', overall_risk: overallRisk('low', 'LOW', 'NO KNOWN THREATS', 'safe',
             'Previously completed deterministic checks.', 'Previously safe action.'),
             live_reputation: observation('clear', -1000), website_verdict: { code: 'no_known_threats' } }));
-        check(id('website-verdict-title').textContent === 'INCONCLUSIVE' && id('website-verdict').dataset.tone === 'neutral',
+        check(id('website-verdict-title').textContent === 'Unable to Verify' && id('website-verdict').dataset.tone === 'neutral',
             'Expired no-match evidence cannot leave a stale LOW result');
         check(id('website-technical-data').textContent.includes('Live reputation'),
             'Expired reputation is listed as unavailable in technical details');
         await show(fixture({ risk_label: 'unverified', overall_risk: overallRisk('known_dangerous', 'HIGH', 'DANGEROUS', 'danger',
             'Previously reported threat.', 'Previously dangerous action.'),
             live_reputation: observation('threat', -1000), website_verdict: { code: 'known_dangerous' }, offline_verdict: offlineVerdict }));
-        check(id('website-verdict-title').textContent === 'INCONCLUSIVE' && id('website-google-warning').hidden,
+        check(id('website-verdict-title').textContent === 'Unable to Verify' && id('website-google-warning').hidden,
             'Expired threat evidence is no longer shown as current or dangerous');
         await show(fixture({ risk_label: 'suspicious', overall_risk: overallRisk('known_dangerous', 'HIGH', 'DANGEROUS', 'danger',
             'Previously reported threat.', 'Previously dangerous action.'), risk_breakdown: [{ name: 'Lookalike brand', category: 'domain' }],

@@ -169,6 +169,7 @@
             'Domain registration / RDAP': 'Domain information',
             'Destination DNS resolution': 'Destination lookup',
             'TLS certificate verification': 'HTTPS certificate',
+            'Google Safe Browsing': 'Known threat check',
             'Redirect destination': 'Redirect analysis'
         })[name] || name;
     }
@@ -197,17 +198,21 @@
         };
         const statusCopy = status => ({
             checked: ['Checked offline', 'checked'], performed: ['Completed', 'checked'],
-            completed: ['Completed', 'checked'], not_applicable: ['Not applicable', 'neutral'],
-            blocked: ['Blocked by policy', 'unavailable'],
-            passed: ['Passed', 'passed'], warning: ['Warning found', 'warning'],
+            completed: ['Completed', 'checked'], verified: ['Passed', 'passed'], passed: ['Passed', 'passed'],
+            clear: ['No known threat reported', 'checked'], not_applicable: ['Not applicable', 'neutral'],
+            blocked: ['Blocked by policy', 'unavailable'], warning: ['Warning found', 'warning'],
             failed: ['Failed', 'failed'], threat: ['Threat detected', 'threat'],
-            unavailable: ['Not available', 'unavailable'], not_checked: ['Not available', 'unavailable']
+            unavailable: ['Not available', 'unavailable'], not_checked: ['Not available', 'unavailable'],
+            disabled: ['Not checked', 'unavailable']
         })[String(status || '').toLowerCase()] || ['Not available', 'unavailable'];
         data.security_checks.forEach(item => {
             if (/\bml\b|machine learning/i.test(item.name)) return;
             const [value, tone] = statusCopy(item.status);
-            const displayedValue = item.name === 'Domain registration / RDAP' && String(item.status).toLowerCase() === 'unavailable'
-                ? 'RDAP check unavailable' : value;
+            const checkStatus = String(item.status).toLowerCase();
+            const displayedValue = item.name === 'Domain registration / RDAP' && checkStatus === 'unavailable'
+                ? 'RDAP check unavailable'
+                : item.name === 'Google Safe Browsing' && ['unavailable', 'blocked'].includes(checkStatus)
+                    ? 'Threat check unavailable' : value;
             addOnce(checkLabel(item.name), displayedValue, tone,
                 ['unavailable', 'not_checked', 'blocked', 'failed'].includes(String(item.status).toLowerCase()) ? item.detail : '');
         });
@@ -224,7 +229,7 @@
         addOnce(controlledDemo ? 'Simulation indicators' : 'Address warning signs',
             controlledDemo ? 'Illustrative indicators' : findings.length ? 'Warning signs found' : 'None reported by available checks',
             controlledDemo || findings.length ? 'warning' : 'checked', findings.join(', '));
-        const unavailable = data.security_checks.some(item => !/\bml\b|machine learning/i.test(item.name) && ['unavailable', 'not_checked', 'blocked', 'failed'].includes(String(item.status).toLowerCase())) ||
+        const unavailable = data.security_checks.some(item => !/\bml\b|machine learning/i.test(item.name) && ['unavailable', 'not_checked', 'blocked', 'disabled'].includes(String(item.status).toLowerCase())) ||
             data.unavailable_checks.some(item => !/\bml\b|machine learning/i.test(item));
         byId('website-simple-uncertainty').hidden = controlledDemo ? false : !unavailable;
         byId('website-simple-uncertainty').textContent = controlledDemo
@@ -255,16 +260,33 @@
             unverified: { label: 'Unable to Verify', title: 'Unable to Verify', tone: 'neutral', symbol: 'M9.5 9a2.5 2.5 0 1 1 4.4 1.6c-.9.5-1.9.9-1.9 2.4m0 3h.01' }
         };
         let reputation = data.live_reputation || { status: 'disabled', reason: 'Live reputation was not checked.' };
+        let reputationExpired = false;
         const expires = Date.parse(reputation.verdict_expires_at);
         if (['threat', 'clear'].includes(reputation.status) && (!Number.isFinite(expires) || expires <= Date.now())) {
+            reputationExpired = true;
+            const expiredThreat = reputation.status === 'threat';
             reputation = { status: 'unavailable', reason: 'The reputation observation has expired. Analyze the website again for a current result.' };
             const offline = data.offline_verdict || { code: data.risk_label === 'suspicious' ? 'suspicious' : 'unable_to_verify' };
             const unavailable = Array.isArray(data.unavailable_checks) ? data.unavailable_checks : [];
             data = { ...data, overall_risk: expiredOverallRisk(data), unavailable_checks: [...new Set([...unavailable, 'Live reputation'])],
+                security_checks: Array.isArray(data.security_checks) ? data.security_checks.map(item =>
+                    item && item.name === 'Google Safe Browsing'
+                        ? { ...item, status: 'unavailable', detail: reputation.reason } : item) : data.security_checks,
+                ...(expiredThreat ? { analysis_score: null, analysis_score_status: 'unavailable',
+                    analysis_risk_level: 'Unavailable',
+                    analysis_score_reason: 'The Safe Browsing threat observation expired; the previous analysis score is no longer current.' } : {}),
                 website_verdict: offline, explanation: offline?.explanation || 'Reputation evidence has expired. The available offline rules do not verify website legitimacy.',
                 recommended_action: offline?.action || "Verify the address and sender before logging in or paying." };
         }
         const state = ['threat', 'clear', 'unavailable', 'disabled'].includes(reputation.status) ? reputation.status : 'unavailable';
+        if (Array.isArray(data.security_checks)) {
+            const currentStatus = state === 'disabled' ? 'not_checked' : state;
+            data = { ...data, security_checks: data.security_checks.map(item =>
+                item && item.name === 'Google Safe Browsing'
+                    ? { ...item, status: currentStatus,
+                        detail: state === 'unavailable' ? reputation.reason : item.detail }
+                    : item) };
+        }
         const fallbackCode = data.risk_label === 'safe' && state !== 'clear' ? 'unable_to_verify' : data.risk_label;
         const resultCode = data.website_verdict?.code || fallbackCode;
         const liveVerdicts = {
@@ -284,7 +306,8 @@
             ? { label: 'Controlled Phishing Simulation / Local Demo', title: 'UNSAFE — CONTROLLED DEMO',
                 tone: 'danger', symbol: 'M12 8v5m0 3h.01' }
             : overallRisk
-                ? { label: 'Overall Risk · ' + overallRisk.label, title: overallRisk.level,
+                ? { label: reputationExpired && overallRisk.code === 'inconclusive' ? 'Unable to Verify' : 'Overall Risk · ' + overallRisk.label,
+                    title: reputationExpired && overallRisk.code === 'inconclusive' ? 'Unable to Verify' : overallRisk.level,
                     tone: overallRisk.tone, symbol: overallSymbols[overallRisk.tone] || overallSymbols.neutral }
                 : liveVerdicts[resultCode] || verdicts[data.risk_label] || verdicts.unverified;
         byId('website-verdict').dataset.tone = verdict.tone;
@@ -294,6 +317,25 @@
         byId('website-action').textContent = overallRisk?.action || data.recommended_action;
         byId('website-normalized-url').textContent = data.normalized_url;
         byId('website-ml-note').textContent = data.ml_note || 'ML output is unavailable and is not used in this verdict.';
+
+        const rawAnalysisScore = data.analysis_score !== null && data.analysis_score !== undefined
+            ? data.analysis_score : data.risk_score;
+        const validAnalysisScore = typeof rawAnalysisScore === 'number' && Number.isFinite(rawAnalysisScore)
+            && rawAnalysisScore >= 0 && rawAnalysisScore <= 100;
+        const analysisLevel = ['Low', 'Moderate', 'Elevated', 'High', 'Critical'].includes(data.analysis_risk_level)
+            ? data.analysis_risk_level
+            : validAnalysisScore ? rawAnalysisScore >= 80 ? 'Critical' : rawAnalysisScore >= 60 ? 'High'
+                : rawAnalysisScore >= 40 ? 'Elevated' : rawAnalysisScore >= 20 ? 'Moderate' : 'Low' : null;
+        const scoreCard = byId('website-analysis-score-card');
+        scoreCard.dataset.level = analysisLevel || 'Unavailable';
+        byId('website-analysis-score').textContent = validAnalysisScore ? String(rawAnalysisScore) : 'Unavailable';
+        byId('website-analysis-score-out-of').textContent = validAnalysisScore ? '/100' : '';
+        byId('website-analysis-risk-level').textContent = analysisLevel
+            ? analysisLevel + ' detected risk' : 'Risk classification unavailable';
+        byId('website-analysis-score-fill').style.width = (validAnalysisScore ? rawAnalysisScore : 0) + '%';
+        byId('website-analysis-score-card').setAttribute('aria-label', validAnalysisScore
+            ? 'Analysis score ' + rawAnalysisScore + ' out of 100; ' + analysisLevel + ' risk'
+            : 'Analysis score unavailable');
 
         byId('website-analysis-mode').textContent = controlledDemo ? 'Controlled demo · no network checks' : state === 'disabled' ? 'Offline checks only' : state === 'unavailable' ? 'Live threat check unavailable' : 'Live threat check completed';
         const providerStatus = byId('website-reputation-status');
@@ -342,16 +384,21 @@
             const row = node('li');
             const heading = node('div', null, 'website-check-heading');
             const status = String(item.status || '').toLowerCase();
-            const state = ['checked', 'performed', 'passed', 'completed'].includes(status) ? 'checked' : status === 'not_applicable' ? 'neutral' : status === 'warning' ? 'warning' : status === 'failed' ? 'failed' : 'unavailable';
+            const state = ['checked', 'performed', 'passed', 'completed', 'verified', 'clear'].includes(status) ? 'checked' : status === 'not_applicable' ? 'neutral' : status === 'warning' ? 'warning' : status === 'failed' ? 'failed' : status === 'threat' ? 'threat' : 'unavailable';
             const icon = node('span', null, 'result-check-icon');
             icon.dataset.status = state === 'checked' ? 'passed' : state;
             icon.setAttribute('aria-hidden', 'true');
             const label = status === 'blocked' ? 'Blocked by policy'
                 : status === 'unavailable' && item.name === 'Domain registration / RDAP' ? 'RDAP check unavailable'
                 : status === 'unavailable' || status === 'not_checked' ? 'Not available'
+                : status === 'disabled' ? 'Not checked'
                 : status === 'failed' ? 'Check failed'
+                : status === 'threat' ? 'Threat detected'
+                : status === 'clear' ? 'No known threat reported'
                 : status === 'not_applicable' ? 'Not applicable'
                 : state === 'neutral' ? 'Not applicable'
+                : status === 'passed' || status === 'verified' ? 'Passed'
+                : status === 'warning' ? 'Warning found'
                 : state === 'checked' ? (item.name === 'Domain registration / RDAP' ? 'RDAP completed' : 'Check completed')
                 : state === 'warning' ? 'Warning found' : 'Not available';
             const badge = node('span', label, 'website-check-status result-status-chip');
@@ -378,6 +425,16 @@
         addDetail(technical, 'Deterministic overall risk', overallRisk ? overallRisk.level + ' — ' + overallRisk.label : 'Unavailable');
         addDetail(technical, 'Overall risk explanation', overallRisk?.explanation || 'No deterministic overall-risk classification was returned.');
         addDetail(technical, 'Live reputation response', reputation.reason);
+        addDetail(technical, 'Overall analysis score', validAnalysisScore
+            ? rawAnalysisScore + ' / 100 — ' + (analysisLevel || 'Risk level unavailable') : 'Unavailable');
+        addDetail(technical, 'Analysis score explanation', data.analysis_score_reason || 'The score uses available rule findings and ML only when that model ran. Unavailable checks are not treated as passes.');
+        const confidenceBasis = data.analysis_confidence_basis && typeof data.analysis_confidence_basis === 'object'
+            ? data.analysis_confidence_basis : {};
+        addDetail(technical, 'Analysis confidence', Number.isInteger(data.analysis_confidence)
+            && data.analysis_confidence >= 0 && data.analysis_confidence <= 100 ? data.analysis_confidence + '%' : 'Unavailable');
+        addDetail(technical, 'Completed checks', Number.isInteger(confidenceBasis.completed_checks) ? confidenceBasis.completed_checks : 'Unavailable');
+        addDetail(technical, 'Unavailable checks', Number.isInteger(confidenceBasis.unavailable_checks) ? confidenceBasis.unavailable_checks : 'Unavailable');
+        addDetail(technical, 'Confidence calculation', 'Completed checks divided by completed plus unavailable checks. Unavailable checks are never counted as passed.');
         const validScore = typeof data.risk_score === 'number' && Number.isFinite(data.risk_score) && data.risk_score >= 0 && data.risk_score <= 100;
         addDetail(technical, 'Combined risk score', validScore ? data.risk_score + ' / 100' : 'Not calculated — unavailable.');
         addDetail(technical, 'Scoring status', validScore ? 'Available — heuristic, not a probability' : 'Unavailable');

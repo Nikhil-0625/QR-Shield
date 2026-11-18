@@ -2770,15 +2770,17 @@
 
     .results-card[data-result-view="simple"] #result-rows > :not(.risk-panel):not(.verdict-banner):not(.simple-result-copy):not(.upi-security-summary):not(.upi-comparison-summary):not(.upi-recipient-summary):not(.upi-direction-banner):not(.result-technical-details),
 
-    .results-card[data-result-view="simple"] .risk-panel > :not(.verdict-banner),
-
-    .results-card[data-result-view="simple"] .summary-destination,
+    .results-card[data-result-view="simple"] .risk-panel > :not(.verdict-banner):not(.risk-heading):not(.risk-track):not(.risk-meta),
 
     .results-card[data-result-view="technical"] .simple-result-copy { display:none !important; }
 
     .result-plain-verdict { display:block; margin-top:10px; font-weight:650; line-height:1.6; }
 
     .simple-result-copy { grid-column:1 / -1; min-width:0; color:var(--ink, #172033); overflow-wrap:anywhere; }
+
+    .simple-result-copy .summary-destination { margin:0 0 14px; padding:14px; border:1px solid var(--line, #e5e9f1); border-radius:12px; background:var(--surface, #fff); overflow-wrap:anywhere; word-break:break-word; }
+
+    .simple-result-copy .summary-destination strong { display:block; margin-bottom:5px; font-size:13px; }
 
     .result-plain-reason { margin:0; font-size:15px; line-height:1.75; }
 
@@ -3300,7 +3302,7 @@
 
     <details id="result-technical-details" class="result-technical-details" ontoggle="setResultView(this.open ? 'technical' : 'simple')">
 
-        <summary id="result-technical-summary" aria-controls="result-technical-body" aria-expanded="false">Technical details</summary>
+        <summary id="result-technical-summary" aria-controls="result-technical-body" aria-expanded="false">Detailed Analysis</summary>
 
         <p>For reference only — not a probability.</p>
 
@@ -3396,7 +3398,9 @@
 
     <details id="link-warning-technical" class="link-warning-technical">
 
-        <summary>View technical details</summary>
+        <summary>Detailed Analysis</summary>
+
+        <ul id="link-warning-checks" class="link-warning-checks"></ul>
 
         <div id="link-warning-full-findings"></div>
 
@@ -3412,7 +3416,7 @@
 
         <div class="link-warning-actions">
 
-            <button type="button" id="link-warning-cancel" data-modal-cancel>Cancel</button>
+            <button type="button" id="link-warning-cancel" data-modal-cancel>Back to safety</button>
 
             <button type="button" id="link-warning-continue" data-modal-proceed>Proceed anyway</button>
 
@@ -5684,6 +5688,41 @@
 
         };
 
+        if (Array.isArray(data.security_checks)) {
+            const checkLabels = {
+                "Rule-based findings": "Address warning signs",
+                "HTTPS certificate": "HTTPS certificate",
+                "Redirect analysis": "Redirect analysis",
+                "Domain registration / RDAP": "Domain information",
+                "Google Safe Browsing": "Known threat check"
+            };
+            const checkStatuses = {
+                checked: ["Checked", "neutral"],
+                completed: ["Completed", "neutral"],
+                performed: ["Completed", "neutral"],
+                passed: ["Passed", "passed"],
+                verified: ["Passed", "passed"],
+                warning: ["Warning found", "warning"],
+                failed: ["Failed", "warning"],
+                threat: ["Threat detected", "threat"],
+                clear: ["No known threat reported", "neutral"],
+                unavailable: ["Not available", "unavailable"],
+                blocked: ["Blocked by policy", "unavailable"],
+                not_checked: ["Not checked", "unavailable"],
+                disabled: ["Not checked", "unavailable"],
+                not_applicable: ["Not applicable", "neutral"]
+            };
+            data.security_checks.forEach(item => {
+                if (!item || typeof item.name !== "string" || /\bml\b|machine learning/i.test(item.name)) return;
+                const status = String(item.status || "").toLowerCase();
+                const [value, state] = checkStatuses[status] || ["Not available", "unavailable"];
+                const label = checkLabels[item.name] || item.name;
+                const detail = ["warning", "failed", "threat", "unavailable", "blocked", "not_checked", "disabled"].includes(status)
+                    && typeof item.detail === "string" ? item.detail : "";
+                add(label, value, state, detail);
+            });
+        }
+
         const reputation = data.live_reputation;
 
         const reputationStatus = getCurrentReputationStatus(data);
@@ -6432,13 +6471,22 @@
 
         if (isUrlContent) {
 
-            const rawScore = data.risk_score;
+            const expiredThreat = data.live_reputation?.status === "threat"
+                && getCurrentReputationStatus(data) === "unavailable";
+            const rawScore = expiredThreat ? null : data.analysis_score !== null && data.analysis_score !== undefined
+                ? data.analysis_score : data.risk_score;
 
             const hasScore = typeof rawScore === "number" && Number.isFinite(rawScore) && rawScore >= 0 && rawScore <= 100;
 
             const score = hasScore ? rawScore : null;
+            const legacyScore = typeof data.risk_score === "number" && Number.isFinite(data.risk_score)
+                && data.risk_score >= 0 && data.risk_score <= 100 ? data.risk_score : null;
+            const hasLegacyScore = legacyScore !== null;
 
             const label = String(data.risk_label || "Unavailable").toLowerCase();
+            const analysisLevel = !expiredThreat && ["Low", "Moderate", "Elevated", "High", "Critical"].includes(data.analysis_risk_level)
+                ? data.analysis_risk_level
+                : hasScore ? score >= 80 ? "Critical" : score >= 60 ? "High" : score >= 40 ? "Elevated" : score >= 20 ? "Moderate" : "Low" : null;
 
             const riskPanel = document.createElement("div");
 
@@ -6451,27 +6499,18 @@
 
             const overallRisk = getCurrentOverallRisk(data);
 
-            riskHeading.appendChild(createInfoLabel("Overall Risk", overallRisk
-
-                ? "A deterministic classification from security evidence. It is not a numerical probability; missing checks have not passed."
-
-                : "The backend's existing combined heuristic score, when available. It is not a phishing probability; missing checks have not passed."));
+            riskHeading.appendChild(createInfoLabel("Analysis Score", expiredThreat
+                ? "The Safe Browsing threat observation expired; the previous overall score is no longer current."
+                : data.analysis_score_reason
+                || "Higher scores mean more detected risk signals. This is not a probability; unavailable checks have not passed."));
 
             const riskBadge = document.createElement("span");
 
-            const overallTones = { safe: "safe", warning: "suspicious", danger: "unsafe", neutral: "neutral" };
-
-            riskBadge.className = "risk-badge " + (overallRisk
-
-                ? (overallTones[overallRisk.tone] || "neutral")
-
-                : (label === "safe" || label === "suspicious" || label === "unsafe" ? label : "neutral"));
-
-            riskBadge.textContent = overallRisk
-
-                ? String(overallRisk.label || "")
-
-                : label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Suspicious" : "Unavailable";
+            riskBadge.className = "risk-badge " + (analysisLevel === "Low" ? "safe"
+                : ["Moderate", "Elevated"].includes(analysisLevel) ? "suspicious"
+                : ["High", "Critical"].includes(analysisLevel) ? "unsafe" : "neutral");
+            riskBadge.textContent = analysisLevel ? analysisLevel + " Risk" : overallRisk
+                ? String(overallRisk.label || "") : "Unavailable";
 
             riskHeading.appendChild(riskBadge);
 
@@ -6483,17 +6522,16 @@
 
             scoreEl.className = "risk-score";
 
-            scoreEl.textContent = overallRisk
-                ? String(overallRisk.level || "INCONCLUSIVE")
-                : hasScore ? score : "Score unavailable";
+            scoreEl.textContent = hasScore ? score : expiredThreat ? "Score unavailable" : overallRisk
+                ? String(overallRisk.level || "INCONCLUSIVE") : "Score unavailable";
 
-            scoreEl.setAttribute("data-unavailable", String(overallRisk ? true : !hasScore));
+            scoreEl.setAttribute("data-unavailable", String(!hasScore));
 
             const outOf = document.createElement("span");
 
             outOf.className = "risk-out-of";
 
-            outOf.textContent = overallRisk ? "" : hasScore ? "/100" : "";
+            outOf.textContent = hasScore ? "/100" : "";
 
             scoreWrap.append(scoreEl, outOf);
 
@@ -6505,7 +6543,9 @@
 
             const fill = document.createElement("div");
 
-            const fillClass = label === "unsafe" ? "unsafe" : label === "safe" ? "safe" : label === "suspicious" ? "suspicious" : "neutral";
+            const fillClass = analysisLevel === "Low" ? "safe"
+                : ["Moderate", "Elevated"].includes(analysisLevel) ? "suspicious"
+                : ["High", "Critical"].includes(analysisLevel) ? "unsafe" : "neutral";
 
             fill.className = "risk-fill " + fillClass;
 
@@ -6513,7 +6553,7 @@
 
             track.appendChild(fill);
 
-            track.hidden = overallRisk ? true : !hasScore;
+            track.hidden = !hasScore;
 
             const riskMeta = document.createElement("div");
 
@@ -6521,11 +6561,9 @@
 
             const classificationLabel = document.createElement("span");
 
-            classificationLabel.textContent = overallRisk ? "Assessment basis" : "Calculated classification";
+            classificationLabel.textContent = "Risk classification";
 
-            const classification = overallRisk ? "Deterministic security evidence"
-
-                : label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Suspicious" : "Unavailable";
+            const classification = analysisLevel || (overallRisk ? String(overallRisk.label || "Unavailable") : "Unavailable");
 
             const classificationValue = document.createElement("span");
 
@@ -6562,10 +6600,14 @@
             resultRows.appendChild(riskPanel);
 
             resultRows.appendChild(createSection("Heuristic Risk Assessment", "gauge", [
-                ["Combined risk score", hasScore ? score + " / 100" : "Unavailable"],
-                ["Scoring status", hasScore ? "Available — heuristic, not a probability" : "Unavailable — no replacement score invented"],
-                ["Why", typeof data.risk_score_reason === "string" ? data.risk_score_reason : hasScore
-                    ? "This is the stored backend score. Available indicators do not guarantee safety; unavailable checks have not passed."
+                ["Overall analysis score", hasScore ? score + " / 100 — " + (analysisLevel || "Risk level unavailable") : "Unavailable"],
+                ["Analysis score explanation", expiredThreat
+                    ? "The Safe Browsing threat observation expired; the previous overall score is no longer current."
+                    : data.analysis_score_reason || "The new analysis score was not returned by this scan."],
+                ["Combined risk score", hasLegacyScore ? legacyScore + " / 100" : "Unavailable"],
+                ["Scoring status", hasLegacyScore ? "Available — heuristic, not a probability" : "Unavailable — no replacement score invented"],
+                ["Why", typeof data.risk_score_reason === "string" ? data.risk_score_reason : hasLegacyScore
+                    ? "This existing combined rule/ML score is separate from the overall analysis score. Available indicators do not guarantee safety; unavailable checks have not passed."
                     : "The combined score requires its existing rule/ML inputs. An excluded or unavailable ML estimate is not replaced with zero."],
                 ["Rule-based points", typeof data.rule_score === "number" && Number.isFinite(data.rule_score) && data.rule_score >= 0 ? data.rule_score : "Unavailable",
                     "Points from the performed rules only. These are not the final verdict, an overall safety score, or a phishing probability."],
@@ -6574,6 +6616,17 @@
             ]));
 
             resultRows.appendChild(createRiskExplanation(data));
+
+            const confidenceBasis = data.analysis_confidence_basis && typeof data.analysis_confidence_basis === "object"
+                ? data.analysis_confidence_basis : {};
+            technicalBody.appendChild(createSection("Analysis Confidence", "gauge", [
+                ["Analysis confidence", Number.isInteger(data.analysis_confidence) && data.analysis_confidence >= 0 && data.analysis_confidence <= 100
+                    ? data.analysis_confidence + "%" : "Unavailable"],
+                ["Completed checks", Number.isInteger(confidenceBasis.completed_checks) ? confidenceBasis.completed_checks : "Unavailable"],
+                ["Unavailable checks", Number.isInteger(confidenceBasis.unavailable_checks) ? confidenceBasis.unavailable_checks : "Unavailable"],
+                ["Not applicable checks", Number.isInteger(confidenceBasis.excluded_not_applicable_checks) ? confidenceBasis.excluded_not_applicable_checks : "Unavailable"],
+                ["How this is calculated", "Completed checks divided by completed plus unavailable checks. Unavailable checks are never counted as passed."]
+            ]));
 
 
 
@@ -7020,7 +7073,8 @@
 
         const analysisUnavailable = isUrlContent && assessment.unavailable.length > 0;
 
-        const scoreUnavailable = isUrlContent && (data.risk_score === null || data.risk_score === undefined ||
+        const scoreUnavailable = isUrlContent && (data.analysis_score === null || data.analysis_score === undefined ||
+            data.analysis_score_status === "unavailable") && (data.risk_score === null || data.risk_score === undefined ||
 
             data.risk_score_status === "unavailable");
 
@@ -7090,6 +7144,15 @@
             simpleReason.className = "result-plain-reason";
 
             simpleReason.textContent = getSimpleUrlReason(data);
+
+            const destination = document.createElement("p");
+            destination.className = "summary-destination";
+            const destinationLabel = document.createElement("strong");
+            destinationLabel.textContent = "Scanned URL";
+            const destinationValue = document.createElement("span");
+            destinationValue.textContent = data.decoded_content || data.final_url || "Unavailable";
+            destination.append(destinationLabel, destinationValue);
+            simpleCopy.appendChild(destination);
 
             simpleCopy.append(createSimpleSecuritySummary(data, simpleReason.textContent));
 
