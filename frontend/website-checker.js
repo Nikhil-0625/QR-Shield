@@ -318,8 +318,7 @@
         byId('website-normalized-url').textContent = data.normalized_url;
         byId('website-ml-note').textContent = data.ml_note || 'ML output is unavailable and is not used in this verdict.';
 
-        const rawAnalysisScore = data.analysis_score !== null && data.analysis_score !== undefined
-            ? data.analysis_score : data.risk_score;
+        const rawAnalysisScore = data.analysis_score;
         const validAnalysisScore = typeof rawAnalysisScore === 'number' && Number.isFinite(rawAnalysisScore)
             && rawAnalysisScore >= 0 && rawAnalysisScore <= 100;
         const scoreBand = validAnalysisScore
@@ -333,6 +332,7 @@
             high: 'High risk',
             critical: 'Critical risk'
         }[scoreBand];
+        const analysisLevel = scoreClassification;
         const scoreCard = byId('website-analysis-score-card');
         scoreCard.dataset.band = scoreBand;
         const scoreIndicator = byId('website-analysis-score-indicator');
