@@ -6535,8 +6535,7 @@
 
             const expiredThreat = data.live_reputation?.status === "threat"
                 && getCurrentReputationStatus(data) === "unavailable";
-            const rawScore = expiredThreat ? null : data.analysis_score !== null && data.analysis_score !== undefined
-                ? data.analysis_score : data.risk_score;
+            const rawScore = expiredThreat ? null : data.analysis_score;
 
             const hasScore = typeof rawScore === "number" && Number.isFinite(rawScore) && rawScore >= 0 && rawScore <= 100;
 
