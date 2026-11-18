@@ -197,6 +197,7 @@
             add(...args);
         };
         const statusCopy = status => ({
+            available: ['Registration data available', 'checked'],
             checked: ['Checked offline', 'checked'], performed: ['Completed', 'checked'],
             completed: ['Completed', 'checked'], verified: ['Passed', 'passed'], passed: ['Passed', 'passed'],
             clear: ['No known threat reported', 'checked'], not_applicable: ['Not applicable', 'neutral'],
@@ -400,7 +401,7 @@
             const row = node('li');
             const heading = node('div', null, 'website-check-heading');
             const status = String(item.status || '').toLowerCase();
-            const state = ['checked', 'performed', 'passed', 'completed', 'verified', 'clear'].includes(status) ? 'checked' : status === 'not_applicable' ? 'neutral' : status === 'warning' ? 'warning' : status === 'failed' ? 'failed' : status === 'threat' ? 'threat' : 'unavailable';
+            const state = ['available', 'checked', 'performed', 'passed', 'completed', 'verified', 'clear'].includes(status) ? 'checked' : status === 'not_applicable' ? 'neutral' : status === 'warning' ? 'warning' : status === 'failed' ? 'failed' : status === 'threat' ? 'threat' : 'unavailable';
             const icon = node('span', null, 'result-check-icon');
             icon.dataset.status = state === 'checked' ? 'passed' : state;
             icon.setAttribute('aria-hidden', 'true');
@@ -411,6 +412,7 @@
                 : status === 'failed' ? 'Check failed'
                 : status === 'threat' ? 'Threat detected'
                 : status === 'clear' ? 'No known threat reported'
+                : status === 'available' ? (item.name === 'Domain registration / RDAP' ? 'Registration data available' : 'Data available')
                 : status === 'not_applicable' ? 'Not applicable'
                 : state === 'neutral' ? 'Not applicable'
                 : status === 'passed' || status === 'verified' ? 'Passed'
@@ -457,8 +459,10 @@
         addDetail(technical, 'Scoring explanation', typeof data.risk_score_reason === 'string' ? data.risk_score_reason : 'The existing combined score is not replaced when experimental ML is excluded. Missing checks have not passed.');
         addDetail(technical, 'Rule-based points (performed checks only)', typeof data.rule_score === 'number' && Number.isFinite(data.rule_score) && data.rule_score >= 0 ? data.rule_score : 'Unavailable');
         const registration = data.domain_registration && typeof data.domain_registration === 'object' ? data.domain_registration : {};
+        addDetail(technical, 'Registrar', registration.registrar);
         addDetail(technical, 'Registration date (UTC)', registration.registration_date);
         addDetail(technical, 'Domain age', typeof data.domain_age_days === 'number' && Number.isInteger(data.domain_age_days) && data.domain_age_days >= 0 ? data.domain_age_days + ' days at lookup' : 'Unavailable');
+        addDetail(technical, 'Expiration date (UTC)', registration.expiration_date);
         addDetail(technical, 'RDAP lookup status', ({available:'Registration data available',disabled:'Disabled — not checked',unavailable:'Unavailable',not_applicable:'Not applicable'})[registration.status] || 'Not recorded / unavailable');
         addDetail(technical, 'RDAP details', typeof registration.reason === 'string' ? registration.reason : 'No reliable registration lookup was recorded.');
         addDetail(technical, 'Registration lookup time', registration.checked_at);

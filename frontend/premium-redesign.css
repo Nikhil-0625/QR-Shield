@@ -3081,3 +3081,92 @@ body[data-page="website-checker"] .website-analysis-score-note {
 @media (prefers-reduced-motion: reduce) {
     .qrs-risk-score-progress { transition: none; }
 }
+
+@media (max-width: 430px) {
+    body[data-page="website-checker"] .website-results {
+        padding: 14px;
+    }
+    body[data-page="website-checker"] .website-verdict {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 10px;
+        padding: 14px;
+    }
+    body[data-page="website-checker"] .website-verdict-icon,
+    body[data-page="website-checker"] .website-verdict > div {
+        grid-column: 1;
+        min-width: 0;
+    }
+    body[data-page="website-checker"] #website-verdict-title {
+        font-size: 21px;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="website-checker"] .website-verdict p:not(.website-verdict-label) {
+        font-size: 14px;
+        line-height: 1.6;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="website-checker"] .website-analysis-score {
+        gap: 12px;
+        padding: 16px;
+    }
+    body[data-page="website-checker"] .website-analysis-score-note {
+        width: 100%;
+        max-width: 30rem;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    body[data-page="website-checker"] .website-simple-checks > li {
+        grid-template-columns: 20px minmax(0, 1fr);
+        align-items: start;
+        gap: 7px 9px;
+    }
+    body[data-page="website-checker"] .website-simple-checks .website-check-status {
+        grid-column: 2;
+        justify-self: start;
+        max-width: 100%;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="website-checker"] .website-check-list > li {
+        min-width: 0;
+        padding: 12px 10px;
+    }
+    body[data-page="website-checker"] .website-check-list .website-check-heading {
+        display: grid;
+        grid-template-columns: 20px minmax(0, 1fr);
+        align-items: start;
+        gap: 7px 9px;
+    }
+    body[data-page="website-checker"] .website-check-list .website-check-heading > strong {
+        grid-column: 2;
+        min-width: 0;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="website-checker"] .website-check-list .website-check-heading > .website-check-status {
+        grid-column: 2;
+        justify-self: start;
+        max-width: 100%;
+        text-align: left;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="website-checker"] .website-technical > summary {
+        display: block;
+        min-width: 0;
+        padding: 14px 40px 14px 14px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+    body[data-page="website-checker"] .website-technical > summary span {
+        display: block;
+        max-width: none;
+        padding-top: 5px;
+        font-size: 12.5px;
+        line-height: 1.55;
+        font-weight: 400;
+        overflow-wrap: anywhere;
+    }
+}
