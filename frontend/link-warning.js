@@ -225,24 +225,19 @@ window.QRShieldModal = (() => {
         pending = result;
         const high = result.label === "unsafe" || result.reputationThreat;
 
-const caution = result.label === "suspicious" || result.findings.length > 0;
+const caution = result.findings.some(finding =>
+    finding.points !== null && finding.points > 0
+);
 
-const safeVerdict = [
-    "Likely safe",
-    "No Known Threats Detected"
-].includes(result.humanVerdict);
+// Score threshold: 30+ requires confirmation. Confirmed reputation threats and
+// high-risk classifications always override the numeric score.
+const needsWarning = high || result.reputationThreat || (result.score !== null && result.score >= 30);
 
-const needsWarning =
-    high ||
-    caution ||
-    (result.incomplete && result.label === "unavailable" && result.score === null) ||
-    (!safeVerdict && result.humanVerdict !== "Can't tell" && result.label !== "safe" && result.label !== "unverified");
-
-        // A confirmed zero-risk result with no threat evidence should open directly.
-        // Keep this synchronous with the user's click so popup blockers do not interfere.
-        const confirmedZeroRisk = result.score === 0 && result.label === "safe"
-            && !high && !caution && !result.incomplete && !result.reputationThreat && !needsWarning;
-        if (confirmedZeroRisk) {
+// Scores below 30 open directly unless a known threat/high-risk classification
+// is present. Missing optional checks and QR-image tampering notices alone do not block.
+const confirmedLowRisk = result.score !== null && result.score < 30
+    && !high && !result.reputationThreat;
+        if (confirmedLowRisk) {
             const directUrl = validatedUrl(result.href);
             if (!directUrl) return;
             used = true;
@@ -265,11 +260,9 @@ const needsWarning =
             ? result.riskLevel + " risk" : result.label === "safe" ? "Low calculated risk" : result.label === "unsafe" ? "High risk" : result.label === "suspicious" ? "Suspicious" : "Inconclusive";
         byId("link-warning-score").textContent = result.score === null ? "Score unavailable" : result.score + " / 100";
         byId("link-warning-title").textContent = needsWarning ? "Security Warning" : "Confirm destination";
-        byId("link-warning-message").textContent = high || caution
-            ? "You are about to leave QR Shield and visit a site flagged as potentially dangerous. Are you sure you want to proceed?"
-            : result.incomplete
-                ? "Some security checks could not be completed. QR Shield cannot verify this destination; review the URL and check details before continuing."
-                : "No major rule-based risk indicators were identified in the completed checks. This does not guarantee the destination is safe.";
+        byId("link-warning-message").textContent = high || result.reputationThreat
+            ? "A known threat indicator was detected. Review the evidence carefully before proceeding."
+            : "The risk score is 30 or higher. Review the URL and security details before continuing.";
         byId("link-warning-url").textContent = result.href;
         byId("link-warning-host").textContent = result.host;
         byId("link-warning-domain").textContent = result.domain;

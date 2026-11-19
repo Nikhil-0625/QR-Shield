@@ -2811,7 +2811,7 @@
 
     @media (max-width:520px) { .simple-security-summary { padding:15px; } .simple-security-check { gap:6px 10px; } }
 
-    .simple-tampering-warning { margin-top:16px; padding:16px; border:1px solid var(--line, #ddd6ee); border-left:4px solid #b77916; border-radius:10px; background:var(--surface-soft, #f7f5fc); line-height:1.65; }
+    .simple-tampering-warning { margin-top:16px; padding:16px; border:1px solid var(--line, #ddd6ee); border-left:4px solid var(--accent, #8175ff); border-radius:10px; background:var(--surface-soft, #f7f5fc); color:var(--ink, #172033); line-height:1.65; }
 
     .simple-tampering-warning p { margin:6px 0 0; }
 
@@ -7343,7 +7343,7 @@
 
             const heading = document.createElement("strong");
 
-            heading.textContent = "This QR code may have been altered — handle with caution.";
+            heading.textContent = "QR image integrity notice";
 
             const context = document.createElement("p");
 
