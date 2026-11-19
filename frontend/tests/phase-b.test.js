@@ -56,7 +56,7 @@
     check(env.calls.length===1 && env.calls[0][0].endsWith('/login'),'existing login endpoint');
     const payload=JSON.parse(env.calls[0][1].body);
     check(payload.email==='synthetic@example.test'&&payload.password==='Synthetic!Only123','unchanged request shape');
-    env.fire(1000);check(env.location.href==='scan.html','existing redirect');restored(env);
+    env.fire(1000);check(env.location.href==='dashboard.html','login redirects to dashboard');restored(env);
     check(env.document.getElementById('submit-btn').innerText==='Sign In','original label restored');
     env.document.card.dispatch('focusin');
     check(env.document.getElementById('security-ready-status').dataset.state==='workspace'&&env.document.getElementById('security-ready-text').textContent==='Secure workspace ready','form interaction updates the security status');

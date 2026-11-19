@@ -59,6 +59,12 @@ class DeterministicOverallRiskTests(unittest.TestCase):
         result = deterministic_overall_risk("unverified", reputation("clear"), [], None)
         self.assertEqual(result["code"], "inconclusive")
 
+    def test_transport_failure_is_not_masked_by_other_unavailable_checks(self):
+        result = self.classify(status="clear", unavailable=("Live reputation", "RDAP"),
+                               findings=[{"name":"HTTPS Validation Failed", "category":"transport", "points":20}])
+        self.assertEqual(result["code"], "transport_warning")
+        self.assertEqual(result["level"], "CAUTION")
+
     def test_transport_only_warning_is_not_low_or_phishing(self):
         result = self.classify(findings=[{"category": "transport", "name": "HTTP Connection"}])
         self.assertEqual(result["code"], "transport_warning")

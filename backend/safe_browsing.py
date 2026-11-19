@@ -315,6 +315,15 @@ def deterministic_overall_risk(offline_label, reputation, unavailable_checks=Non
             "action": "Review the QR image and verify its destination with the sender before proceeding.",
         }
 
+    # A concrete connection-security failure is actionable even when other
+    # checks are unavailable. Do not let missing reputation/RDAP mask failed TLS.
+    if transport_findings:
+        return {
+            "code": "transport_warning", "level": "CAUTION", "label": "CONNECTION WARNING", "tone": "warning",
+            "explanation": "A connection security warning was detected. It is a transport risk, not proof of phishing.",
+            "action": "Avoid entering passwords or payment details over this connection. Verify the address independently.",
+        }
+
     missing = [str(item) for item in unavailable_checks
                if not re.search(r"\bml\b|machine learning", str(item), re.IGNORECASE)]
     if not findings_available:
@@ -326,13 +335,6 @@ def deterministic_overall_risk(offline_label, reputation, unavailable_checks=Non
             "code": "inconclusive", "level": "INCONCLUSIVE", "label": "EVIDENCE UNAVAILABLE", "tone": "neutral",
             "explanation": "Important deterministic security evidence could not be completed. Unavailable checks have not passed.",
             "action": "Verify the address and sender independently before logging in, paying, or sharing information.",
-        }
-
-    if transport_findings:
-        return {
-            "code": "transport_warning", "level": "CAUTION", "label": "CONNECTION WARNING", "tone": "warning",
-            "explanation": "A connection security warning was detected. It is a transport risk, not proof of phishing.",
-            "action": "Avoid entering passwords or payment details over this connection. Verify the address independently.",
         }
 
     return {

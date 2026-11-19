@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="description" content="Check QR destinations before opening them. Scan a QR code or review a website with QR Shield.">
     <title>QR Shield · Scan before you trust</title>
+    <script>
+        try {
+            if (!localStorage.getItem("access_token")) window.location.replace("login.html");
+        } catch (_) {
+            window.location.replace("login.html");
+        }
+    </script>
     <script src="theme.js"></script>
     <link rel="stylesheet" href="navigation.css">
     <link rel="stylesheet" href="theme.css">
@@ -14,6 +21,7 @@
     <script src="navigation.js" defer></script>
 <meta name="theme-color" content="#F3F0FF">
 <link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icons/qr-shield-mark.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/qr-shield-192.png">
 <link rel="apple-touch-icon" href="./icons/qr-shield-192.png">
 <script src="./bg-network.js" defer></script>
@@ -22,9 +30,7 @@
 <body data-page="home">
     <header class="qs-header">
         <a class="qs-brand" href="index.html" aria-label="QR Shield home">
-            <span class="qs-brand-mark" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg>
-            </span>
+            <span class="qs-brand-mark" aria-hidden="true"><img src="./icons/qr-shield-mark.svg" alt=""></span>
             <span class="qs-brand-copy"><span class="qs-brand-name">QR Shield</span><span class="qs-brand-subtitle">Scan before you trust</span></span>
         </a>
         <button class="qs-menu-toggle" type="button" aria-label="Open navigation menu" aria-controls="primary-navigation" aria-expanded="false"><span class="qs-menu-icon" aria-hidden="true"></span></button>

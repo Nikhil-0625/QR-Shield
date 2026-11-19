@@ -12,8 +12,8 @@
     button, input { font: inherit; }
     .site-header { max-width: 1120px; margin: auto; min-height: 108px; display: flex; justify-content: space-between; align-items: center; gap: 20px; border-bottom: 1px solid #e6e6ef; }
     .header-brand { display: flex; align-items: center; gap: 11px; font-weight: 700; font-size: 22px; letter-spacing: -.7px; }
-    .header-mark { display: grid; place-items: center; height: 40px; width: 40px; border: 1px solid #ddd6ee; border-radius: 12px; color: var(--violet); background: #f0eafa; }
-    .header-mark svg { height: 24px; width: 24px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linejoin: round; stroke-linecap: round; }
+    .header-mark { display: grid; place-items: center; height: 40px; width: 40px; flex: 0 0 40px; }
+    .header-mark img { display:block; width:100%; height:100%; object-fit:contain; }
     .header-note { color: var(--muted); font-size: 12px; letter-spacing: .02em; }
     .auth-layout { max-width: 1120px; margin: 68px auto 48px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: clamp(40px, 7vw, 100px); align-items: center; }
     .intro-area { min-width: 0; }
@@ -33,8 +33,8 @@
     .card { min-width: 0; padding: 36px; border: 1px solid var(--border); border-radius: 22px; background: #fff; box-shadow: 0 24px 65px #26314a09, 0 3px 10px #26314a04; position: relative; }
     .card::before { content: ''; position: absolute; top: -1px; left: 36px; right: 36px; height: 2px; background: linear-gradient(90deg, transparent, #b8a4db, transparent); }
     .brand { display: flex; align-items: center; gap: 10px; margin-bottom: 26px; }
-    .brand-mark { display: grid; place-items: center; height: 38px; width: 38px; border-radius: 11px; color: var(--violet); background: #f3effb; }
-    .brand-mark svg { height: 22px; width: 22px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+    .brand-mark { display: grid; place-items: center; height: 38px; width: 38px; flex: 0 0 38px; }
+    .brand-mark img { display:block; width:100%; height:100%; object-fit:contain; }
     .brand-name { display: block; font-size: 14px; font-weight: 650; letter-spacing: -.2px; }
     .brand-subtitle { display: block; color: var(--muted); font-size: 11px; margin-top: 3px; }
     h1 { font-size: 27px; line-height: 1.3; letter-spacing: -.8px; margin: 0; font-weight: 650; }
@@ -81,6 +81,7 @@
 <link rel="stylesheet" href="premium-redesign.css">
 <meta name="theme-color" content="#F3F0FF">
 <link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icons/qr-shield-mark.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/qr-shield-192.png">
 <link rel="apple-touch-icon" href="./icons/qr-shield-192.png">
 <script src="./bg-network.js" defer></script>
@@ -163,7 +164,7 @@
 
 <main class="auth-layout">
     <section class="intro-area" aria-labelledby="product-title"><header class="site-header">
-    <div class="header-brand"><span class="header-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9zM13 13h2v2h-2z"/></svg></span><span>QR Shield<small class="login-brand-tagline">Scan any QR code before you trust it.</small></span></div>
+    <div class="header-brand"><span class="header-mark" aria-hidden="true"><img src="./icons/qr-shield-mark.svg" alt=""></span><span>QR Shield<small class="login-brand-tagline">Scan any QR code before you trust it.</small></span></div>
     <span class="header-note">Your QR security workspace</span>
 </header>
         <p class="eyebrow">Clarity before you click</p>
@@ -428,7 +429,7 @@
                     messageEl.style.color = "#27ae60";
                     messageEl.dataset.state = "success";
                     messageEl.innerText = "Access verified. Redirecting...";
-                    setTimeout(() => { window.location.href = "scan.html"; }, 1000);
+                    setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
                 } else {
                     messageEl.style.color = "#27ae60";
                     messageEl.dataset.state = "success";

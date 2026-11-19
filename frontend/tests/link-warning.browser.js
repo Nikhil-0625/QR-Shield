@@ -14,6 +14,7 @@ async function runLinkWarningChecks() {
         check(id("link-warning-overlay").hidden, "Modal close animation did not finish");
     };
     const warningMessage = "You are about to leave QR Shield and visit a site flagged as potentially dangerous. Are you sure you want to proceed?";
+    const incompleteMessage = "Some checks were unavailable. No risk signal was reported by the completed checks; unavailable checks are not treated as passed. Review details if you need more certainty.";
     const opened = [];
     let proceedClickActive = false;
     let synchronousOpening = true;
@@ -39,16 +40,16 @@ async function runLinkWarningChecks() {
         risk_breakdown: [{ name: "Synthetic test indicator", reason: "Synthetic fixture, not a real website verdict." }] };
     window.__linkWarningFixtures = { base, suspicious, high, incomplete: { ...base, risk_label: null, risk_score: null } };
     const cases = [[base, "Confirm destination", "low"], [suspicious, "Security Warning", "warning"],
-        [high, "Security Warning", "danger"], [{ ...base, risk_label: null, risk_score: null }, "Security Warning", "warning"],
-        [{ ...base, domain_age_days: null }, "Security Warning", "warning"],
-        [{ ...base, risk_score: -1 }, "Security Warning", "warning"],
+        [high, "Security Warning", "danger"], [{ ...base, risk_label: null, risk_score: null }, "Confirm destination", "low"],
+        [{ ...base, domain_age_days: null }, "Confirm destination", "low"],
+        [{ ...base, risk_score: -1 }, "Confirm destination", "low"],
         [{ ...base, risk_score: 30, ml_phishing_probability: 100 }, "Security Warning", "warning"],
-        [{ ...base, ml_phishing_probability: null }, "Security Warning", "warning"]];
+        [{ ...base, ml_phishing_probability: null }, "Confirm destination", "low"]];
     for (const [data, title, tone] of cases) {
         showResults(data);
         check(opened.length === 0, "Automatic navigation after scan");
         const underlyingScrollY = window.scrollY;
-        id("open-link-btn").click(); id("open-link-btn").click();
+        id("open-link-btn").focus(); id("open-link-btn").click(); id("open-link-btn").click();
         await tick();
         check(modalOpen(), "Dialog not open");
         check(id("link-warning-dialog").getAttribute("role") === "dialog" &&
@@ -56,17 +57,23 @@ async function runLinkWarningChecks() {
         check(id("link-warning-dialog").dataset.tone === tone, "Wrong warning tone");
         check(id("link-warning-title").textContent === title, "Wrong warning title");
         check(id("link-warning-dialog").dataset.danger === String(tone !== "low"), "Danger state missing");
-        if (tone !== "low") check(id("link-warning-message").textContent === warningMessage, "Required security warning changed");
+        if (tone !== "low") check(id("link-warning-message").textContent === warningMessage,
+            "Required threat warning changed for " + JSON.stringify({
+                    label: data.risk_label, score: data.analysis_score ?? data.risk_score,
+                    findings: data.risk_breakdown?.length, message: id("link-warning-message").textContent
+                }));
         check(document.activeElement === id("link-warning-cancel"), "Safer option not focused");
         check(id("link-warning-url").textContent === new URL(data.final_url).href, "Shown URL differs from destination");
         check(id("link-warning-host").textContent === new URL(data.final_url).hostname, "Wrong actual hostname");
-        check(id("link-warning-domain").textContent === data.registered_domain, "Registered domain changed");
+        check(id("link-warning-domain").textContent === (data.domain_registration?.registered_domain || data.registered_domain), "Registered domain changed");
+        if (data.domain_registration?.registrar) check(id("link-warning-registration-details").textContent.includes(data.domain_registration.registrar), "RDAP registrar not shown");
         check(id("link-warning-limitations").textContent.includes("uncalibrated"), "ML limitation missing");
         check(document.body.style.position === "fixed" && document.documentElement.classList.contains("qr-modal-active"), "Underlying page not scroll-locked");
         check([...document.body.children].filter(element => element !== id("link-warning-overlay")).every(element => element.inert), "Underlying content remains interactive");
-        check(id("link-warning-cancel").textContent === "Cancel", "Safer label incorrect");
+        check(id("link-warning-cancel").textContent === "Back to safety", "Safer label incorrect");
         const expectedAction = tone === "low" ? "Proceed" : "Proceed anyway";
         check(id("link-warning-continue").textContent === expectedAction, "Continuation label incorrect");
+        if (tone === "low") check(id("link-warning-title").textContent !== "Security Warning", "Missing optional data triggered a false warning");
         check(document.querySelector('.link-warning-score-help').textContent.includes("not a verified probability of fraud"), "Score explanation missing");
         const technical = id("link-warning-technical");
         check(!technical.open, "Technical details not initially collapsed");
@@ -98,19 +105,41 @@ async function runLinkWarningChecks() {
         id("link-warning-cancel").click();
         proceed();
         check(opened.length === 0, "Closing modal accepted a canceled action");
-        if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            check(!id("link-warning-overlay").hidden && id("link-warning-overlay").classList.contains("is-closing"), "Close fade did not begin");
-        }
+        check(id("link-warning-overlay").hidden && !id("link-warning-overlay").classList.contains("is-closing"),
+            "Back to safety must close immediately");
         await waitClosed();
         check(!modalOpen() && opened.length === 0, "Cancel navigated");
         check(document.activeElement === id("open-link-btn"), "Cancel did not restore focus");
         check(!document.documentElement.classList.contains("qr-modal-active") && document.body.style.position !== "fixed", "Scroll lock not restored");
         check(Math.abs(window.scrollY - underlyingScrollY) <= 1, "Underlying scroll position not restored");
     }
-    showResults(suspicious); id("open-link-btn").click();
+    const cleanZero = { ...base, risk_label: "safe", analysis_score: 0, analysis_score_status: "available",
+        analysis_risk_level: "Low", risk_score: null, ml_phishing_probability: null, domain_age_days: null,
+        domain_registration: { status: "available", registrar: "Example Registrar", registration_date: "2020-01-01", domain_age_days: 2150, expiration_date: "2030-01-01", registered_domain: "wikipedia.org" } };
+    showResults(cleanZero); id("open-link-btn").click();
+    check(opened.length === 1 && opened[0][0] === new URL(cleanZero.final_url).href, "Confirmed zero-risk link did not open directly");
+    check(!modalOpen(), "Confirmed zero-risk link unnecessarily showed a warning modal");
+    check(opened[0][1] === "_blank" && opened[0][2] === "noopener,noreferrer", "Direct opening lacks new-tab protections");
+    showResults({ ...cleanZero, analysis_score: 20, analysis_risk_level: "Moderate", risk_breakdown: [
+        { name: "HTTPS Validation Failed", category: "transport", points: 20, reason: "Synthetic expired-certificate finding." }],
+        https_valid: false, security_checks: [{ name: "HTTPS certificate", status: "failed", detail: "Certificate expired." }] });
+    id("open-link-btn").click();
+    check(modalOpen() && opened.length === 1, "Failed TLS validation must trigger a warning even below 30 points");
+    check(id("link-warning-message").textContent.includes("security indicator"), "TLS override warning message is not explained");
+    id("link-warning-cancel").click(); await waitClosed();
+    showResults({ ...cleanZero, overall_risk: { code: "inconclusive" }, security_checks: [
+        { name: "HTTPS certificate", status: "unavailable", detail: "Blocked." }] });
+    id("open-link-btn").click();
+    check(modalOpen() && opened.length === 1, "Inconclusive scan must not open automatically");
+    id("link-warning-cancel").click(); await waitClosed();
+    showResults({ ...cleanZero, risk_breakdown: [{ name: "Possible Brand Impersonation", reason: "Threat indicator fixture", points: 25 }] });
+    id("open-link-btn").click();
+    check(modalOpen() && opened.length === 1, "Zero score with threat evidence bypassed warning");
+    id("link-warning-cancel").click(); await waitClosed();
+    showResults(suspicious); id("open-link-btn").focus(); id("open-link-btn").click();
     id("link-warning-overlay").click(); await waitClosed();
     check(opened.length === 0 && document.activeElement === id("open-link-btn"), "Backdrop dismissal navigated or lost focus");
-    showResults(suspicious); id("open-link-btn").click();
+    showResults(suspicious); id("open-link-btn").focus(); id("open-link-btn").click();
     document.dispatchEvent(new KeyboardEvent("keydown", {key: "Escape", bubbles: true, cancelable: true}));
     await waitClosed();
     check(opened.length === 0 && document.activeElement === id("open-link-btn"), "Escape dismissal navigated or lost focus");
@@ -149,22 +178,31 @@ async function runLinkWarningChecks() {
     check(id("link-open-status").textContent.includes("cannot reliably confirm") && id("link-open-status").textContent.includes("scan again"), "Indeterminate popup result lacks helpful guidance");
     QRShieldLinkWarning.open(); proceed(); await tick();
     check(opened.length === 1, "Indeterminate popup triggered a retry");
+    const opensBeforeThreat = opened.length;
+    showResults({ ...base, risk_label: "safe", analysis_score: 0, analysis_risk_level: "Low",
+        live_reputation: { status: "threat" }, overall_risk: { code: "known_dangerous" } });
+    id("open-link-btn").click();
+    check(opened.length === opensBeforeThreat && id("link-warning-dialog").dataset.tone === "danger",
+        "Safe-looking rule label cannot bypass a Safe Browsing threat warning");
+    check(id("link-warning-continue").disabled, "Known threat requires explicit acknowledgment");
+    id("link-warning-ack").click(); proceed(); await waitClosed();
+    check(opened.length === 2, "Explicitly acknowledged known-threat continuation failed");
     showResults(high); id("open-link-btn").click(); id("link-warning-ack").click();
     proceed(); await waitClosed();
-    check(opened.length === 2, "Acknowledged high-risk continuation failed");
+    check(opened.length === 3, "Acknowledged high-risk continuation failed");
     showResults(base); id("open-link-btn").click();
     QRShieldLinkWarning.clear(); proceed(); await waitClosed();
-    check(opened.length === 2 && !modalOpen(), "Stale confirmation navigated");
+    check(opened.length === 3 && !modalOpen(), "Stale confirmation navigated");
     showResults(base); id("open-link-btn").click();
     showResults(suspicious); id("open-link-btn").click(); await tick();
     proceed(); await waitClosed();
-    check(opened.length === 3 && opened[2][0] === new URL(suspicious.final_url).href, "Stale result race or incorrect destination");
+    check(opened.length === 4 && opened[3][0] === new URL(suspicious.final_url).href, "Stale result race or incorrect destination");
     const workingOpen = window.open;
     window.open = () => { throw new Error("Synthetic blocked browser opening"); };
     showResults(base); id("open-link-btn").click(); proceed(); await waitClosed();
     check(id("link-open-status").textContent.toLowerCase().includes("could not open") && id("link-open-status").textContent.toLowerCase().includes("scan again"), "Opening error lacks helpful guidance");
     QRShieldLinkWarning.open(); proceed(); await tick();
-    check(opened.length === 3 && id("open-link-btn").disabled, "Opening error retried automatically");
+    check(opened.length === 4 && id("open-link-btn").disabled, "Opening error retried automatically");
     window.open = workingOpen;
     // Existing PDF and reset actions must still work with the warning module loaded.
     showResults(base); currentScanId = 123;

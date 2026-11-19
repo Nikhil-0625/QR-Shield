@@ -1,11 +1,12 @@
 'use strict';
 
 const CACHE_PREFIX = 'qr-shield-static-';
-const CACHE_NAME = CACHE_PREFIX + 'v1';
+const CACHE_NAME = CACHE_PREFIX + 'v2';
 const OFFLINE_URL = new URL('./offline.html', self.location.href).href;
 const PRECACHE_URLS = [
     OFFLINE_URL,
     new URL('./manifest.json', self.location.href).href,
+    new URL('./icons/qr-shield-mark.svg', self.location.href).href,
     new URL('./icons/qr-shield-192.png', self.location.href).href,
     new URL('./icons/qr-shield-512.png', self.location.href).href,
     new URL('./icons/qr-shield-maskable-192.png', self.location.href).href,

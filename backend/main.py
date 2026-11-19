@@ -92,7 +92,7 @@ logger = logging.getLogger(__name__)
 
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"), override=False)
 cors_origins = [origin.strip() for origin in os.environ.get(
-    "CORS_ALLOWED_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500,https://qr-shield.pages.dev,https://0ac29073.qr-shield.pages.dev"
+    "CORS_ALLOWED_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500,https://qr-shield.pages.dev,https://0ac29073.qr-shield.pages.dev,https://581928c8.qr-shield.pages.dev,https://1ec02d66.qr-shield.pages.dev,https://fb23d87a.qr-shield.pages.dev,https://7cb923e4.qr-shield.pages.dev,https://ac858a9.qr-shield.pages.dev,https://fix-mobile-responsive.qr-shield.pages.dev,https://f09372e6.qr-shield.pages.dev,https://ad14d96b.qr-shield.pages.dev,https://6b227c6b.qr-shield.pages.dev,https://b3f4bc64.qr-shield.pages.dev,https://e8d111fb.qr-shield.pages.dev,https://891d867a.qr-shield.pages.dev,https://9960649e.qr-shield.pages.dev,https://96ea44b6.qr-shield.pages.dev,https://00aba83f.qr-shield.pages.dev"
 ).split(",") if origin.strip()]
 if any(origin == "*" or origin == "null" or urlparse(origin).scheme not in ("http", "https")
        or not urlparse(origin).netloc for origin in cors_origins):
@@ -1005,6 +1005,135 @@ def _url_unavailable_checks(result, include_ml, reputation):
     return unavailable
 
 
+def _url_security_checks(result, include_ml, reputation):
+    findings = result.get("risk_breakdown")
+    phishing_findings = [
+        item for item in findings or []
+        if isinstance(item, dict) and item.get("category") != "transport"
+        and item.get("name") not in {"HTTP Connection", "HTTPS Downgrade Redirect", "HTTPS Validation Failed"}
+    ]
+    https_status = result.get("https_check_status")
+    https_value = result.get("https_valid")
+    if https_value is True:
+        https_status = "passed"
+    elif https_value is False:
+        https_status = "failed"
+    elif result.get("https_check_details", {}).get("status") == "not_applicable":
+        https_status = "not_applicable"
+    elif https_status not in {"blocked", "unavailable", "failed"}:
+        https_status = "not_checked"
+
+    reputation_status = reputation.get("status")
+    if reputation_status not in {"threat", "clear"}:
+        reputation_status = "unavailable" if reputation_status == "unavailable" else "not_checked"
+
+    ml_checked = include_ml and result.get("ml_phishing_probability") is not None
+    checks = [
+        {"name": "URL structure", "status": "checked",
+         "detail": "The existing offline URL validation and structure rules were applied."},
+        {"name": "Hostname and registered domain", "status": "checked",
+         "detail": "The hostname and registered domain were parsed using the bundled public-suffix data."},
+        {"name": "Brand impersonation", "status": "warning" if result.get("lookalike_brand") else "checked",
+         "detail": ("A possible lookalike of " + str(result["lookalike_brand"]) + " was detected."
+                    if result.get("lookalike_brand") else "The configured protected-brand patterns were checked; no match was reported.")},
+        {"name": "Rule-based findings", "status": "warning" if phishing_findings else "checked",
+         "detail": ("Rule-based warning signs were detected." if phishing_findings
+                    else "No rule-based warning signs were reported by the checks that ran.")},
+        {"name": "HTTPS certificate", "status": https_status,
+         "detail": result.get("https_check_details", {}).get("reason", "No HTTPS check details were returned.")},
+        {"name": "Redirect analysis", "status": result.get("redirect_check_status") or "unavailable",
+         "detail": result.get("redirect_check_details", {}).get("reason", "No redirect-check details were returned.")},
+        {"name": "Domain registration / RDAP", "status": result.get("domain_registration_status") or "unavailable",
+         "detail": result.get("domain_registration", {}).get("reason", "No registration-check details were returned.")},
+        {"name": "Google Safe Browsing", "status": reputation_status,
+         "detail": reputation.get("reason", "No live reputation details were returned.")},
+        {"name": "Experimental ML", "status": "completed" if ml_checked else "not_checked",
+         "detail": ("The existing experimental phishing estimate was included; it is uncalibrated."
+                    if ml_checked else result.get("ml_note", "Experimental ML was not used."))},
+    ]
+    return checks
+
+
+def _analysis_confidence(security_checks):
+    completed_statuses = {
+        "checked", "completed", "performed", "passed", "verified", "warning",
+        "failed", "threat", "clear",
+    }
+    unavailable_statuses = {"unavailable", "blocked", "not_checked", "disabled"}
+    completed = unavailable = 0
+    for item in security_checks:
+        status_value = str(item.get("status", "")).lower()
+        if status_value == "not_applicable":
+            continue
+        if status_value in completed_statuses:
+            completed += 1
+        elif status_value in unavailable_statuses:
+            unavailable += 1
+        else:
+            unavailable += 1
+    total = completed + unavailable
+    return (round(completed / total * 100) if total else None), {
+        "completed_checks": completed,
+        "unavailable_checks": unavailable,
+        "excluded_not_applicable_checks": len(security_checks) - total,
+    }
+
+
+def _attach_analysis_summary(result, include_ml, reputation):
+    checks = _url_security_checks(result, include_ml, reputation)
+    confidence, confidence_basis = _analysis_confidence(checks)
+    rule_score = result.get("rule_score")
+    ml_probability = result.get("ml_phishing_probability")
+    if not isinstance(rule_score, (int, float)) or isinstance(rule_score, bool):
+        score = None
+    else:
+        rule_component = max(0, min(float(rule_score), 100))
+        ml_component = (
+            max(0, min(float(ml_probability), 100)) * 0.3
+            if isinstance(ml_probability, (int, float)) and not isinstance(ml_probability, bool)
+            else 0
+        )
+        score = min(100, max(round(rule_component), round(rule_component * 0.7 + ml_component)))
+        if reputation.get("status") == "threat":
+            score = 100
+
+    levels = (
+        (80, "Critical"), (60, "High"), (40, "Elevated"),
+        (20, "Moderate"), (0, "Low"),
+    )
+    risk_level = next(label for threshold, label in levels if score is not None and score >= threshold) if score is not None else "Unavailable"
+    overall_risk = result.get("overall_risk") or {}
+    findings = result.get("risk_breakdown")
+    recommendations = []
+    recommendation = overall_risk.get("action") or result.get("recommended_action")
+    if isinstance(recommendation, str) and recommendation:
+        recommendations.append(recommendation)
+    elif findings:
+        recommendations.append("Verify the destination independently before entering passwords or payment details.")
+    else:
+        recommendations.append("Check the address and sender before sharing sensitive information.")
+
+    result.update({
+        "security_checks": checks,
+        "analysis_score": score,
+        "analysis_score_status": "available" if score is not None else "unavailable",
+        "analysis_risk_level": risk_level,
+        "analysis_score_reason": (
+            "The score uses the existing rule findings and, only when available, the existing ML contribution. "
+            "A current Google Safe Browsing threat raises the score to 100. Missing checks are not treated as passed; "
+            "confidence reflects completed and unavailable checks."
+        ),
+        "analysis_confidence": confidence,
+        "analysis_confidence_basis": confidence_basis,
+        "analysis_explanation": {
+            "summary": overall_risk.get("explanation") or result.get("explanation")
+            or "Review the completed checks below; unavailable checks have not passed.",
+            "findings": findings if isinstance(findings, list) else [],
+            "recommendations": recommendations,
+        },
+    })
+
+
 @app.post("/scan")
 async def scan_qr(file: UploadFile = File(...), current_user: str = Depends(get_current_user),
                   expected_vpa: str = Form(default=None, max_length=256),
@@ -1090,6 +1219,7 @@ def _analyze_scan(contents, current_user, expected_vpa, private_scan=False, allo
             "reputation_privacy_notice": PRIVACY_NOTICE,
             "reputation_accuracy_notice": ACCURACY_NOTICE,
         })
+        _attach_analysis_summary(result, include_ml, reputation)
         if not include_ml:
             result["ml_status"] = "excluded"
             result["ml_note"] = (
@@ -1184,7 +1314,9 @@ def _analyze_website(raw_url, current_user, allow_live=True):
          "detail": result["redirect_check_details"]["reason"]},
         {"name": "Domain registration / RDAP", "status": result["domain_registration_status"],
          "detail": result["domain_registration"]["reason"] + " Domain age does not verify website safety."},
-    ] + [{"name": "ML verdict", "status": "not_checked", "detail": ml_note}]
+        {"name": "Google Safe Browsing", "status": reputation.get("status"),
+         "detail": reputation.get("reason", "No live reputation details were returned.")},
+    ] + [{"name": "Experimental ML", "status": "not_checked", "detail": ml_note}]
     result.update({
         "status": "success", "submitted_url": raw_url, "normalized_url": url,
         "decoded_content": url, "analysis_source": "website",
@@ -1202,6 +1334,7 @@ def _analyze_website(raw_url, current_user, allow_live=True):
                               "live_reputation": reputation, "offline_risk_label": offline_label,
                               "overall_risk": overall_risk},
     })
+    _attach_analysis_summary(result, False, reputation)
     return _save_analysis(result, current_user)
 
 

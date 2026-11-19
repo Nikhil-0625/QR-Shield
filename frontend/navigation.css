@@ -2,8 +2,8 @@
 html:not(.show-experimental-ml) .qs-nav-link[href="experimental-warning.html"] { display:none !important; }
 .qs-header { box-sizing:border-box; background:var(--sidebar-bg,var(--surface,#fff)); color:var(--ink); z-index:100; }
 .qs-brand { display:flex; align-items:center; gap:12px; color:inherit; text-decoration:none; min-width:0; }
-.qs-brand-mark { display:grid; place-items:center; width:42px; height:42px; flex:0 0 42px; background:linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%); box-shadow:0 4px 12px rgba(79, 70, 229, 0.28); color:var(--action-ink,#fff); border-radius:12px; }
-.qs-brand-mark svg { display:block; width:24px; height:24px; }
+.qs-brand-mark { display:grid; place-items:center; width:42px; height:42px; flex:0 0 42px; }
+.qs-brand-mark img { display:block; width:100%; height:100%; object-fit:contain; }
 .qs-brand-name { display:block; color:var(--ink); font-size:19px; font-weight:750; letter-spacing:-.5px; line-height:1.3; }
 .qs-brand-subtitle { display:block; margin-top:3px; font-size:12px; color:var(--muted); line-height:1.4; }
 .qs-nav-links { display:flex; flex-direction:column; gap:6px; min-width:0; min-height:0; margin:0; }
@@ -27,7 +27,7 @@ html:not(.show-experimental-ml) .qs-nav-link[href="experimental-warning.html"] {
 .qs-nav-link:focus-visible,.qs-menu-toggle:focus-visible,.qs-drawer-close:focus-visible { outline:3px solid var(--focus) !important; outline-offset:3px; }
 .qs-skip-link { position:fixed; left:16px; top:-80px; z-index:2000; padding:12px 18px; border-radius:8px; background:var(--surface); color:var(--ink); }
 .qs-skip-link:focus { top:12px; }
-body.qs-menu-open { overflow:hidden; }
+body[data-page].qs-menu-open { position:fixed !important; inset:0 auto auto 0; width:100%; overflow:hidden; overscroll-behavior:none; }
 body[data-page] :is(main.app-workspace,.scanner-shell,.website-shell,.experimental-main) { min-width:0; width:100%; max-width:1440px; box-sizing:border-box; margin:0 auto; padding:32px; }
 @media(min-width:1200px) {
  body[data-page] { padding:0 0 0 248px; }

@@ -24,19 +24,22 @@ for fixture in fixtures:
     fixture["backend"] = upi_intent_banner(fixture["details"], fixture["analysis"])
 source = (root / "frontend/scan.html").read_text(encoding="utf-8")
 tests = (root / "frontend/tests/result-explanations.test.js").read_text(encoding="utf-8")
-script = "globalThis.UPI_INTENT_FIXTURES=" + json.dumps(fixtures).replace("</", "<\\/") + ";globalThis.SCAN_SOURCE=" + json.dumps(source).replace("</", "<\\/") + ";try {" + tests + "} catch (error) { document.documentElement.setAttribute('data-test-error', error.stack); }"
+script = "globalThis.UPI_INTENT_FIXTURES=" + json.dumps(fixtures).replace("</", "<\\/") + ";globalThis.SCAN_SOURCE=" + json.dumps(source).replace("</", "<\\/") + ";try {" + tests + "} catch (error) { window.document.documentElement.setAttribute('data-test-error', error.stack); }"
 with tempfile.TemporaryDirectory(prefix="qrshield-result-tests-") as temporary:
     folder = Path(temporary)
     page = folder / "test.html"
-    page.write_text('<html><body><script>' + script + '</script></body></html>', encoding="utf-8")
+    page.write_text('<html><head><meta charset="utf-8"></head><body><script>' + script + '</script></body></html>', encoding="utf-8")
     result = subprocess.run([
         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
-        "--headless=new", "--disable-gpu", "--no-first-run", "--disable-background-networking",
+        "--headless=new", "--disable-gpu", "--disable-gpu-compositing", "--disable-software-rasterizer",
+        "--disable-features=VizDisplayCompositor", "--no-sandbox", "--no-first-run", "--disable-background-networking",
         "--disable-sync", "--disable-extensions", "--disable-component-update",
         "--host-resolver-rules=MAP * ~NOTFOUND", "--proxy-server=http://127.0.0.1:9",
         "--user-data-dir=" + str(folder / "profile"), "--dump-dom", page.as_uri()
     ], capture_output=True, text=True, timeout=45)
     match = re.search(r'data-result-checks="(\d+)"', result.stdout)
     if result.returncode or not match:
-        raise RuntimeError("Result explanation browser checks failed: " + str(re.findall(r'data-test-error="([^\"]*)"', result.stdout)))
+        raise RuntimeError("Result explanation browser checks failed (exit " + str(result.returncode) + "): "
+            + str(re.findall(r'data-test-error="([^\"]*)"', result.stdout))
+            + " stderr=" + result.stderr[-1200:] + " stdout=" + result.stdout[-1200:])
     print(f"{match[1]} synthetic DOM result explanation checks passed in Edge")

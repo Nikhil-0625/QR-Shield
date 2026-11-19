@@ -27,6 +27,7 @@
 
 <meta name="theme-color" content="#F3F0FF">
 <link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icons/qr-shield-mark.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/qr-shield-192.png">
 <link rel="apple-touch-icon" href="./icons/qr-shield-192.png">
 <script src="./bg-network.js" defer></script>
@@ -107,7 +108,7 @@
 
     <a class="qs-brand" href="index.html" aria-label="QR Shield home">
 
-        <span class="qs-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/><path d="m9 12 2 2 4-4"/></svg></span>
+        <span class="qs-brand-mark" aria-hidden="true"><img src="./icons/qr-shield-mark.svg" alt=""></span>
 
         <span class="qs-brand-copy"><span class="qs-brand-name">QR Shield</span><span class="qs-brand-subtitle">QR Security Platform</span></span>
 
@@ -247,6 +248,27 @@
 
         <div class="website-address"><span>Analyzed website</span><p id="website-normalized-url"></p></div>
 
+        <section class="website-analysis-score" id="website-analysis-score-card" aria-label="QR Shield analysis score">
+
+            <div class="qrs-risk-score-indicator website-risk-score-indicator" id="website-analysis-score-indicator" data-band="unavailable" role="img" aria-label="Risk Score unavailable. Risk classification unavailable.">
+                <span class="qrs-risk-score-label">Risk Score</span>
+                <div class="qrs-risk-score-circle">
+                    <svg viewBox="0 0 100 100" aria-hidden="true">
+                        <circle class="qrs-risk-score-track" cx="50" cy="50" r="42"></circle>
+                        <circle class="qrs-risk-score-progress" id="website-analysis-score-progress" cx="50" cy="50" r="42" stroke-dasharray="263.8938" stroke-dashoffset="263.8938"></circle>
+                    </svg>
+                    <div class="qrs-risk-score-center">
+                        <span class="qrs-risk-score-value" id="website-analysis-score">Unavailable</span>
+                        <span class="qrs-risk-score-out-of" id="website-analysis-score-out-of"></span>
+                    </div>
+                </div>
+                <strong class="qrs-risk-score-classification" id="website-analysis-risk-level">Risk classification unavailable</strong>
+            </div>
+
+            <p class="website-analysis-score-note">Higher scores mean more detected risk signals. This is not a probability, and unavailable checks have not passed.</p>
+
+        </section>
+
         <section class="website-simple-security" aria-labelledby="website-simple-security-title">
 
             <h3 id="website-simple-security-title">Security checks</h3>
@@ -291,7 +313,7 @@
 
         <div class="website-limitations"><strong>Before you continue</strong><p>The page is not opened in a browser and its body is not downloaded. Enabled checks may resolve the hostname, verify TLS, inspect bounded redirect response headers, send the URL to Google Safe Browsing, and send the registered domain to RDAP. Review which checks completed. Verify the address and sender before sharing passwords or payment details.</p><p id="website-ml-note" class="website-technical-only"></p></div>
 
-        <details class="website-technical"><summary>Technical details <span>For reference only — not a probability.</span></summary><dl id="website-technical-data"></dl></details>
+        <details class="website-technical"><summary>Detailed Analysis <span>Confidence and check evidence; the score is not a probability.</span></summary><dl id="website-technical-data"></dl></details>
 
         </div>
 

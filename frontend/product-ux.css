@@ -357,24 +357,39 @@ body.auth-page { background:var(--app-bg); }
 @keyframes home-orbit { to { transform:translate(-50%,-50%) rotate(1turn); } }
 
 @media(max-width:1199.98px) {
-    .qs-header { justify-content:space-between !important; }
+    body[data-page] { --qs-mobile-header-height:calc(72px + env(safe-area-inset-top,0px)); }
+    .qs-header {
+        position:fixed !important;
+        inset:0 0 auto !important;
+        z-index:1000 !important;
+        height:var(--qs-mobile-header-height) !important;
+        min-height:var(--qs-mobile-header-height) !important;
+        padding:calc(10px + env(safe-area-inset-top,0px)) calc(clamp(16px,4vw,48px) + env(safe-area-inset-right,0px)) 10px calc(clamp(16px,4vw,48px) + env(safe-area-inset-left,0px)) !important;
+        justify-content:space-between !important;
+    }
+    body[data-page] :is(main.app-workspace,.scanner-shell,.website-shell,.experimental-main) {
+        margin-top:var(--qs-mobile-header-height) !important;
+    }
     .qs-menu-toggle { display:grid !important; order:3; flex:0 0 44px; }
+    .qs-skip-link { z-index:2000 !important; }
     .qs-header>.qs-brand { margin-right:auto; }
     .qs-header>.qs-theme-toggle { margin-left:auto; }
     .qs-nav-links {
         position:fixed !important;
-        inset:72px 0 auto !important;
-        z-index:110;
+        inset:var(--qs-mobile-header-height) auto auto env(safe-area-inset-left,0px) !important;
+        z-index:1100 !important;
         display:flex !important;
         flex-direction:column !important;
         align-items:stretch;
         justify-content:flex-start;
         gap:5px;
-        width:min(360px,88vw) !important;
-        height:calc(100dvh - 72px) !important;
+        width:min(360px,calc(88vw - env(safe-area-inset-left,0px) - env(safe-area-inset-right,0px))) !important;
+        height:calc(100vh - var(--qs-mobile-header-height) - env(safe-area-inset-bottom,0px)) !important;
+        height:calc(100dvh - var(--qs-mobile-header-height) - env(safe-area-inset-bottom,0px)) !important;
         min-height:0;
-        padding:18px !important;
+        padding:18px 18px max(18px,env(safe-area-inset-bottom,0px)) !important;
         overflow-y:auto !important;
+        overscroll-behavior:contain;
         border:1px solid var(--line) !important;
         border-top:0 !important;
         border-radius:0 0 14px 0 !important;
@@ -386,6 +401,7 @@ body.auth-page { background:var(--app-bg); }
     }
     .qs-header.is-open .qs-nav-links { transform:translateX(0) !important; visibility:visible !important; }
     .qs-nav-link { justify-content:flex-start; width:100% !important; min-height:46px !important; }
+    .qs-drawer-heading { position:sticky; top:0; z-index:1; background:var(--surface); }
     .qs-nav-cta { justify-content:center; margin-top:8px; }
     .qs-nav-footer { flex-direction:column !important; align-items:stretch; gap:12px !important; margin-top:auto !important; padding-top:16px !important; border-top:1px solid var(--line) !important; }
     .qs-nav-footer .qs-nav-theme { align-items:flex-start; flex-direction:column; }
@@ -412,13 +428,13 @@ body.auth-page { background:var(--app-bg); }
     .dashboard-page .dashboard-header-actions { flex-wrap:wrap; }
 }
 @media(max-width:420px) {
-    .qs-header { min-height:64px !important; padding:8px 12px !important; }
+    body[data-page] { --qs-mobile-header-height:calc(64px + env(safe-area-inset-top,0px)); }
+    .qs-header { height:var(--qs-mobile-header-height) !important; min-height:var(--qs-mobile-header-height) !important; padding:calc(8px + env(safe-area-inset-top,0px)) calc(12px + env(safe-area-inset-right,0px)) 8px calc(12px + env(safe-area-inset-left,0px)) !important; }
     .qs-brand { gap:8px; }
     .qs-brand-mark { width:36px !important; height:36px !important; flex-basis:36px !important; }
     .qs-brand-name { font-size:16px !important; }
     .qs-brand-subtitle { font-size:10px !important; }
-    .qs-theme-toggle,.qs-menu-toggle { width:40px !important; height:40px !important; flex-basis:40px !important; }
-    .qs-nav-links { inset:64px 0 auto !important; height:calc(100dvh - 64px) !important; }
+    .qs-theme-toggle,.qs-menu-toggle { width:44px !important; height:44px !important; flex-basis:44px !important; }
     .home-actions { flex-direction:column; }
     .home-actions a { width:100%; }
     .home-steps,.home-checks { grid-template-columns:minmax(0,1fr); }

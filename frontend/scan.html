@@ -2770,15 +2770,17 @@
 
     .results-card[data-result-view="simple"] #result-rows > :not(.risk-panel):not(.verdict-banner):not(.simple-result-copy):not(.upi-security-summary):not(.upi-comparison-summary):not(.upi-recipient-summary):not(.upi-direction-banner):not(.result-technical-details),
 
-    .results-card[data-result-view="simple"] .risk-panel > :not(.verdict-banner),
-
-    .results-card[data-result-view="simple"] .summary-destination,
+    .results-card[data-result-view="simple"] .risk-panel > :not(.verdict-banner):not(.risk-heading):not(.risk-track):not(.risk-meta),
 
     .results-card[data-result-view="technical"] .simple-result-copy { display:none !important; }
 
     .result-plain-verdict { display:block; margin-top:10px; font-weight:650; line-height:1.6; }
 
     .simple-result-copy { grid-column:1 / -1; min-width:0; color:var(--ink, #172033); overflow-wrap:anywhere; }
+
+    .simple-result-copy .summary-destination { margin:0 0 14px; padding:14px; border:1px solid var(--line, #e5e9f1); border-radius:12px; background:var(--surface, #fff); overflow-wrap:anywhere; word-break:break-word; }
+
+    .simple-result-copy .summary-destination strong { display:block; margin-bottom:5px; font-size:13px; }
 
     .result-plain-reason { margin:0; font-size:15px; line-height:1.75; }
 
@@ -2809,7 +2811,7 @@
 
     @media (max-width:520px) { .simple-security-summary { padding:15px; } .simple-security-check { gap:6px 10px; } }
 
-    .simple-tampering-warning { margin-top:16px; padding:16px; border:1px solid var(--line, #ddd6ee); border-left:4px solid #b77916; border-radius:10px; background:var(--surface-soft, #f7f5fc); line-height:1.65; }
+    .simple-tampering-warning { margin-top:16px; padding:16px; border:1px solid var(--line, #ddd6ee); border-left:4px solid var(--accent, #8175ff); border-radius:10px; background:var(--surface-soft, #f7f5fc); color:var(--ink, #172033); line-height:1.65; }
 
     .simple-tampering-warning p { margin:6px 0 0; }
 
@@ -2844,6 +2846,7 @@
 
 <meta name="theme-color" content="#F3F0FF">
 <link rel="manifest" href="./manifest.json">
+<link rel="icon" type="image/svg+xml" href="./icons/qr-shield-mark.svg">
 <link rel="icon" type="image/png" sizes="192x192" href="./icons/qr-shield-192.png">
 <link rel="apple-touch-icon" href="./icons/qr-shield-192.png">
 <script src="./bg-network.js" defer></script>
@@ -2932,17 +2935,7 @@
 
     <a class="qs-brand" href="index.html" aria-label="QR Shield home">
 
-        <span class="qs-brand-mark" aria-hidden="true">
-
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-
-                <path d="M12 3 19 6v5c0 4.7-2.9 8.1-7 10-4.1-1.9-7-5.3-7-10V6l7-3Z"/>
-
-                <path d="m9 12 2 2 4-4"/>
-
-            </svg>
-
-        </span>
+        <span class="qs-brand-mark" aria-hidden="true"><img src="./icons/qr-shield-mark.svg" alt=""></span>
 
         <span class="qs-brand-copy">
 
@@ -3309,7 +3302,7 @@
 
     <details id="result-technical-details" class="result-technical-details" ontoggle="setResultView(this.open ? 'technical' : 'simple')">
 
-        <summary id="result-technical-summary" aria-controls="result-technical-body" aria-expanded="false">Technical details</summary>
+        <summary id="result-technical-summary" aria-controls="result-technical-body" aria-expanded="false">Detailed Analysis</summary>
 
         <p>For reference only — not a probability.</p>
 
@@ -3392,6 +3385,7 @@
         <dt>Destination</dt><dd id="link-warning-host"></dd>
 
         <dt>Registered domain</dt><dd id="link-warning-domain"></dd>
+        <dd class="link-warning-registration-details" id="link-warning-registration-details" hidden></dd>
 
         <dt>URL</dt><dd id="link-warning-url"></dd>
 
@@ -3405,7 +3399,9 @@
 
     <details id="link-warning-technical" class="link-warning-technical">
 
-        <summary>View technical details</summary>
+        <summary>Detailed Analysis</summary>
+
+        <ul id="link-warning-checks" class="link-warning-checks"></ul>
 
         <div id="link-warning-full-findings"></div>
 
@@ -3421,7 +3417,7 @@
 
         <div class="link-warning-actions">
 
-            <button type="button" id="link-warning-cancel" data-modal-cancel>Cancel</button>
+            <button type="button" id="link-warning-cancel" data-modal-cancel>Back to safety</button>
 
             <button type="button" id="link-warning-continue" data-modal-proceed>Proceed anyway</button>
 
@@ -5273,13 +5269,14 @@
 
         if (data.final_url && !["completed", "not_applicable"].includes(redirectStatus)) unavailable.push("redirect analysis");
 
-        const registrationStatus = String(data.domain_registration_status || data.domain_registration?.status || "").toLowerCase();
+        const registration = getDomainRegistration(data);
+        const registrationStatus = String(registration.status || data.domain_registration_status || "").toLowerCase();
 
         if (registrationStatus) {
 
-            if (!["available", "not_applicable"].includes(registrationStatus)) unavailable.push("domain registration / RDAP");
+            if (!["available", "performed", "not_applicable"].includes(registrationStatus)) unavailable.push("domain registration / RDAP");
 
-        } else if (numeric(data.domain_age_days) === null) unavailable.push("domain information");
+        } else if (numeric(data.domain_age_days ?? registration.domain_age_days) === null) unavailable.push("domain information");
 
         if (!Array.isArray(data.risk_breakdown)) unavailable.push("rule-based findings");
 
@@ -5291,7 +5288,8 @@
 
         if (Array.isArray(data.unavailable_checks)) unavailable.push(...data.unavailable_checks.filter(item =>
 
-            typeof item === "string" && !/\bml\b|machine learning/i.test(item)));
+            typeof item === "string" && !/\bml\b|machine learning/i.test(item)
+            && !(["available", "performed"].includes(registrationStatus) && /domain registration|rdap/i.test(item))));
 
         const conflict = ml !== null && rule !== null &&
 
@@ -5618,6 +5616,40 @@
 
 
 
+    function getDomainRegistration(data) {
+
+        const primary = data.domain_registration && typeof data.domain_registration === "object"
+            ? data.domain_registration : null;
+        const explained = data.score_explanation?.domain_registration
+            && typeof data.score_explanation.domain_registration === "object"
+            ? data.score_explanation.domain_registration : null;
+        const hasValues = value => value && Object.values(value).some(item => item !== null && item !== undefined && item !== "");
+        const candidates = [primary, explained].filter(Boolean);
+
+        return candidates.find(value => String(value.status || "").toLowerCase() === "available")
+            || candidates.find(hasValues) || {};
+
+    }
+
+    function getDomainRegistrationSummary(data, registration = getDomainRegistration(data)) {
+
+        const fields = [];
+        const addText = (label, value) => {
+            if (typeof value === "string" && value.trim()) fields.push(label + ": " + value.trim());
+        };
+        const registeredDomain = registration.registered_domain || data.registered_domain;
+        addText("Registered domain", registeredDomain);
+        addText("Registrar", registration.registrar);
+        addText("Registration date", registration.registration_date);
+        const rawAge = registration.domain_age_days ?? data.domain_age_days;
+        const age = typeof rawAge === "number" ? rawAge
+            : typeof rawAge === "string" && rawAge.trim() ? Number(rawAge) : NaN;
+        if (Number.isSafeInteger(age) && age >= 0) fields.push("Domain age: " + age + " days at lookup");
+        addText("Expires", registration.expiration_date);
+        return fields.join(" | ");
+
+    }
+
     function createSimpleSecuritySummary(data, subtitle) {
 
         const section = document.createElement("section");
@@ -5693,6 +5725,62 @@
 
         };
 
+        const registration = getDomainRegistration(data);
+        const registrationAvailable = ["available", "performed"].includes(String(registration.status || "").toLowerCase());
+
+        if (Array.isArray(data.security_checks)) {
+            const checkLabels = {
+                "Rule-based findings": "Address warning signs",
+                "HTTPS certificate": "HTTPS certificate",
+                "Redirect analysis": "Redirect analysis",
+                "Domain registration / RDAP": "Domain information",
+                "Google Safe Browsing": "Known threat check"
+            };
+            const checkStatuses = {
+                checked: ["Checked", "neutral"],
+                completed: ["Completed", "neutral"],
+                performed: ["Completed", "neutral"],
+                passed: ["Passed", "passed"],
+                verified: ["Passed", "passed"],
+                available: ["Available", "neutral"],
+                warning: ["Warning found", "warning"],
+                failed: ["Failed", "warning"],
+                threat: ["Threat detected", "threat"],
+                clear: ["No known threat reported", "neutral"],
+                unavailable: ["Not available", "unavailable"],
+                blocked: ["Blocked by policy", "unavailable"],
+                not_checked: ["Not checked", "unavailable"],
+                disabled: ["Not checked", "unavailable"],
+                not_applicable: ["Not applicable", "neutral"]
+            };
+            data.security_checks.forEach(item => {
+                if (!item || typeof item.name !== "string" || /\bml\b|machine learning/i.test(item.name)) return;
+                const status = String(item.status || "").toLowerCase();
+                let [value, state] = checkStatuses[status] || ["Not available", "unavailable"];
+                const label = checkLabels[item.name] || item.name;
+                const isRegistrationCheck = item.name === "Domain registration / RDAP";
+                if (isRegistrationCheck && registrationAvailable
+                    && ["unavailable", "not_checked", "blocked", "disabled"].includes(status)) [value, state] = ["Available", "neutral"];
+                const registrationDetail = isRegistrationCheck && registrationAvailable
+                    ? [getDomainRegistrationSummary(data, registration), typeof item.detail === "string"
+                        && !["unavailable", "not_checked", "blocked", "disabled"].includes(status) ? item.detail : ""].filter(Boolean).join(" | ")
+                    : "";
+                const detail = registrationDetail || (["warning", "failed", "threat", "unavailable", "blocked", "not_checked", "disabled"].includes(status)
+                    && typeof item.detail === "string" ? item.detail : "");
+                add(label, value, state, detail);
+            });
+        }
+
+        if (registration.status) {
+            const state = String(registration.status).toLowerCase();
+            const available = ["available", "performed"].includes(state);
+            add("Domain information", available ? "Available"
+                : state === "not_applicable" ? "Not applicable"
+                : state === "disabled" ? "Not checked" : "Not available",
+                available || state === "not_applicable" ? "neutral" : "unavailable",
+                available ? getDomainRegistrationSummary(data, registration) : registration.reason || "");
+        }
+
         const reputation = data.live_reputation;
 
         const reputationStatus = getCurrentReputationStatus(data);
@@ -5743,24 +5831,6 @@
 
         }
 
-        const registration = data.domain_registration;
-
-        if (registration && typeof registration === "object" && typeof registration.status === "string") {
-
-            const state = registration.status.toLowerCase();
-
-            const available = ["available", "performed"].includes(state);
-
-            const notApplicable = state === "not_applicable";
-
-            add("Domain information", available ? "Available" : notApplicable ? "Not applicable"
-                : state === "unavailable" ? "RDAP check unavailable" : "Not available",
-
-                available ? "neutral" : notApplicable ? "neutral" : "unavailable",
-                available || notApplicable ? "" : registration.reason);
-
-        }
-
         if (Array.isArray(data.risk_breakdown)) {
 
             const names = data.risk_breakdown.filter(item => item && typeof item.name === "string").map(item => item.name);
@@ -5773,7 +5843,8 @@
 
         const unavailable = Array.isArray(data.unavailable_checks)
 
-            ? data.unavailable_checks.filter(item => typeof item === "string" && !/\bml\b|machine learning/i.test(item))
+            ? data.unavailable_checks.filter(item => typeof item === "string" && !/\bml\b|machine learning/i.test(item)
+                && !(registrationAvailable && /domain registration|rdap/i.test(item)))
 
             : [];
 
@@ -6015,13 +6086,69 @@
             inconclusive: { title: "Can't tell", className: "verdict-unknown", icon: "question" }
         };
 
-        if (overallRisk && deterministicVerdicts[overallRisk.code]) {
+        if (overallRisk && deterministicVerdicts[overallRisk.code] && overallRisk.code !== "inconclusive") {
 
             return { ...deterministicVerdicts[overallRisk.code], action: overallRisk.action };
 
         }
 
+        const reputationExpired = ["threat", "clear"].includes(data.live_reputation?.status)
+            && getCurrentReputationStatus(data) === "unavailable";
+        // Incomplete evidence must not be downgraded to "Likely safe" by a
+        // zero score calculated from only the checks that happened to run.
+        // Explicit transport failures and phishing indicators remain warnings.
+        const explicitTransportFailure = data.https_valid === false
+            || (Array.isArray(data.risk_breakdown) && data.risk_breakdown.some(item => item
+                && (item.category === "transport" || ["HTTPS Validation Failed", "HTTP Connection", "HTTPS Downgrade Redirect"].includes(item.name))))
+            || (Array.isArray(data.security_checks) && data.security_checks.some(item => item
+                && item.name === "HTTPS certificate" && String(item.status || "").toLowerCase() === "failed"));
+        if (overallRisk?.code === "inconclusive" && explicitTransportFailure) {
+            return { ...deterministicVerdicts.transport_warning, action: overallRisk.action };
+        }
+        if (overallRisk?.code === "inconclusive") {
+            return { ...deterministicVerdicts.inconclusive, action: overallRisk.action };
+        }
+
         const reputationVerdict = getUrlReputationVerdict(data);
+
+        const analysisLevels = {
+            low: { title: "Likely safe", className: "verdict-safe", icon: "shield", action: "You can open this." },
+            moderate: { title: "Be careful", className: "verdict-suspicious", icon: "warning", action: "Don't enter passwords or payment details. Open only if you trust the sender." },
+            elevated: { title: "Be careful", className: "verdict-suspicious", icon: "warning", action: "Don't enter passwords or payment details. Open only if you trust the sender." },
+            high: { title: "Be careful", className: "verdict-suspicious", icon: "warning", action: "Don't enter passwords or payment details. Open only if you trust the sender." },
+            critical: { title: "Be careful", className: "verdict-suspicious", icon: "warning", action: "Don't enter passwords or payment details. Open only if you trust the sender." }
+        };
+        const analysisScore = data.analysis_score;
+        const analysisLevel = typeof data.analysis_risk_level === "string"
+            ? data.analysis_risk_level.trim().toLowerCase() : "";
+        const hasAnalysisResult = data.analysis_score_status === "available"
+            && typeof analysisScore === "number" && Number.isFinite(analysisScore)
+            && analysisScore >= 0 && analysisScore <= 100 && Boolean(analysisLevels[analysisLevel]);
+
+        if (hasAnalysisResult) {
+            if (reputationVerdict?.className === "verdict-dangerous") return reputationVerdict;
+            if (reputationVerdict?.className === "verdict-suspicious") return reputationVerdict;
+
+            const explicitWarning = ["suspicious", "unsafe"].includes(String(data.risk_label || "").toLowerCase())
+                || data.offline_verdict?.code === "suspicious"
+                || (Array.isArray(data.risk_breakdown) && data.risk_breakdown.length > 0)
+                || (Array.isArray(data.security_checks) && data.security_checks.some(item => item
+                    && ["warning", "failed", "threat"].includes(String(item.status || "").toLowerCase())))
+                || Boolean(data.lookalike_brand)
+                || data.https_valid === false
+                || (() => { try { return new URL(data.final_url).protocol.toLowerCase() === "http:"; } catch (_) { return false; } })();
+
+            if (explicitWarning && analysisLevel === "low") {
+                return { title: "Be careful", className: "verdict-suspicious", icon: "warning",
+                    action: "Don't enter passwords or payment details. Open only if you trust the sender." };
+            }
+
+            return analysisLevels[analysisLevel];
+        }
+
+        if (overallRisk?.code === "inconclusive") {
+            return { ...deterministicVerdicts.inconclusive, action: overallRisk.action };
+        }
 
         if (reputationVerdict) return reputationVerdict;
 
@@ -6251,6 +6378,66 @@
 
 
 
+    function createRiskScoreIndicator(score, band, classification) {
+
+        const available = typeof score === "number" && Number.isFinite(score) && score >= 0 && score <= 100;
+        const circumference = 263.8938;
+        const indicator = document.createElement("div");
+        indicator.className = "qrs-risk-score-indicator scan-risk-score-indicator";
+        indicator.dataset.band = available ? band : "unavailable";
+        indicator.setAttribute("role", "img");
+        indicator.setAttribute("aria-label", available
+            ? "Risk Score: " + score + " out of 100. " + classification + "."
+            : "Risk Score unavailable. Risk classification unavailable.");
+
+        const label = document.createElement("span");
+        label.className = "qrs-risk-score-label";
+        label.textContent = "Risk Score";
+
+        const circle = document.createElement("div");
+        circle.className = "qrs-risk-score-circle";
+        const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+        svg.setAttribute("viewBox", "0 0 100 100");
+        svg.setAttribute("aria-hidden", "true");
+        const track = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        track.setAttribute("class", "qrs-risk-score-track");
+        track.setAttribute("cx", "50");
+        track.setAttribute("cy", "50");
+        track.setAttribute("r", "42");
+        const progress = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        progress.setAttribute("class", "qrs-risk-score-progress");
+        progress.setAttribute("cx", "50");
+        progress.setAttribute("cy", "50");
+        progress.setAttribute("r", "42");
+        progress.setAttribute("stroke-dasharray", String(circumference));
+        progress.setAttribute("stroke-dashoffset", String(circumference));
+        svg.append(track, progress);
+
+        const center = document.createElement("div");
+        center.className = "qrs-risk-score-center";
+        const value = document.createElement("span");
+        value.className = "qrs-risk-score-value";
+        value.textContent = available ? String(score) : "Unavailable";
+        const outOf = document.createElement("span");
+        outOf.className = "qrs-risk-score-out-of";
+        outOf.textContent = available ? "/100" : "";
+        center.append(value, outOf);
+        circle.append(svg, center);
+
+        const tier = document.createElement("strong");
+        tier.className = "qrs-risk-score-classification";
+        tier.textContent = available ? classification : "Risk classification unavailable";
+        indicator.append(label, circle, tier);
+
+        if (available) {
+            window.requestAnimationFrame(() => {
+                progress.setAttribute("stroke-dashoffset", String(circumference * (1 - score / 100)));
+            });
+        }
+        return indicator;
+    }
+
+
     function showResults(data) {
 
         window.QRShieldLinkWarning?.setResult(data);
@@ -6280,6 +6467,8 @@
 
 
         const isUrlContent = data.final_url !== undefined && data.final_url !== null;
+
+        document.getElementById("results-card").classList.toggle("has-risk-score", isUrlContent);
 
         const isUpiContent = !isUrlContent && Boolean(data.upi_details || data.upi_analysis);
 
@@ -6411,8 +6600,7 @@
 
         // Prefer the canonical RDAP domain when that lookup completed; otherwise
         // use the backend's offline public-suffix result. Never derive this in the UI.
-        const registration = data.domain_registration && typeof data.domain_registration === "object"
-            ? data.domain_registration : {};
+        const registration = getDomainRegistration(data);
         const rdapRegisteredDomain = registration.status === "available"
             && typeof registration.registered_domain === "string"
             && registration.registered_domain.trim()
@@ -6441,13 +6629,45 @@
 
         if (isUrlContent) {
 
-            const rawScore = data.risk_score;
+            const expiredThreat = data.live_reputation?.status === "threat"
+                && getCurrentReputationStatus(data) === "unavailable";
+            const evidenceIncomplete = getCurrentOverallRisk(data)?.code === "inconclusive";
+            const rawScore = expiredThreat || evidenceIncomplete ? null : data.analysis_score;
 
             const hasScore = typeof rawScore === "number" && Number.isFinite(rawScore) && rawScore >= 0 && rawScore <= 100;
 
             const score = hasScore ? rawScore : null;
+            const scoreBand = hasScore ? score < 20 ? "safe" : score < 40 ? "moderate"
+                : score < 60 ? "elevated" : score < 80 ? "high" : "critical" : "unavailable";
+            const scoreClassification = {
+                safe: "Likely safe",
+                moderate: "Moderate risk",
+                elevated: "Elevated risk",
+                high: "High risk",
+                critical: "Critical risk"
+            }[scoreBand] || "Risk classification unavailable";
+
+            const scoreIndicator = createRiskScoreIndicator(score, scoreBand, scoreClassification);
+            title.hidden = true;
+            title.setAttribute("aria-hidden", "true");
+            verdictIcon.hidden = true;
+            banner.classList.add("has-risk-score");
+            banner.insertBefore(scoreIndicator, verdictCopy);
+
+            if (getAssessmentContext(data).conflict) {
+                const conflictNotice = document.createElement("p");
+                conflictNotice.className = "assessment-conflict scan-summary-conflict";
+                conflictNotice.textContent = "Conflicting signals: rule-based findings and the experimental ML estimate strongly disagree. Review both; neither proves destination safety.";
+                verdictCopy.appendChild(conflictNotice);
+            }
+            const legacyScore = typeof data.risk_score === "number" && Number.isFinite(data.risk_score)
+                && data.risk_score >= 0 && data.risk_score <= 100 ? data.risk_score : null;
+            const hasLegacyScore = legacyScore !== null;
 
             const label = String(data.risk_label || "Unavailable").toLowerCase();
+            const analysisLevel = !expiredThreat && ["Low", "Moderate", "Elevated", "High", "Critical"].includes(data.analysis_risk_level)
+                ? data.analysis_risk_level
+                : hasScore ? score >= 80 ? "Critical" : score >= 60 ? "High" : score >= 40 ? "Elevated" : score >= 20 ? "Moderate" : "Low" : null;
 
             const riskPanel = document.createElement("div");
 
@@ -6460,27 +6680,18 @@
 
             const overallRisk = getCurrentOverallRisk(data);
 
-            riskHeading.appendChild(createInfoLabel("Overall Risk", overallRisk
-
-                ? "A deterministic classification from security evidence. It is not a numerical probability; missing checks have not passed."
-
-                : "The backend's existing combined heuristic score, when available. It is not a phishing probability; missing checks have not passed."));
+            riskHeading.appendChild(createInfoLabel("Analysis Score", expiredThreat
+                ? "The Safe Browsing threat observation expired; the previous overall score is no longer current."
+                : data.analysis_score_reason
+                || "Higher scores mean more detected risk signals. This is not a probability; unavailable checks have not passed."));
 
             const riskBadge = document.createElement("span");
 
-            const overallTones = { safe: "safe", warning: "suspicious", danger: "unsafe", neutral: "neutral" };
-
-            riskBadge.className = "risk-badge " + (overallRisk
-
-                ? (overallTones[overallRisk.tone] || "neutral")
-
-                : (label === "safe" || label === "suspicious" || label === "unsafe" ? label : "neutral"));
-
-            riskBadge.textContent = overallRisk
-
-                ? String(overallRisk.label || "")
-
-                : label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Suspicious" : "Unavailable";
+            riskBadge.className = "risk-badge " + (analysisLevel === "Low" ? "safe"
+                : ["Moderate", "Elevated"].includes(analysisLevel) ? "suspicious"
+                : ["High", "Critical"].includes(analysisLevel) ? "unsafe" : "neutral");
+            riskBadge.textContent = analysisLevel ? analysisLevel + " Risk" : overallRisk
+                ? String(overallRisk.label || "") : "Unavailable";
 
             riskHeading.appendChild(riskBadge);
 
@@ -6492,17 +6703,16 @@
 
             scoreEl.className = "risk-score";
 
-            scoreEl.textContent = overallRisk
-                ? String(overallRisk.level || "INCONCLUSIVE")
-                : hasScore ? score : "Score unavailable";
+            scoreEl.textContent = hasScore ? score : expiredThreat ? "Score unavailable" : overallRisk
+                ? String(overallRisk.level || "INCONCLUSIVE") : "Score unavailable";
 
-            scoreEl.setAttribute("data-unavailable", String(overallRisk ? true : !hasScore));
+            scoreEl.setAttribute("data-unavailable", String(!hasScore));
 
             const outOf = document.createElement("span");
 
             outOf.className = "risk-out-of";
 
-            outOf.textContent = overallRisk ? "" : hasScore ? "/100" : "";
+            outOf.textContent = hasScore ? "/100" : "";
 
             scoreWrap.append(scoreEl, outOf);
 
@@ -6514,7 +6724,9 @@
 
             const fill = document.createElement("div");
 
-            const fillClass = label === "unsafe" ? "unsafe" : label === "safe" ? "safe" : label === "suspicious" ? "suspicious" : "neutral";
+            const fillClass = analysisLevel === "Low" ? "safe"
+                : ["Moderate", "Elevated"].includes(analysisLevel) ? "suspicious"
+                : ["High", "Critical"].includes(analysisLevel) ? "unsafe" : "neutral";
 
             fill.className = "risk-fill " + fillClass;
 
@@ -6522,7 +6734,7 @@
 
             track.appendChild(fill);
 
-            track.hidden = overallRisk ? true : !hasScore;
+            track.hidden = !hasScore;
 
             const riskMeta = document.createElement("div");
 
@@ -6530,11 +6742,9 @@
 
             const classificationLabel = document.createElement("span");
 
-            classificationLabel.textContent = overallRisk ? "Assessment basis" : "Calculated classification";
+            classificationLabel.textContent = "Risk classification";
 
-            const classification = overallRisk ? "Deterministic security evidence"
-
-                : label === "safe" ? "Low Risk" : label === "unsafe" ? "High Risk" : label === "suspicious" ? "Suspicious" : "Unavailable";
+            const classification = analysisLevel || (overallRisk ? String(overallRisk.label || "Unavailable") : "Unavailable");
 
             const classificationValue = document.createElement("span");
 
@@ -6571,10 +6781,14 @@
             resultRows.appendChild(riskPanel);
 
             resultRows.appendChild(createSection("Heuristic Risk Assessment", "gauge", [
-                ["Combined risk score", hasScore ? score + " / 100" : "Unavailable"],
-                ["Scoring status", hasScore ? "Available — heuristic, not a probability" : "Unavailable — no replacement score invented"],
-                ["Why", typeof data.risk_score_reason === "string" ? data.risk_score_reason : hasScore
-                    ? "This is the stored backend score. Available indicators do not guarantee safety; unavailable checks have not passed."
+                ["Overall analysis score", hasScore ? score + " / 100 — " + (analysisLevel || "Risk level unavailable") : "Unavailable"],
+                ["Analysis score explanation", expiredThreat
+                    ? "The Safe Browsing threat observation expired; the previous overall score is no longer current."
+                    : data.analysis_score_reason || "The new analysis score was not returned by this scan."],
+                ["Combined risk score", hasLegacyScore ? legacyScore + " / 100" : "Unavailable"],
+                ["Scoring status", hasLegacyScore ? "Available — heuristic, not a probability" : "Unavailable — no replacement score invented"],
+                ["Why", typeof data.risk_score_reason === "string" ? data.risk_score_reason : hasLegacyScore
+                    ? "This existing combined rule/ML score is separate from the overall analysis score. Available indicators do not guarantee safety; unavailable checks have not passed."
                     : "The combined score requires its existing rule/ML inputs. An excluded or unavailable ML estimate is not replaced with zero."],
                 ["Rule-based points", typeof data.rule_score === "number" && Number.isFinite(data.rule_score) && data.rule_score >= 0 ? data.rule_score : "Unavailable",
                     "Points from the performed rules only. These are not the final verdict, an overall safety score, or a phishing probability."],
@@ -6583,6 +6797,17 @@
             ]));
 
             resultRows.appendChild(createRiskExplanation(data));
+
+            const confidenceBasis = data.analysis_confidence_basis && typeof data.analysis_confidence_basis === "object"
+                ? data.analysis_confidence_basis : {};
+            technicalBody.appendChild(createSection("Analysis Confidence", "gauge", [
+                ["Analysis confidence", Number.isInteger(data.analysis_confidence) && data.analysis_confidence >= 0 && data.analysis_confidence <= 100
+                    ? data.analysis_confidence + "%" : "Unavailable"],
+                ["Completed checks", Number.isInteger(confidenceBasis.completed_checks) ? confidenceBasis.completed_checks : "Unavailable"],
+                ["Unavailable checks", Number.isInteger(confidenceBasis.unavailable_checks) ? confidenceBasis.unavailable_checks : "Unavailable"],
+                ["Not applicable checks", Number.isInteger(confidenceBasis.excluded_not_applicable_checks) ? confidenceBasis.excluded_not_applicable_checks : "Unavailable"],
+                ["How this is calculated", "Completed checks divided by completed plus unavailable checks. Unavailable checks are never counted as passed."]
+            ]));
 
 
 
@@ -6651,11 +6876,15 @@
 
             }
 
-            const domainAge = data.domain_age_days;
+            const domainAgeRaw = registration.domain_age_days ?? data.domain_age_days;
+            const domainAge = domainAgeRaw === null || domainAgeRaw === undefined || domainAgeRaw === ""
+                ? NaN : Number(domainAgeRaw);
             resultRows.appendChild(createSection("Domain Information", "link", [
                 ["Registered domain", canonicalRegisteredDomain],
+                ["Registrar", registration.registrar],
                 ["Registration date (UTC)", registration.registration_date || "Unavailable"],
-                ["Domain Age", typeof domainAge === "number" && Number.isInteger(domainAge) && domainAge >= 0 ? domainAge + " days at lookup" : "Unavailable"],
+                ["Domain Age", Number.isSafeInteger(domainAge) && domainAge >= 0 ? domainAge + " days at lookup" : "Unavailable"],
+                ["Expiry date (UTC)", registration.expiration_date || "Unavailable"],
                 ["RDAP lookup status", ({available:"Registration data available", unavailable:"Unavailable", disabled:"Disabled — not checked", not_applicable:"Not applicable"})[registration.status] || "Not recorded / unavailable"],
                 ["RDAP details", typeof registration.reason === "string" ? registration.reason : "No reliable registration lookup was recorded."],
                 ["Lookup time", registration.checked_at || "Not checked"],
@@ -6730,7 +6959,7 @@
 
                 ["Transport protection", null, "HTTPS protects transport; it does not establish website legitimacy. HTTP lacks this protection. Unavailable or unperformed checks have not passed.", { status: httpsStatus }],
 
-                ["Domain Age", data.domain_age_days !== null && data.domain_age_days !== undefined ? data.domain_age_days + " days" : null, "How long the domain has existed according to the domain-age lookup."],
+                ["Domain Age", (registration.domain_age_days ?? data.domain_age_days) !== null && (registration.domain_age_days ?? data.domain_age_days) !== undefined ? (registration.domain_age_days ?? data.domain_age_days) + " days" : null, "How long the domain has existed according to the domain-age lookup."],
 
                 ["Lookalike Brand", null, null, { valueNode: brandValueNode }],
 
@@ -7029,7 +7258,8 @@
 
         const analysisUnavailable = isUrlContent && assessment.unavailable.length > 0;
 
-        const scoreUnavailable = isUrlContent && (data.risk_score === null || data.risk_score === undefined ||
+        const scoreUnavailable = isUrlContent && (data.analysis_score === null || data.analysis_score === undefined ||
+            data.analysis_score_status === "unavailable") && (data.risk_score === null || data.risk_score === undefined ||
 
             data.risk_score_status === "unavailable");
 
@@ -7100,6 +7330,15 @@
 
             simpleReason.textContent = getSimpleUrlReason(data);
 
+            const destination = document.createElement("p");
+            destination.className = "summary-destination";
+            const destinationLabel = document.createElement("strong");
+            destinationLabel.textContent = "Scanned URL";
+            const destinationValue = document.createElement("span");
+            destinationValue.textContent = data.decoded_content || data.final_url || "Unavailable";
+            destination.append(destinationLabel, destinationValue);
+            simpleCopy.appendChild(destination);
+
             simpleCopy.append(createSimpleSecuritySummary(data, simpleReason.textContent));
 
         } else if (humanVerdict) technicalBody.appendChild(plainReason);
@@ -7116,7 +7355,7 @@
 
             const heading = document.createElement("strong");
 
-            heading.textContent = "This QR code may have been altered — handle with caution.";
+            heading.textContent = "QR image integrity notice";
 
             const context = document.createElement("p");
 

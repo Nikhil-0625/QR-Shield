@@ -179,6 +179,10 @@ class RdapIntegrationTests(unittest.TestCase):
              patch.object(self.main,"ml_model",model):
             qr=self.scan(ml=True);website=self.website()
         self.assertEqual(qr["risk_score"],0) # round(0.7*0 + 0.3*1), existing formula.
+        self.assertEqual(qr["analysis_score"], 100)
+        self.assertEqual(qr["analysis_risk_level"], "Critical")
+        self.assertEqual(next(item for item in qr["security_checks"]
+                              if item["name"] == "Google Safe Browsing")["status"], "threat")
         self.assertEqual(qr["risk_score_status"],"available")
         for data in (qr,website):self.assertEqual(data["website_verdict"]["code"],"known_dangerous")
         for data in (qr,website):self.assertEqual(data["overall_risk"]["code"],"known_dangerous")

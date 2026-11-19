@@ -18,6 +18,28 @@ class Element {
         }
     }
     appendChild(child) { this.append(child); return child; }
+    querySelector(selector) { return selector.startsWith('.') ? findClass(this, selector.slice(1)) : null; }
+    querySelectorAll(selector) {
+        if (!selector.startsWith('.')) return [];
+        const found = [];
+        const visit = node => (node.children || []).forEach(child => {
+            if ((child.className || '').split(/\s+/).includes(selector.slice(1))) found.push(child);
+            visit(child);
+        });
+        visit(this);
+        return found;
+    }
+    insertBefore(child, reference) {
+        if (child.parentNode) child.parentNode.children.splice(child.parentNode.children.indexOf(child), 1);
+        const index = reference ? this.children.indexOf(reference) : -1;
+        if (index < 0) this.children.push(child); else this.children.splice(index, 0, child);
+        child.parentNode = this;
+        return child;
+    }
+    remove() {
+        if (this.parentNode) this.parentNode.children.splice(this.parentNode.children.indexOf(this), 1);
+        this.parentNode = null;
+    }
     replaceChildren() { for (const child of this.children) child.parentNode = null; this.children = []; this.ownText = ''; }
     setAttribute(key, value) { (this.attributes ||= {})[key] = value; }
 }
@@ -28,7 +50,9 @@ function findClass(root, wanted) {
     return null;
 }
 const document = {
+    documentElement: new Element(),
     createElement: () => new Element(),
+    createElementNS: (_namespace, tag) => Object.assign(new Element(), { tagName: tag }),
     createTextNode: text => Object.assign(new Element(), { ownText: text }),
     getElementById: id => { if (!nodes.has(id)) nodes.set(id, new Element()); return nodes.get(id); }
 };
@@ -84,6 +108,25 @@ check(result.body.includes('30'));
 check(result.simple.includes('Security Checks'));
 check(result.simple.includes('HTTPS certificate'));
 check(!/Experimental ML|70\/30|rule-based points|Scoring status|Overall Risk|100%/.test(result.simple));
+result = render({ analysis_score: 78, analysis_risk_level: 'High', analysis_confidence: 60,
+    analysis_confidence_basis: { completed_checks: 3, unavailable_checks: 2, excluded_not_applicable_checks: 1 },
+    security_checks: [
+        { name: 'HTTPS certificate', status: 'failed', detail: 'TLS validation failed.' },
+        { name: 'Redirect analysis', status: 'unavailable', detail: 'Redirect check was blocked.' },
+        { name: 'Google Safe Browsing', status: 'clear', detail: 'No known threat match.' }
+    ] });
+check(findClass(document.getElementById('result-rows'), 'risk-score')?.textContent === '78',
+    'Prominent QR score uses the new analysis score');
+check(findClass(document.getElementById('result-rows'), 'risk-badge')?.textContent === 'High Risk',
+    'QR score displays the five-level risk classification');
+check(result.simple.includes('Scanned URL') && result.simple.includes('https://www.wikipedia.org/'),
+    'Scanned URL is visible before opening in the simple result view');
+check(result.simple.includes('Failed') && result.simple.includes('Not available') && result.simple.includes('No known threat reported'),
+    'Simple QR explanation distinguishes failed and unavailable checks from no threat matches');
+check(!result.simple.includes('Analysis confidence'),
+    'Analysis confidence is hidden from the simple QR result');
+check(findSection(document.getElementById('result-rows'), 'Analysis Confidence')?.textContent.includes('60%'),
+    'Analysis confidence appears inside the expandable detailed analysis');
 result = render({ https_valid: null, domain_age_days: null, ml_phishing_probability: null, risk_breakdown: null,
     unavailable_checks: ['TLS certificate verification', 'Redirect destination', 'ML verdict'] });
 check(result.body.includes('Unavailable: HTTPS validation, redirect analysis, domain information, rule-based findings'));
@@ -117,6 +160,48 @@ check(!result.body.includes('Analysis Incomplete'), 'Excluded ML does not mark c
 check(result.body.includes('combined risk score is unavailable because experimental ML was not used'), 'Score unavailability is attributed specifically to excluded ML');
 check(result.body.includes('Not used; experimental ML is disabled.'), 'Technical details state that experimental ML was not used');
 check(result.body.includes('does not verify legitimacy or guarantee safety'), 'No-match safety limitation remains visible');
+
+const rdapAvailable = {
+    status: 'available', registered_domain: 'wikipedia.org', registrar: 'Example Registrar',
+    registration_date: '2001-01-13T00:00:00Z', expiration_date: '2027-01-13T00:00:00Z', domain_age_days: 9000
+};
+result = render({ ...completedDeterministic, risk_score: null, risk_label: 'unverified', ml_status: 'excluded',
+    security_checks: [{ name: 'Domain registration / RDAP', status: 'unavailable', detail: 'Stale check status.' }],
+    domain_registration: rdapAvailable });
+const availableDomainRow = findClass(document.getElementById('result-rows'), 'simple-security-summary')
+    ?.querySelectorAll('.simple-security-check').find(row => row.textContent.includes('Domain information'))?.textContent || '';
+check(result.simple.includes('Domain information') && result.simple.includes('Available') && result.simple.includes('Example Registrar'),
+    'Simple View uses available RDAP details even when the separate check row is stale');
+check(result.simple.includes('Registration date: 2001-01-13T00:00:00Z')
+    && result.simple.includes('Expires: 2027-01-13T00:00:00Z')
+    && result.simple.includes('Domain age: 9000 days at lookup'),
+    'Simple View renders the available RDAP registration, expiry, and age fields');
+check(availableDomainRow.includes('Available'), 'RDAP availability takes precedence over an unavailable security_checks entry');
+const availableDomainSection = findSection(document.getElementById('result-rows'), 'Domain Information');
+check(availableDomainSection?.sectionRows.find(row => row.label === 'Registrar')?.value === 'Example Registrar'
+    && availableDomainSection?.sectionRows.find(row => row.label === 'Expiry date (UTC)')?.value === '2027-01-13T00:00:00Z',
+    'Technical Domain Information displays actual registrar and expiry values');
+
+result = render({ ...base, decoded_content: 'https://www.wikipedia.org/', final_url: 'https://www.wikipedia.org/',
+    analysis_score: 0, analysis_score_status: 'available', analysis_risk_level: 'Low',
+    overall_risk: { level: 'LOW' }, risk_score: null, risk_score_status: 'unavailable',
+    risk_label: 'unverified', ml_status: 'excluded', ml_phishing_probability: null,
+    https_valid: true, risk_breakdown: [], unavailable_checks: ['Live reputation', 'ML verdict'],
+    live_reputation: { status: 'unavailable', reason: 'Provider unavailable.' } });
+check(result.banner.includes('Likely safe') && !result.banner.includes('Unable to Verify')
+    && !result.banner.includes('assessment is incomplete'),
+    'Available analysis score and level determine the verdict when only legacy ML scoring is unavailable');
+check(findClass(document.getElementById('result-rows'), 'risk-score')?.textContent === '0'
+    && findClass(document.getElementById('result-rows'), 'risk-badge')?.textContent === 'Low Risk',
+    'Analysis score zero and Low classification are displayed as valid values');
+check(result.simple.includes('Threat check unavailable') && result.simple.includes('Unavailable checks have not passed'),
+    'Unavailable checks remain explicit and separate from the analysis verdict');
+
+result = render({ analysis_score: 0, analysis_score_status: 'available', analysis_risk_level: 'Low',
+    risk_score: null, risk_label: 'unverified', ml_status: 'excluded', ml_phishing_probability: null,
+    risk_breakdown: [], tampering_reasons: ['Synthetic overlay evidence'] });
+check(result.simple.includes('may have been altered') && result.simple.includes('Synthetic overlay evidence'),
+    'A valid low analysis score does not remove a genuine QR tampering warning');
 
 result = render({ ...completedDeterministic, registered_domain: 'wikipedia.org',
     domain_registration: { status: 'unavailable', registered_domain: null } });
@@ -248,7 +333,7 @@ for (const [score, ml, rule, expected, action] of [
     check(result.banner.includes(action));
     check(!/\d|%|risk score/i.test(result.banner));
     check(document.getElementById('result-technical-details').open === false);
-    check(document.getElementById('result-technical-body').textContent.includes('Overall Risk'));
+    check(document.getElementById('result-technical-body').textContent.includes('Overall analysis score'));
     context.setResultView('technical');
     check(document.getElementById('result-technical-details').open === true);
 }
@@ -268,7 +353,7 @@ result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probabil
         action:'You can open this.' } });
 check(result.banner.includes('Likely safe'), 'Deterministic LOW verdict is available without ML');
 check(result.banner.includes('Recommended action: You can open this.'), 'Simple verdict includes one explicit recommended action');
-check(result.banner.includes('No check can guarantee that a destination is safe.'), 'Safe result retains a short safety reminder');
+check(result.banner.includes('No result is a guarantee of safety.'), 'Safe result retains a short safety reminder');
 check(result.body.includes('LOW') && result.body.includes('NO KNOWN THREATS'));
 check(result.body.includes('Combined risk score') && result.body.includes('Unavailable'),
     'Unavailable combined score remains separate from deterministic classification');
@@ -298,15 +383,36 @@ result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probabil
         action:'Don\'t pay or log in. Verify the sender first.' } });
 check(result.banner.includes("Can't tell"), 'Incomplete deterministic evidence is not presented as LOW');
 check(result.body.includes('INCONCLUSIVE') && result.body.includes('EVIDENCE UNAVAILABLE'));
+result = render({ decoded_content:'https://expired.badssl.com/', final_url:'https://expired.badssl.com/',
+    analysis_score:0, analysis_score_status:'available', analysis_risk_level:'Low',
+    risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
+    https_valid:null, https_check_status:'unavailable',
+    security_checks:[{name:'HTTPS certificate',status:'unavailable',detail:'TLS check blocked'}],
+    overall_risk:{ code:'inconclusive', level:'INCONCLUSIVE', label:'EVIDENCE UNAVAILABLE', tone:'neutral',
+        explanation:'Important checks could not complete.', action:'Verify independently.' },
+    live_reputation:{status:'disabled',reason:'Not checked.'} });
+check(result.banner.includes("Can't tell") && !result.banner.includes('Likely safe'),
+    'Zero available-check score cannot override an inconclusive overall assessment');
+check(!result.body.includes('Likely safe') && result.body.includes('Risk Score unavailable'),
+    'Incomplete evidence does not display a misleading zero risk score');
+result = render({ decoded_content:'https://expired.badssl.com/', final_url:'https://expired.badssl.com/',
+    analysis_score:20, analysis_score_status:'available', analysis_risk_level:'Moderate',
+    risk_label:'unverified', risk_score:null, ml_phishing_probability:null, https_valid:false,
+    risk_breakdown:[{name:'HTTPS Validation Failed',category:'transport',points:20,reason:'TLS certificate failed.'}],
+    security_checks:[{name:'HTTPS certificate',status:'failed',detail:'Certificate expired.'}],
+    overall_risk:{ code:'inconclusive', level:'INCONCLUSIVE', label:'EVIDENCE UNAVAILABLE', tone:'neutral',
+        explanation:'Other checks could not complete.', action:'Verify independently.' },
+    live_reputation:{status:'disabled',reason:'Not checked.'} });
+check(result.banner.includes('Be careful'), 'Explicit TLS failure overrides an inconclusive verdict');
 result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
     live_reputation:reputation('clear'), offline_verdict:{ code:'unable_to_verify' } });
 check(result.banner.includes('No Known Threats Detected'));
 check(!result.banner.includes("Can't tell"));
-check(result.simple.includes('No known threat reported'));
-check(result.simple.includes('This result does not confirm that the destination is safe'));
-check(result.body.includes('No known threat match'));
-check(result.body.includes('does not verify legitimacy or guarantee safety'));
-check(result.body.includes('Google Safe Browsing'));
+check(result.simple.includes('No known threat reported'), 'Simple checks explain the reputation no-match.');
+check(result.simple.includes('A new or unlisted threat may be missed.'), 'Simple checks qualify a reputation no-match.');
+check(result.body.includes('No known threat reported'), 'Technical no-match details are rendered: ' + result.body);
+check(result.body.includes('does not verify legitimacy or guarantee safety'), 'Technical details qualify the no-match.');
+check(result.body.includes('Google Safe Browsing'), 'Technical details identify the threat provider.');
 check(!result.body.includes('Likely safe'));
 result = render({ risk_label:'safe', live_reputation:reputation('clear'), tampering_score:35,
     tampering_reasons:['Finder pattern proportions need review.'] });
@@ -366,7 +472,7 @@ for (const [mode, label, headline] of [
     const banner = document.getElementById('verdict-banner').children[0];
     check(banner.className.includes('upi-direction-banner'));
     check(banner.textContent.includes(label));
-    check(banner.textContent.includes(headline));
+    check(banner.textContent.includes(headline), 'UPI direction headline is preserved: ' + headline + ' in ' + banner.textContent);
     check(banner.textContent.includes('Scanning alone does not send money'));
     check(banner.textContent.includes('QR-declared payment details'));
     check(result.body.includes('UPI IDs differ.'));

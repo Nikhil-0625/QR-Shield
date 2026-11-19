@@ -19,7 +19,7 @@ class ApiBoundary:
         # Render's internal port suffix. Entries configured with a port remain
         # port-specific via the exact-host comparison below.
         self.extra_hostnames = set()
-        self.origins = {value.strip().encode() for value in os.environ.get("CORS_ALLOWED_ORIGINS","https://qr-shield.pages.dev,https://0ac29073.qr-shield.pages.dev").split(",") if value.strip()}
+        self.origins = {value.strip().encode() for value in os.environ.get("CORS_ALLOWED_ORIGINS","https://qr-shield.pages.dev,https://0ac29073.qr-shield.pages.dev,https://581928c8.qr-shield.pages.dev,https://1ec02d66.qr-shield.pages.dev,https://fb23d87a.qr-shield.pages.dev,https://7cb923e4.qr-shield.pages.dev,https://ac858a9.qr-shield.pages.dev,https://fix-mobile-responsive.qr-shield.pages.dev,https://f09372e6.qr-shield.pages.dev,https://ad14d96b.qr-shield.pages.dev,https://6b227c6b.qr-shield.pages.dev,https://b3f4bc64.qr-shield.pages.dev,https://e8d111fb.qr-shield.pages.dev,https://891d867a.qr-shield.pages.dev,https://9960649e.qr-shield.pages.dev,https://96ea44b6.qr-shield.pages.dev,https://00aba83f.qr-shield.pages.dev").split(",") if value.strip()}
         if any(not re.fullmatch(r"[a-z0-9.-]+(?::[0-9]+)?", host) for host in self.extra_hosts):
             raise RuntimeError("QR_SHIELD_ALLOWED_HOSTS must contain exact hosts, not wildcards")
         for configured_host in self.extra_hosts:
