@@ -44,10 +44,7 @@ async function runLinkWarningChecks() {
         [{ ...base, domain_age_days: null }, "Confirm destination", "low"],
         [{ ...base, risk_score: -1 }, "Confirm destination", "low"],
         [{ ...base, risk_score: 30, ml_phishing_probability: 100 }, "Security Warning", "warning"],
-        [{ ...base, ml_phishing_probability: null }, "Confirm destination", "low"],
-        [{ ...base, analysis_score: 0, analysis_score_status: "available", analysis_risk_level: "Low",
-            risk_label: null, risk_score: null, ml_phishing_probability: null, domain_age_days: null,
-            domain_registration: { status: "available", registrar: "Example Registrar", registration_date: "2020-01-01", domain_age_days: 2150, expiration_date: "2030-01-01", registered_domain: "wikipedia.org" } }, "Confirm destination", "low"]];
+        [{ ...base, ml_phishing_probability: null }, "Confirm destination", "low"]];
     for (const [data, title, tone] of cases) {
         showResults(data);
         check(opened.length === 0, "Automatic navigation after scan");
@@ -116,6 +113,17 @@ async function runLinkWarningChecks() {
         check(!document.documentElement.classList.contains("qr-modal-active") && document.body.style.position !== "fixed", "Scroll lock not restored");
         check(Math.abs(window.scrollY - underlyingScrollY) <= 1, "Underlying scroll position not restored");
     }
+    const cleanZero = { ...base, risk_label: "safe", analysis_score: 0, analysis_score_status: "available",
+        analysis_risk_level: "Low", risk_score: null, ml_phishing_probability: null, domain_age_days: null,
+        domain_registration: { status: "available", registrar: "Example Registrar", registration_date: "2020-01-01", domain_age_days: 2150, expiration_date: "2030-01-01", registered_domain: "wikipedia.org" } };
+    showResults(cleanZero); id("open-link-btn").click();
+    check(opened.length === 1 && opened[0][0] === new URL(cleanZero.final_url).href, "Confirmed zero-risk link did not open directly");
+    check(!modalOpen(), "Confirmed zero-risk link unnecessarily showed a warning modal");
+    check(opened[0][1] === "_blank" && opened[0][2] === "noopener,noreferrer", "Direct opening lacks new-tab protections");
+    showResults({ ...cleanZero, risk_breakdown: [{ name: "Possible Brand Impersonation", reason: "Threat indicator fixture" }] });
+    id("open-link-btn").click();
+    check(modalOpen() && opened.length === 1, "Zero score with threat evidence bypassed warning");
+    id("link-warning-cancel").click(); await waitClosed();
     showResults(suspicious); id("open-link-btn").focus(); id("open-link-btn").click();
     id("link-warning-overlay").click(); await waitClosed();
     check(opened.length === 0 && document.activeElement === id("open-link-btn"), "Backdrop dismissal navigated or lost focus");

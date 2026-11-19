@@ -829,6 +829,26 @@ body[data-page=generate] .qr-image,
  background:#000000 !important; filter:none !important; opacity:1 !important;
 }
 
+
+/* Mobile scanner warning accents use the QR Shield lavender palette, not yellow. */
+@media(max-width:768px) {
+ body[data-page=scan] #results-card {
+  --warning-bg:var(--accent-soft,#f1edfc);
+  --warning-ink:var(--accent-ink,#6750c8);
+  --suspicious:var(--purple,#7560d8);
+ }
+ body[data-page=scan] #results-card :is(.verdict-review,.verdict-suspicious,.status-warn,.suspicious-pill,.badge.warning,.badge.suspicious) {
+  background:var(--warning-bg)!important;
+  color:var(--warning-ink)!important;
+  border-color:var(--warning-bg)!important;
+ }
+ body[data-page=scan] #results-card .upi-direction-banner {
+  border-left-color:var(--accent-ink,#6750c8);
+  background:var(--accent-soft,#f1edfc);
+  color:var(--ink);
+ }
+}
+
 /* Clear, compact domain-registration detail in the external-link confirmation. */
 .link-warning-registration-details { grid-column:2; margin:0 0 8px!important; color:var(--muted); font-size:12px!important; line-height:1.5; overflow-wrap:anywhere; }
 @media(max-width:480px){ .link-warning-registration-details{grid-column:1/-1;margin-top:0!important;} }

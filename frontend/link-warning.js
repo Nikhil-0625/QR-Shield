@@ -237,6 +237,26 @@ const needsWarning =
     caution ||
     (result.incomplete && result.label === "unavailable" && result.score === null) ||
     (!safeVerdict && result.humanVerdict !== "Can't tell" && result.label !== "safe" && result.label !== "unverified");
+
+        // A confirmed zero-risk result with no threat evidence should open directly.
+        // Keep this synchronous with the user's click so popup blockers do not interfere.
+        const confirmedZeroRisk = result.score === 0 && result.label === "safe"
+            && !high && !caution && !result.incomplete && !result.reputationThreat && !needsWarning;
+        if (confirmedZeroRisk) {
+            const directUrl = validatedUrl(result.href);
+            if (!directUrl) return;
+            used = true;
+            openButton.disabled = true;
+            try {
+                window.open(directUrl.href, "_blank", "noopener,noreferrer");
+                status.textContent = "One opening request was sent to your browser. QR Shield cannot reliably confirm whether a tab opened. If no tab appears, allow pop-ups and scan again.";
+            } catch (_) {
+                used = false;
+                openButton.disabled = false;
+                status.textContent = "Your browser could not open the link. Scan again to retry.";
+            }
+            return;
+        }
         const tone = high ? "danger" : needsWarning ? "warning" : "low";
         dialog.dataset.tone = tone;
         dialog.dataset.danger = String(needsWarning);
