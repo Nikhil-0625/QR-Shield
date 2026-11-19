@@ -120,7 +120,19 @@ async function runLinkWarningChecks() {
     check(opened.length === 1 && opened[0][0] === new URL(cleanZero.final_url).href, "Confirmed zero-risk link did not open directly");
     check(!modalOpen(), "Confirmed zero-risk link unnecessarily showed a warning modal");
     check(opened[0][1] === "_blank" && opened[0][2] === "noopener,noreferrer", "Direct opening lacks new-tab protections");
-    showResults({ ...cleanZero, risk_breakdown: [{ name: "Possible Brand Impersonation", reason: "Threat indicator fixture" }] });
+    showResults({ ...cleanZero, analysis_score: 20, analysis_risk_level: "Moderate", risk_breakdown: [
+        { name: "HTTPS Validation Failed", category: "transport", points: 20, reason: "Synthetic expired-certificate finding." }],
+        https_valid: false, security_checks: [{ name: "HTTPS certificate", status: "failed", detail: "Certificate expired." }] });
+    id("open-link-btn").click();
+    check(modalOpen() && opened.length === 1, "Failed TLS validation must trigger a warning even below 30 points");
+    check(id("link-warning-message").textContent.includes("security indicator"), "TLS override warning message is not explained");
+    id("link-warning-cancel").click(); await waitClosed();
+    showResults({ ...cleanZero, overall_risk: { code: "inconclusive" }, security_checks: [
+        { name: "HTTPS certificate", status: "unavailable", detail: "Blocked." }] });
+    id("open-link-btn").click();
+    check(modalOpen() && opened.length === 1, "Inconclusive scan must not open automatically");
+    id("link-warning-cancel").click(); await waitClosed();
+    showResults({ ...cleanZero, risk_breakdown: [{ name: "Possible Brand Impersonation", reason: "Threat indicator fixture", points: 25 }] });
     id("open-link-btn").click();
     check(modalOpen() && opened.length === 1, "Zero score with threat evidence bypassed warning");
     id("link-warning-cancel").click(); await waitClosed();

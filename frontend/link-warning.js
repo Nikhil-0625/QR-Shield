@@ -225,18 +225,20 @@ window.QRShieldModal = (() => {
         pending = result;
         const high = result.label === "unsafe" || result.reputationThreat;
 
-const caution = result.findings.some(finding =>
-    finding.points !== null && finding.points > 0
-);
+const phishingIndicator = result.findings.some(finding => finding.points !== null && finding.points > 0
+    && !["HTTP Connection", "HTTPS Downgrade Redirect", "HTTPS Validation Failed"].includes(finding.name));
+const transportFailure = result.checks.some(check => check.name === "HTTPS certificate" && check.status.toLowerCase() === "failed")
+    || result.findings.some(finding => ["HTTPS Validation Failed", "HTTPS Downgrade Redirect"].includes(finding.name))
+    || (result.href.startsWith("http:") && result.findings.some(finding => finding.name === "HTTP Connection"));
 
-// Score threshold: 30+ requires confirmation. Confirmed reputation threats and
-// high-risk classifications always override the numeric score.
-const needsWarning = high || result.reputationThreat || (result.score !== null && result.score >= 30);
+// The 30-point threshold controls ordinary confirmation. Actual threats,
+// phishing indicators, and failed/insecure transport checks override it.
+const needsWarning = high || result.reputationThreat || transportFailure || phishingIndicator
+    || (result.score !== null && result.score >= 30);
 
-// Scores below 30 open directly unless a known threat/high-risk classification
-// is present. Missing optional checks and QR-image tampering notices alone do not block.
+// Only a completed low score without security indicators opens directly.
 const confirmedLowRisk = result.score !== null && result.score < 30
-    && !high && !result.reputationThreat;
+    && !high && !result.reputationThreat && !transportFailure && !phishingIndicator;
         if (confirmedLowRisk) {
             const directUrl = validatedUrl(result.href);
             if (!directUrl) return;
@@ -262,7 +264,9 @@ const confirmedLowRisk = result.score !== null && result.score < 30
         byId("link-warning-title").textContent = needsWarning ? "Security Warning" : "Confirm destination";
         byId("link-warning-message").textContent = high || result.reputationThreat
             ? "A known threat indicator was detected. Review the evidence carefully before proceeding."
-            : "The risk score is 30 or higher. Review the URL and security details before continuing.";
+            : transportFailure || phishingIndicator
+                ? "A security indicator was detected even though the numerical score is below the warning threshold. Review the evidence before proceeding."
+                : "The risk score is 30 or higher. Review the URL and security details before continuing.";
         byId("link-warning-url").textContent = result.href;
         byId("link-warning-host").textContent = result.host;
         byId("link-warning-domain").textContent = result.domain;

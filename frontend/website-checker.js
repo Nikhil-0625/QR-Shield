@@ -366,7 +366,10 @@
         byId('website-normalized-url').textContent = data.normalized_url;
         byId('website-ml-note').textContent = data.ml_note || 'ML output is unavailable and is not used in this verdict.';
 
-        const rawAnalysisScore = data.analysis_score;
+        // An inconclusive overall result must not be shown as a numeric 0 risk.
+        // Keep the performed-check points in Technical View; the summary score
+        // is unavailable until the required evidence can support a classification.
+        const rawAnalysisScore = overallRisk?.code === 'inconclusive' ? null : data.analysis_score;
         const validAnalysisScore = typeof rawAnalysisScore === 'number' && Number.isFinite(rawAnalysisScore)
             && rawAnalysisScore >= 0 && rawAnalysisScore <= 100;
         const scoreBandFromValue = validAnalysisScore

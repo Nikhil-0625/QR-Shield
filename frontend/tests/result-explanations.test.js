@@ -383,6 +383,27 @@ result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probabil
         action:'Don\'t pay or log in. Verify the sender first.' } });
 check(result.banner.includes("Can't tell"), 'Incomplete deterministic evidence is not presented as LOW');
 check(result.body.includes('INCONCLUSIVE') && result.body.includes('EVIDENCE UNAVAILABLE'));
+result = render({ decoded_content:'https://expired.badssl.com/', final_url:'https://expired.badssl.com/',
+    analysis_score:0, analysis_score_status:'available', analysis_risk_level:'Low',
+    risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
+    https_valid:null, https_check_status:'unavailable',
+    security_checks:[{name:'HTTPS certificate',status:'unavailable',detail:'TLS check blocked'}],
+    overall_risk:{ code:'inconclusive', level:'INCONCLUSIVE', label:'EVIDENCE UNAVAILABLE', tone:'neutral',
+        explanation:'Important checks could not complete.', action:'Verify independently.' },
+    live_reputation:{status:'disabled',reason:'Not checked.'} });
+check(result.banner.includes("Can't tell") && !result.banner.includes('Likely safe'),
+    'Zero available-check score cannot override an inconclusive overall assessment');
+check(!result.body.includes('Likely safe') && result.body.includes('Risk Score unavailable'),
+    'Incomplete evidence does not display a misleading zero risk score');
+result = render({ decoded_content:'https://expired.badssl.com/', final_url:'https://expired.badssl.com/',
+    analysis_score:20, analysis_score_status:'available', analysis_risk_level:'Moderate',
+    risk_label:'unverified', risk_score:null, ml_phishing_probability:null, https_valid:false,
+    risk_breakdown:[{name:'HTTPS Validation Failed',category:'transport',points:20,reason:'TLS certificate failed.'}],
+    security_checks:[{name:'HTTPS certificate',status:'failed',detail:'Certificate expired.'}],
+    overall_risk:{ code:'inconclusive', level:'INCONCLUSIVE', label:'EVIDENCE UNAVAILABLE', tone:'neutral',
+        explanation:'Other checks could not complete.', action:'Verify independently.' },
+    live_reputation:{status:'disabled',reason:'Not checked.'} });
+check(result.banner.includes('Be careful'), 'Explicit TLS failure overrides an inconclusive verdict');
 result = render({ risk_label:'unverified', risk_score:null, ml_phishing_probability:null,
     live_reputation:reputation('clear'), offline_verdict:{ code:'unable_to_verify' } });
 check(result.banner.includes('No Known Threats Detected'));

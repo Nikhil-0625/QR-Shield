@@ -6094,7 +6094,18 @@
 
         const reputationExpired = ["threat", "clear"].includes(data.live_reputation?.status)
             && getCurrentReputationStatus(data) === "unavailable";
-        if (overallRisk?.code === "inconclusive" && reputationExpired) {
+        // Incomplete evidence must not be downgraded to "Likely safe" by a
+        // zero score calculated from only the checks that happened to run.
+        // Explicit transport failures and phishing indicators remain warnings.
+        const explicitTransportFailure = data.https_valid === false
+            || (Array.isArray(data.risk_breakdown) && data.risk_breakdown.some(item => item
+                && (item.category === "transport" || ["HTTPS Validation Failed", "HTTP Connection", "HTTPS Downgrade Redirect"].includes(item.name))))
+            || (Array.isArray(data.security_checks) && data.security_checks.some(item => item
+                && item.name === "HTTPS certificate" && String(item.status || "").toLowerCase() === "failed"));
+        if (overallRisk?.code === "inconclusive" && explicitTransportFailure) {
+            return { ...deterministicVerdicts.transport_warning, action: overallRisk.action };
+        }
+        if (overallRisk?.code === "inconclusive") {
             return { ...deterministicVerdicts.inconclusive, action: overallRisk.action };
         }
 
@@ -6620,7 +6631,8 @@
 
             const expiredThreat = data.live_reputation?.status === "threat"
                 && getCurrentReputationStatus(data) === "unavailable";
-            const rawScore = expiredThreat ? null : data.analysis_score;
+            const evidenceIncomplete = getCurrentOverallRisk(data)?.code === "inconclusive";
+            const rawScore = expiredThreat || evidenceIncomplete ? null : data.analysis_score;
 
             const hasScore = typeof rawScore === "number" && Number.isFinite(rawScore) && rawScore >= 0 && rawScore <= 100;
 
