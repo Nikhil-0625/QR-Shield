@@ -828,3 +828,7 @@ body[data-page=generate] .qr-image,
 #camera-preview, #scanner-video, video {
  background:#000000 !important; filter:none !important; opacity:1 !important;
 }
+
+/* Clear, compact domain-registration detail in the external-link confirmation. */
+.link-warning-registration-details { grid-column:2; margin:0 0 8px!important; color:var(--muted); font-size:12px!important; line-height:1.5; overflow-wrap:anywhere; }
+@media(max-width:480px){ .link-warning-registration-details{grid-column:1/-1;margin-top:0!important;} }

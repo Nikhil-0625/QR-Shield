@@ -183,7 +183,8 @@ window.QRShieldModal = (() => {
             || data.overall_risk?.code === "known_dangerous";
         const label = reputationThreat || data.risk_label === "unsafe" || ["High", "Critical"].includes(riskLevel)
             ? "unsafe" : data.risk_label === "suspicious" || ["Moderate", "Elevated"].includes(riskLevel)
-                ? "suspicious" : ["safe", "unverified"].includes(data.risk_label) ? data.risk_label : "unavailable";
+                ? "suspicious" : data.risk_label === "safe" || riskLevel === "Low" ? "safe"
+                    : data.risk_label === "unverified" ? "unverified" : "unavailable";
         const findings = Array.isArray(data.risk_breakdown)
             ? data.risk_breakdown.filter(item => item && typeof item.name === "string").map(item => ({ name: item.name, reason: typeof item.reason === "string" ? item.reason : "", points: typeof item.points === "number" && Number.isFinite(item.points) ? item.points : null })) : [];
         const checks = Array.isArray(data.security_checks)
@@ -191,14 +192,28 @@ window.QRShieldModal = (() => {
                 name: item.name, status: typeof item.status === "string" ? item.status : "unavailable",
                 detail: typeof item.detail === "string" ? item.detail : ""
             })) : [];
-        const incomplete = label === "unavailable" || score === null || !Array.isArray(data.risk_breakdown) ||
-            data.domain_age_days === null || data.domain_age_days === undefined ||
-            (url.protocol === "https:" && typeof data.https_valid !== "boolean") ||
-            data.ml_phishing_probability === null || data.ml_phishing_probability === undefined ||
-            (Array.isArray(data.unavailable_checks) && data.unavailable_checks.length > 0) ||
-            checks.some(item => ["unavailable", "blocked", "not_checked", "disabled"].includes(item.status.toLowerCase()));
-        result = { href: url.href, host: url.hostname, domain: typeof data.registered_domain === "string" ? data.registered_domain : "Unavailable",
-            label, score, riskLevel, findings, checks, incomplete, reputationThreat,
+        const registration = data.domain_registration && typeof data.domain_registration === "object"
+            ? data.domain_registration
+            : data.score_explanation?.domain_registration && typeof data.score_explanation.domain_registration === "object"
+                ? data.score_explanation.domain_registration : {};
+        const registrationStatus = String(registration.status || data.domain_registration_status || "").toLowerCase();
+        const registrationDomain = registration.registered_domain || data.registered_domain || "Unavailable";
+        const registrationParts = [];
+        if (registration.registrar) registrationParts.push("Registrar: " + registration.registrar);
+        if (registration.registration_date) registrationParts.push("Registered: " + registration.registration_date);
+        const age = registration.domain_age_days ?? data.domain_age_days;
+        if (age !== null && age !== undefined && Number.isFinite(Number(age))) registrationParts.push("Domain age: " + Number(age) + " days");
+        if (registration.expiration_date) registrationParts.push("Expires: " + registration.expiration_date);
+        const registrationSummary = registrationParts.join(" · ");
+        const unavailable = Array.isArray(data.unavailable_checks) ? data.unavailable_checks : [];
+        const meaningfulUnavailable = unavailable.filter(item => !/experimental\s*ml|machine learning|domain registration|rdap/i.test(String(item)));
+        const explicitIncomplete = meaningfulUnavailable.length > 0 || checks.some(item =>
+            ["unavailable", "blocked", "not_checked", "disabled"].includes(item.status.toLowerCase()) &&
+            !/machine learning|domain registration|rdap/i.test(item.name));
+        // Missing experimental ML or RDAP data is a limitation, not a risk signal.
+        const incomplete = explicitIncomplete;
+        result = { href: url.href, host: url.hostname, domain: registrationDomain,
+            registrationSummary, registrationStatus, label, score, riskLevel, findings, checks, incomplete, reputationThreat,
             humanVerdict: window.getHumanVerdict?.(data, true)?.title || "Can't tell" };
         openButton.disabled = false;
     }
@@ -220,8 +235,8 @@ const safeVerdict = [
 const needsWarning =
     high ||
     caution ||
-    result.incomplete ||
-    (!safeVerdict && result.humanVerdict !== "Can't tell");
+    (result.incomplete && result.label === "unavailable" && result.score === null) ||
+    (!safeVerdict && result.humanVerdict !== "Can't tell" && result.label !== "safe" && result.label !== "unverified");
         const tone = high ? "danger" : needsWarning ? "warning" : "low";
         dialog.dataset.tone = tone;
         dialog.dataset.danger = String(needsWarning);
@@ -238,6 +253,14 @@ const needsWarning =
         byId("link-warning-url").textContent = result.href;
         byId("link-warning-host").textContent = result.host;
         byId("link-warning-domain").textContent = result.domain;
+        const registrationDetails = byId("link-warning-registration-details");
+        if (registrationDetails) {
+            registrationDetails.textContent = result.registrationSummary ||
+                (result.registrationStatus === "available" || result.registrationStatus === "performed"
+                    ? "Registration lookup completed; some details were not provided."
+                    : "Registration information unavailable. This alone does not indicate a threat.");
+            registrationDetails.hidden = false;
+        }
         const mismatch = result.findings.some(finding => finding.name === "Possible Brand Impersonation");
         byId("link-warning-domain").classList.toggle("domain-mismatch", mismatch);
         const brandNote = byId("link-warning-brand-note");
@@ -281,7 +304,7 @@ const needsWarning =
         }
         if (!result.findings.length) {
             const item = document.createElement("li");
-            item.textContent = result.incomplete ? "Rule-based findings are unavailable or no indicators were reported." : "No rule-based indicators reported by the completed checks.";
+            item.textContent = result.incomplete ? "No risk indicators were reported by the completed checks; some checks were unavailable." : "No risk indicators reported by the completed checks.";
             list.appendChild(item);
             const explanation = document.createElement("p");
             explanation.textContent = "No rule-based indicator explanations were provided by this scan. Missing checks have not passed.";

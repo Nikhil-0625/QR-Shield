@@ -14,7 +14,7 @@ async function runLinkWarningChecks() {
         check(id("link-warning-overlay").hidden, "Modal close animation did not finish");
     };
     const warningMessage = "You are about to leave QR Shield and visit a site flagged as potentially dangerous. Are you sure you want to proceed?";
-    const incompleteMessage = "Some security checks could not be completed. QR Shield cannot verify this destination; review the URL and check details before continuing.";
+    const incompleteMessage = "Some checks were unavailable. No risk signal was reported by the completed checks; unavailable checks are not treated as passed. Review details if you need more certainty.";
     const opened = [];
     let proceedClickActive = false;
     let synchronousOpening = true;
@@ -40,11 +40,14 @@ async function runLinkWarningChecks() {
         risk_breakdown: [{ name: "Synthetic test indicator", reason: "Synthetic fixture, not a real website verdict." }] };
     window.__linkWarningFixtures = { base, suspicious, high, incomplete: { ...base, risk_label: null, risk_score: null } };
     const cases = [[base, "Confirm destination", "low"], [suspicious, "Security Warning", "warning"],
-        [high, "Security Warning", "danger"], [{ ...base, risk_label: null, risk_score: null }, "Security Warning", "warning"],
-        [{ ...base, domain_age_days: null }, "Security Warning", "warning"],
-        [{ ...base, risk_score: -1 }, "Security Warning", "warning"],
+        [high, "Security Warning", "danger"], [{ ...base, risk_label: null, risk_score: null }, "Confirm destination", "low"],
+        [{ ...base, domain_age_days: null }, "Confirm destination", "low"],
+        [{ ...base, risk_score: -1 }, "Confirm destination", "low"],
         [{ ...base, risk_score: 30, ml_phishing_probability: 100 }, "Security Warning", "warning"],
-        [{ ...base, ml_phishing_probability: null }, "Security Warning", "warning"]];
+        [{ ...base, ml_phishing_probability: null }, "Confirm destination", "low"],
+        [{ ...base, analysis_score: 0, analysis_score_status: "available", analysis_risk_level: "Low",
+            risk_label: null, risk_score: null, ml_phishing_probability: null, domain_age_days: null,
+            domain_registration: { status: "available", registrar: "Example Registrar", registration_date: "2020-01-01", domain_age_days: 2150, expiration_date: "2030-01-01", registered_domain: "wikipedia.org" } }, "Confirm destination", "low"]];
     for (const [data, title, tone] of cases) {
         showResults(data);
         check(opened.length === 0, "Automatic navigation after scan");
@@ -57,23 +60,23 @@ async function runLinkWarningChecks() {
         check(id("link-warning-dialog").dataset.tone === tone, "Wrong warning tone");
         check(id("link-warning-title").textContent === title, "Wrong warning title");
         check(id("link-warning-dialog").dataset.danger === String(tone !== "low"), "Danger state missing");
-        if (tone !== "low") check(id("link-warning-message").textContent ===
-            ((data.risk_label === "suspicious" || data.risk_label === "unsafe" || data.risk_breakdown?.length ||
-                (Number.isFinite(data.analysis_score ?? data.risk_score) && (data.analysis_score ?? data.risk_score) >= 20))
-                ? warningMessage : incompleteMessage), "Required security warning changed for " + JSON.stringify({
+        if (tone !== "low") check(id("link-warning-message").textContent === warningMessage,
+            "Required threat warning changed for " + JSON.stringify({
                     label: data.risk_label, score: data.analysis_score ?? data.risk_score,
                     findings: data.risk_breakdown?.length, message: id("link-warning-message").textContent
                 }));
         check(document.activeElement === id("link-warning-cancel"), "Safer option not focused");
         check(id("link-warning-url").textContent === new URL(data.final_url).href, "Shown URL differs from destination");
         check(id("link-warning-host").textContent === new URL(data.final_url).hostname, "Wrong actual hostname");
-        check(id("link-warning-domain").textContent === data.registered_domain, "Registered domain changed");
+        check(id("link-warning-domain").textContent === (data.domain_registration?.registered_domain || data.registered_domain), "Registered domain changed");
+        if (data.domain_registration?.registrar) check(id("link-warning-registration-details").textContent.includes(data.domain_registration.registrar), "RDAP registrar not shown");
         check(id("link-warning-limitations").textContent.includes("uncalibrated"), "ML limitation missing");
         check(document.body.style.position === "fixed" && document.documentElement.classList.contains("qr-modal-active"), "Underlying page not scroll-locked");
         check([...document.body.children].filter(element => element !== id("link-warning-overlay")).every(element => element.inert), "Underlying content remains interactive");
         check(id("link-warning-cancel").textContent === "Back to safety", "Safer label incorrect");
         const expectedAction = tone === "low" ? "Proceed" : "Proceed anyway";
         check(id("link-warning-continue").textContent === expectedAction, "Continuation label incorrect");
+        if (tone === "low") check(id("link-warning-title").textContent !== "Security Warning", "Missing optional data triggered a false warning");
         check(document.querySelector('.link-warning-score-help').textContent.includes("not a verified probability of fraud"), "Score explanation missing");
         const technical = id("link-warning-technical");
         check(!technical.open, "Technical details not initially collapsed");
