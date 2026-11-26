@@ -2851,6 +2851,101 @@
 <link rel="apple-touch-icon" href="./icons/qr-shield-192.png">
 <script src="./bg-network.js" defer></script>
 <script src="./pwa.js" defer></script>
+
+<style id="qr-premium-result-dashboard">
+/* QR Shield premium results dashboard refresh */
+.results-card{max-width:1120px!important;padding:26px!important;border-radius:28px!important;background:linear-gradient(145deg,#f8faff 0%,#f2f5ff 55%,#f7f3ff 100%)!important;border:1px solid #e4e9f5!important;box-shadow:0 24px 70px rgba(34,48,88,.15)!important;color:#18233b!important}
+.results-card .verdict-banner{background:linear-gradient(120deg,#111b36 0%,#202f57 54%,#3b3478 100%)!important;color:#f8fbff!important;border:1px solid rgba(255,255,255,.1)!important;border-radius:24px!important;padding:28px 30px!important;box-shadow:0 16px 36px rgba(18,29,58,.2)!important;min-height:155px}
+.results-card .verdict-banner:before{content:"";position:absolute;inset:auto -100px -150px auto;width:340px;height:340px;border-radius:50%;background:radial-gradient(circle,rgba(117,146,255,.32),transparent 68%);pointer-events:none}
+.results-card .verdict-copy{position:relative;z-index:1}.results-card .verdict-title{font-size:25px!important;font-weight:800!important;letter-spacing:-.4px}.results-card .verdict-explanation{font-size:14px!important;color:#d7e1fa!important;max-width:680px}.results-card .verdict-footnote{color:#c7d4f2!important}
+.results-card .verdict-icon{width:56px!important;height:56px!important;border-radius:18px!important;background:rgba(255,255,255,.12)!important;border:1px solid rgba(255,255,255,.16)!important;color:#fff!important}
+.results-card .risk-panel{padding:24px!important;border-radius:24px!important;background:linear-gradient(135deg,#fff 0%,#f4f7ff 100%)!important;border:1px solid #e1e8f7!important;box-shadow:0 12px 28px rgba(54,74,126,.08)!important;position:relative;overflow:hidden}
+.results-card .risk-heading{font-size:15px!important;color:#52617d!important}.results-card .risk-score{font-size:52px!important;color:#14213c!important;letter-spacing:-2px}.results-card .risk-out-of{font-size:16px!important;color:#75829a!important}.results-card .risk-badge{border-radius:999px!important;padding:8px 14px!important;font-size:12px!important;font-weight:800!important;letter-spacing:.04em!important;text-transform:uppercase}.results-card .risk-track{height:12px!important;border-radius:99px!important;background:#e7edf8!important;overflow:hidden;margin:18px 0 12px!important}.results-card .risk-fill{border-radius:99px!important;box-shadow:0 0 14px currentColor!important}.results-card .risk-meta{padding-top:12px;border-top:1px solid #e8edf7;color:#64718b!important}.results-card .assessment-evidence,.results-card .risk-panel>p{color:#65738c!important;line-height:1.65!important}
+.results-card .result-summary-chips{display:flex;flex-wrap:wrap;gap:9px;margin:8px 0 16px}.results-card .result-summary-chip{border:1px solid #dbe5f4!important;border-radius:999px!important;padding:8px 12px!important;background:#fff!important;color:#52617a!important;font-size:12px!important;font-weight:700!important;box-shadow:0 3px 9px rgba(43,63,105,.04)}
+.results-card .result-destination-card{display:flex!important;flex-direction:column!important;gap:7px!important;padding:14px 16px!important;border:1px solid #dce5f4!important;border-radius:16px!important;background:rgba(255,255,255,.88)!important;margin:0 0 18px!important}.results-card .result-destination-label{font-size:11px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.12em!important;color:#72809b!important}.results-card .result-destination-card code{font-size:14px!important;line-height:1.6!important;color:#243451!important;overflow-wrap:anywhere}
+.results-card .simple-security-summary,.results-card .result-technical-details{border:1px solid #e0e7f3!important;border-radius:22px!important;background:#fff!important;padding:22px!important;box-shadow:0 12px 25px rgba(40,58,100,.06)!important;margin:0 0 18px!important}.results-card .simple-security-summary h3{font-size:17px!important;font-weight:800!important;color:#24324e!important}.results-card .simple-security-checks{margin-top:14px!important}.results-card .simple-security-check{padding:14px 12px!important;margin:5px 0!important;border:1px solid #edf1f7!important;border-radius:14px!important;background:#f8faff!important;grid-template-columns:14px minmax(0,1fr) auto!important;gap:8px 10px!important}.results-card .simple-security-check strong{font-size:13px!important;color:#26344f!important}.results-card .simple-security-check span{font-size:12px!important;text-align:left!important}.results-card .simple-security-check-detail{font-size:12px!important;line-height:1.6!important;color:#6a7891!important}.results-card .result-check-icon{grid-column:1!important;grid-row:1!important;margin-top:2px!important}.results-card .simple-security-check strong{grid-column:2!important;grid-row:1!important}.results-card .simple-security-check>span:not(.result-check-icon){grid-column:3!important;grid-row:1!important;border-radius:999px;padding:4px 8px;background:#eef7f1;font-weight:700!important}.results-card .simple-security-check[data-state="warning"]>span:not(.result-check-icon),.results-card .simple-security-check[data-state="unavailable"]>span:not(.result-check-icon){background:#fff6df}.results-card .simple-security-check[data-state="threat"]>span:not(.result-check-icon),.results-card .simple-security-check[data-state="failed"]>span:not(.result-check-icon){background:#fff0f0}
+.results-card .result-technical-details summary{font-weight:800!important;color:#25344f!important;padding:8px 0!important}.results-card .result-technical-details p{color:#78859b!important}.results-card .result-technical-group{border:1px solid #edf1f7!important;border-radius:13px!important;margin:9px 0!important;background:#f8faff!important}.results-card .result-technical-group-title{font-weight:750!important;color:#263550!important}.results-card .result-technical-group-content{padding:12px!important}
+.results-card .results-actions{gap:10px!important;margin-top:18px!important}.results-card .results-actions-main button{border-radius:13px!important;min-height:48px!important;font-weight:750!important}.results-card .results-actions-tools .report-btn{border-radius:12px!important;background:#fff!important;border:1px solid #dfe7f3!important;color:#405170!important}
+@media(min-width:900px){.results-card #result-rows{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;align-items:start}.results-card #result-rows>.risk-panel,.results-card #result-rows>.result-summary-chips,.results-card #result-rows>.result-destination-card,.results-card #result-rows>.simple-result-copy,.results-card #result-rows>.result-technical-details{grid-column:1/-1}.results-card #result-rows>.simple-security-summary{grid-column:1}.results-card #result-rows>.result-technical-details{grid-column:2;grid-row:span 2}.results-card #result-rows>.risk-panel{margin-bottom:0}.results-card #result-rows>.simple-security-summary{margin-bottom:0}}
+@media(max-width:700px){.results-card{padding:14px!important;border-radius:20px!important}.results-card .verdict-banner{padding:20px!important;border-radius:18px!important;gap:12px!important}.results-card .verdict-title{font-size:21px!important}.results-card .risk-panel{padding:18px!important}.results-card .risk-score{font-size:42px!important}.results-card .simple-security-summary,.results-card .result-technical-details{padding:16px!important;border-radius:17px!important}.results-card .simple-security-check{grid-template-columns:14px minmax(0,1fr)!important}.results-card .simple-security-check strong{grid-column:2!important}.results-card .simple-security-check>span:not(.result-check-icon){grid-column:2!important;grid-row:2!important;justify-self:start!important}.results-card .simple-security-check-detail{grid-column:2!important}.results-card .result-destination-card code{font-size:12px!important}}
+
+/* User-focused polish pass for QR Shield result dashboard */
+.results-card{max-width:1180px!important;padding:clamp(18px,2.6vw,32px)!important;background:linear-gradient(155deg,#f7f9ff 0%,#f2f5fc 52%,#f8f5ff 100%)!important;border-radius:30px!important;box-shadow:0 26px 75px rgba(24,38,73,.17)!important}
+.results-card .verdict-banner{min-height:178px!important;padding:clamp(22px,3vw,34px)!important;gap:20px!important;border-radius:26px!important;background:radial-gradient(circle at 88% 15%,rgba(110,142,255,.26),transparent 28%),linear-gradient(120deg,#111b35 0%,#1c2b50 55%,#34336f 100%)!important;box-shadow:0 18px 42px rgba(21,31,62,.23)!important}
+.results-card .verdict-banner::after{width:260px!important;height:260px!important;top:-120px!important;right:-90px!important;background:rgba(255,255,255,.055)!important;box-shadow:0 0 0 28px rgba(255,255,255,.025),0 0 0 58px rgba(255,255,255,.018)!important}
+.results-card .verdict-icon{width:68px!important;height:68px!important;flex-basis:68px!important;border-radius:22px!important;background:rgba(255,255,255,.13)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.25)!important}
+.results-card .verdict-title{font-size:clamp(22px,2.3vw,30px)!important;letter-spacing:-.65px!important;line-height:1.2!important}
+.results-card .verdict-explanation{font-size:14px!important;max-width:720px!important;line-height:1.7!important;color:#e2e9ff!important}
+.results-card .risk-panel{border-radius:25px!important;padding:clamp(20px,2.8vw,28px)!important;background:linear-gradient(145deg,#fff 0%,#f7f9ff 100%)!important;box-shadow:0 13px 30px rgba(39,57,99,.075)!important}
+.results-card .risk-heading{font-size:15px!important;letter-spacing:.01em!important}
+.results-card .risk-score-wrap{gap:7px!important}
+.results-card .risk-score{font-size:clamp(48px,5vw,62px)!important;letter-spacing:-2.5px!important}
+.results-card .risk-track{height:13px!important;margin-top:20px!important;box-shadow:inset 0 1px 2px rgba(28,43,77,.08)!important}
+.results-card .risk-fill{position:relative!important;box-shadow:0 0 13px rgba(90,111,190,.22)!important}
+.results-card .risk-meta{font-size:12.5px!important;line-height:1.6!important;gap:14px!important}
+.results-card .result-summary-chip{padding:9px 13px!important;box-shadow:0 5px 14px rgba(42,59,102,.055)!important;transition:transform .18s ease,box-shadow .18s ease!important}
+.results-card .result-summary-chip:hover{transform:translateY(-2px)!important;box-shadow:0 8px 18px rgba(42,59,102,.09)!important}
+.results-card .result-destination-card{position:relative!important;padding:17px 19px!important;border-radius:18px!important;box-shadow:0 8px 20px rgba(42,59,102,.045)!important}
+.results-card .result-destination-label{display:flex!important;align-items:center;gap:7px!important;color:#61718d!important}
+.results-card .result-destination-card code{font-weight:650!important}
+.results-card .simple-security-summary,.results-card .result-technical-details{border-radius:24px!important;box-shadow:0 14px 32px rgba(36,53,93,.075)!important;padding:clamp(18px,2.4vw,25px)!important}
+.results-card .simple-security-summary h3{display:flex!important;align-items:center;gap:9px!important;letter-spacing:-.25px!important}
+.results-card .simple-security-check{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease!important;background:linear-gradient(180deg,#fbfcff,#f7f9fd)!important}
+.results-card .simple-security-check:hover{transform:translateY(-1px)!important;border-color:#dce5f5!important;box-shadow:0 5px 13px rgba(42,59,102,.05)!important}
+.results-card .simple-security-check[data-state="threat"],.results-card .simple-security-check[data-state="failed"]{border-color:#f3d3d3!important;background:linear-gradient(180deg,#fffafa,#fff5f5)!important}
+.results-card .simple-security-check[data-state="warning"]{border-color:#f0dfb4!important;background:linear-gradient(180deg,#fffdf8,#fff9eb)!important}
+.results-card .result-technical-details summary{display:flex!important;align-items:center;gap:9px!important;min-height:42px!important;cursor:pointer!important}
+.results-card .result-technical-details summary:hover{color:#5140a0!important}
+.results-card .results-actions{align-items:stretch!important;flex-wrap:wrap!important;margin-top:24px!important}
+.results-card .results-actions-main{display:flex!important;flex:1 1 440px!important;gap:12px!important}
+.results-card .results-actions-main button{min-height:52px!important;box-shadow:0 7px 16px rgba(62,78,134,.09)!important;transition:transform .18s ease,box-shadow .18s ease!important}
+.results-card .results-actions-main button:hover:not(:disabled){transform:translateY(-2px)!important;box-shadow:0 10px 22px rgba(62,78,134,.14)!important}
+.results-card #open-link-btn{border:1px solid #e1b2b2!important;background:#fff!important;color:#9c3c3c!important;box-shadow:none!important}
+.results-card #open-link-btn:hover:not(:disabled){background:#fff5f5!important}
+.results-card #scan-again-btn,.results-card .scan-again-btn{background:linear-gradient(115deg,#526fe8,#7651c7)!important}
+.results-card .results-actions-tools{display:flex!important;gap:9px!important}
+.results-card .results-actions-tools .report-btn{width:50px!important;min-width:50px!important;min-height:50px!important;display:flex!important;align-items:center!important;justify-content:center!important;box-shadow:0 5px 14px rgba(42,59,102,.05)!important}
+.results-card .results-actions-tools .report-btn:hover:not(:disabled){background:#f5f7ff!important;transform:translateY(-1px)!important}
+.results-card .link-open-status,.results-card .report-status{font-size:12.5px!important;line-height:1.5!important}
+@media(max-width:899px){.results-card #result-rows{display:flex!important;flex-direction:column!important}.results-card #result-rows>*{width:100%!important;box-sizing:border-box!important}}
+@media(max-width:600px){.results-card{padding:12px!important;border-radius:20px!important}.results-card .verdict-banner{min-height:0!important;padding:19px!important;gap:12px!important}.results-card .verdict-icon{width:52px!important;height:52px!important;flex-basis:52px!important;border-radius:17px!important}.results-card .verdict-title{font-size:20px!important}.results-card .verdict-explanation{font-size:12.5px!important}.results-card .risk-score{font-size:44px!important}.results-card .results-actions-main{flex-direction:column!important;flex-basis:100%!important}.results-card .results-actions-tools{justify-content:flex-end!important;width:100%!important}.results-card .results-actions-tools .report-btn{width:46px!important;min-width:46px!important;min-height:46px!important}.results-card .result-summary-chips{gap:7px!important}.results-card .result-summary-chip{font-size:11px!important;padding:7px 10px!important}}
+@media(prefers-reduced-motion:reduce){.results-card *{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
+
+
+/* Premium polish v5 */
+/* QR Shield Premium Result polish v5 — visual-only overrides */
+:root { --qr-accent:#6657d9; --qr-accent2:#8a72ee; --qr-ink:#15233d; --qr-muted:#65738b; }
+.results-card { background:linear-gradient(180deg,#fff 0%,#fcfbff 100%); border:1px solid #e7e5f4; border-radius:24px; box-shadow:0 18px 45px rgba(54,47,104,.075),0 2px 8px rgba(54,47,104,.035); padding:clamp(20px,3vw,32px); }
+.verdict-banner { border-radius:20px; box-shadow:0 10px 24px rgba(73,60,147,.09); min-height:118px; padding:24px 26px; position:relative; overflow:hidden; }
+.verdict-safe { background:linear-gradient(120deg,#effaf5 0%,#f7fffb 58%,#f0f8ff 100%); border-color:#d4eee0; }
+.verdict-review,.verdict-suspicious { background:linear-gradient(120deg,#fff8ed 0%,#fffdf7 60%,#f9f5ff 100%); border-color:#f4dfbd; }
+.verdict-dangerous { background:linear-gradient(120deg,#fff0f0 0%,#fff9f9 60%,#fff4f1 100%); border-color:#f1d3d2; }
+.verdict-neutral { background:linear-gradient(120deg,#f1f5ff 0%,#fbfaff 60%,#f4f7ff 100%); border-color:#dce4fa; }
+.verdict-icon { border-radius:17px; box-shadow:0 5px 14px rgba(32,52,86,.06); }
+.verdict-title { font-size:clamp(20px,2.2vw,25px); letter-spacing:-.45px; font-weight:800; }
+.verdict-explanation { line-height:1.65; font-size:13px; max-width:780px; }
+.risk-panel { border:1px solid #e6e3f5; background:linear-gradient(145deg,#faf9ff,#f3f5ff); border-radius:18px; box-shadow:inset 0 1px 0 rgba(255,255,255,.85); }
+.risk-heading { font-size:14px; font-weight:750; letter-spacing:-.2px; }
+.risk-score { font-size:clamp(38px,4vw,46px); font-weight:850; letter-spacing:-1.6px; }
+.risk-track { height:10px; border-radius:999px; overflow:hidden; }
+.risk-track > * { border-radius:999px; }
+.risk-explanation,.result-section { border:1px solid #e8e7f3; border-radius:18px; box-shadow:0 5px 18px rgba(46,50,91,.035); transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease; }
+.result-section:hover { transform:translateY(-1px); border-color:#d9d4f2; box-shadow:0 9px 22px rgba(65,54,129,.06); }
+.result-section h3 { display:flex; align-items:center; gap:9px; font-weight:800; letter-spacing:-.25px; }
+.result-row { border-radius:12px; transition:background .15s ease; }
+.result-row:hover { background:#faf9ff; }
+.status-badge { border-radius:999px; font-weight:750; letter-spacing:.1px; padding:5px 9px; }
+.summary-panel { border-radius:14px; border-left-width:3px; }
+.redirect-details { border-radius:14px; }
+.scan-again-btn,.report-btn { min-height:44px; border-radius:12px; font-weight:750; transition:transform .16s ease,box-shadow .16s ease,background .16s ease; }
+.scan-again-btn { box-shadow:0 6px 14px rgba(48,68,130,.16); }
+.scan-again-btn:hover,.report-btn:hover:not(:disabled) { transform:translateY(-1px); }
+.mode-btn { border-radius:10px; }
+@media(max-width:700px){ .results-card{padding:16px;border-radius:19px}.verdict-banner{padding:18px;border-radius:17px;min-height:auto}.verdict-title{font-size:19px}.result-section{border-radius:16px}.scan-again-btn,.report-btn{width:100%;min-height:46px} }
+@media(prefers-reduced-motion:reduce){.result-section,.scan-again-btn,.report-btn{transition:none!important}.result-section:hover,.scan-again-btn:hover,.report-btn:hover{transform:none!important}}
+
+</style>
+
 </head>
 
 <body class="scanner-page" data-page="scan">
