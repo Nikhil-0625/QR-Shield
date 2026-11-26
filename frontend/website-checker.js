@@ -568,6 +568,18 @@
             expiryTimer = setTimeout(() => { if (request === sequence) render(data, false); }, Math.min(2147483647, Math.max(0, expires - Date.now()) + 25));
         }
         results.scrollIntoView({ block: 'start' });
+        // Redirect only for a newly completed analysis; expiry refreshes render in-place.
+        if (focus) {
+            try {
+                sessionStorage.setItem('qrShield:lastAnalysisResult:v1', JSON.stringify({
+                    type: 'website', data, createdAt: new Date().toISOString()
+                }));
+                location.assign('result.html');
+            } catch (error) {
+                console.error('Could not transfer website analysis to the result page:', error);
+                message('Analysis completed, but this browser could not store the result for the dedicated page. The report remains visible here.', true);
+            }
+        }
     }
     function validResponse(data) {
         return data && data.status === 'success' && typeof data.normalized_url === 'string' && typeof data.explanation === 'string' && typeof data.recommended_action === 'string' &&

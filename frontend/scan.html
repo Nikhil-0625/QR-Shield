@@ -7560,6 +7560,19 @@
         resultsCard.insertBefore(summaryChips, viewToggle);
         resultsCard.insertBefore(destinationCard, viewToggle);
 
+        // Hand the complete, unmodified backend analysis to the dedicated result page.
+        try {
+            sessionStorage.setItem('qrShield:lastAnalysisResult:v1', JSON.stringify({
+                type: 'qr', data, createdAt: new Date().toISOString()
+            }));
+            window.location.assign('result.html');
+        } catch (error) {
+            console.error('Could not transfer QR analysis to the result page:', error);
+            resultsCard.style.display = 'block';
+            analysisError.textContent = 'The result page could not be opened because this browser could not store the analysis. Your result remains available here.';
+            analysisError.style.display = 'block';
+        }
+
     }
 
 
