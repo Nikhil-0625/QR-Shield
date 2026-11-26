@@ -1,7 +1,7 @@
 'use strict';
 
 const CACHE_PREFIX = 'qr-shield-static-';
-const CACHE_NAME = CACHE_PREFIX + 'v3';
+const CACHE_NAME = CACHE_PREFIX + 'v2';
 const OFFLINE_URL = new URL('./offline.html', self.location.href).href;
 const PRECACHE_URLS = [
     OFFLINE_URL,
@@ -10,10 +10,7 @@ const PRECACHE_URLS = [
     new URL('./icons/qr-shield-192.png', self.location.href).href,
     new URL('./icons/qr-shield-512.png', self.location.href).href,
     new URL('./icons/qr-shield-maskable-192.png', self.location.href).href,
-    new URL('./icons/qr-shield-maskable-512.png', self.location.href).href,
-    new URL('./result.html', self.location.href).href,
-    new URL('./result.css', self.location.href).href,
-    new URL('./result.js', self.location.href).href
+    new URL('./icons/qr-shield-maskable-512.png', self.location.href).href
 ];
 const STATIC_ASSET_PATTERN = /\.(?:css|js|png|svg|ico|woff2?)$/i;
 
